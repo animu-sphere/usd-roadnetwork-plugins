@@ -6,7 +6,7 @@ they are not current-state contracts.
 
 | Document | Contents |
 | --- | --- |
-| — | No reports yet. The first is the FMT-01 OpenDRIVE format spike. |
+| [format-spike-opendrive-2026-11-22.md](format-spike-opendrive-2026-11-22.md) | FMT-01: OpenDRIVE versions 1.4–1.9 and their recognition, specification licensing, coordinates and georeference, the elements Phase 1 needs, XML parsers, existing libraries, and fixtures. |
 
 Name format spikes `format-spike-<format>-<yyyy-mm-dd>.md`. A spike covers the
 items in [design policy §4.1](../design/DESIGN_POLICY.md#41-format-acceptance-prerequisites).

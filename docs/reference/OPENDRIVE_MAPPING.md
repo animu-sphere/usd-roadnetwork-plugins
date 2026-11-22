@@ -8,13 +8,14 @@
 This will be the normative mapping for the `roadnetwork-opendrive` bundle: how
 each ASAM OpenDRIVE element becomes `RoadNetworkData` and which USD values the
 shared writer authors from it. Element names below follow the OpenDRIVE XML
-schema; the FMT-01 spike confirms them per specification version.
+schema; the [FMT-01 spike](../reports/format-spike-opendrive-2026-11-22.md#34-differences-that-touch-the-phase-1-elements)
+records the differences between versions that touch the Phase 1 elements.
 
 ## 1. Versions and detection
 
 | Item | Decision |
 | --- | --- |
-| Specification versions in scope | open — FMT-01 |
+| Specification versions in scope | `revMajor="1"`, `revMinor` 4–9, per the [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy); not implemented |
 | Version source | `<header revMajor revMinor>` |
 | Unsupported version | error, code assigned under ADR 0006 |
 | `CanRead()` signature | `.xodr` extension and an `<OpenDRIVE>` root element; no body parsing ([design policy §10.2](../design/DESIGN_POLICY.md#102-canread-is-a-cheap-routing-decision)) |

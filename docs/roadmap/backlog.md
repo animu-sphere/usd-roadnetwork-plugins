@@ -22,6 +22,10 @@ for the next decision and the evidence needed to revisit it.
 | Road marks | `usd-roadnetwork-plugins` | Phase 2 is scheduled. | [OpenDRIVE mapping §5](../reference/OPENDRIVE_MAPPING.md#5-lanes) |
 | Objects (guardrails, obstacles) | `usd-roadnetwork-plugins` | Phase 2 is scheduled. | [OpenDRIVE mapping §7](../reference/OPENDRIVE_MAPPING.md#7-signals-and-objects) |
 | Surface meshes | `usd-roadnetwork-plugins` | ADR 0007 decides where generated surfaces live. | [ADR 0007](../adr/0007-geometry-lod-payload-boundary.md) |
+| `direct` and `virtual` junctions | `usd-roadnetwork-plugins` | Phase 2 is scheduled and ADR 0001 can represent their connectivity. Phase 1 rejects them. | [FMT-01 spike §3.4](../reports/format-spike-opendrive-2026-11-22.md#34-differences-that-touch-the-phase-1-elements) |
+| Lane `<border>` | `usd-roadnetwork-plugins` | Phase 2 is scheduled. Phase 1 rejects it. | [FMT-01 spike §3.4](../reports/format-spike-opendrive-2026-11-22.md#34-differences-that-touch-the-phase-1-elements) |
+| 1.9.0 lane layers and roadworks | `usd-roadnetwork-plugins` | A fixture that uses them is available and Phase 2 is scheduled. Phase 1 rejects them. | [FMT-01 spike §3.4](../reports/format-spike-opendrive-2026-11-22.md#34-differences-that-touch-the-phase-1-elements) |
+| Compressed `.xodrz` | `usd-roadnetwork-plugins` | A user needs it and its container is documented; FMT-01 did not examine it. | [FMT-01 spike §10](../reports/format-spike-opendrive-2026-11-22.md#10-not-examined) |
 
 ## Performance and loading
 
