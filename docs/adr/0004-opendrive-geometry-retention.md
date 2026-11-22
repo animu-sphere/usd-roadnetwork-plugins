@@ -4,7 +4,7 @@
 - **Scope:** how OpenDRIVE plan-view geometry, profiles, and lane width
   functions are kept in `RoadNetworkData`, how they are evaluated, and how
   derived geometry is sampled
-- **Phase 1 owner:** GEO-01 ([release plan](../roadmap/release-plan.md#phase-1-workstreams))
+- **Phase 1 owner:** GEO-01 ([current work](../roadmap/current.md#active-work))
 
 ## Context
 

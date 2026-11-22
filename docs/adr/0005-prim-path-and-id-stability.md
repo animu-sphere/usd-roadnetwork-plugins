@@ -3,7 +3,7 @@
 - **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
 - **Scope:** how source IDs become prim paths and relationships, and how
   several road networks compose in one stage
-- **Phase 1 owner:** USD-01 ([release plan](../roadmap/release-plan.md#phase-1-workstreams))
+- **Phase 1 owner:** USD-01 ([current work](../roadmap/current.md#active-work))
 
 ## Context
 

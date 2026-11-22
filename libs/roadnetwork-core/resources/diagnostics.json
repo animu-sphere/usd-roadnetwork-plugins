@@ -3,5 +3,102 @@
     "prefix": "RN",
     "owner": "roadnetwork-core and roadnetwork-usd",
     "description": "Stable format-independent diagnostics raised by shared validation and USD authoring. Codes are <PREFIX>-<E|W><NNN>, never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[RN-W201] ...\". See docs/reference/DIAGNOSTICS.md.",
-    "diagnostics": []
+    "diagnostics": [
+        {
+            "code": "RN-E101",
+            "severity": "error",
+            "summary": "A road, junction, or junction connection has an empty ID.",
+            "action": "Give the element a non-empty ID in the source file."
+        },
+        {
+            "code": "RN-E102",
+            "severity": "error",
+            "summary": "A road or junction ID is not unique within its kind, or a connection ID is not unique within its junction.",
+            "action": "Rename one of the elements so that each ID is unique."
+        },
+        {
+            "code": "RN-E111",
+            "severity": "error",
+            "summary": "A road's predecessor or successor names a road or junction that does not exist.",
+            "action": "Correct the link target, or add the missing road or junction."
+        },
+        {
+            "code": "RN-E112",
+            "severity": "error",
+            "summary": "A road belongs to a junction that does not exist.",
+            "action": "Correct the road's junction ID, or add the junction."
+        },
+        {
+            "code": "RN-E113",
+            "severity": "error",
+            "summary": "A junction connection names an incoming or connecting road that does not exist.",
+            "action": "Correct the connection's road IDs, or add the missing road."
+        },
+        {
+            "code": "RN-E114",
+            "severity": "error",
+            "summary": "A junction connection's connecting road does not belong to that junction.",
+            "action": "Set the connecting road's junction to the junction that lists the connection."
+        },
+        {
+            "code": "RN-E115",
+            "severity": "error",
+            "summary": "A lane link names a lane that does not exist: an unknown road, a lane section index out of range, or a lane number the section does not have.",
+            "action": "Correct the lane link or the road link it is derived from."
+        },
+        {
+            "code": "RN-E121",
+            "severity": "error",
+            "summary": "A lane section does not have exactly one center lane.",
+            "action": "Give every lane section exactly one lane numbered 0."
+        },
+        {
+            "code": "RN-E122",
+            "severity": "error",
+            "summary": "The left lanes of a lane section are not numbered 1..n, or its right lanes -1..-m, without gaps or repeats.",
+            "action": "Renumber the lanes of the section outward from the center lane."
+        },
+        {
+            "code": "RN-E301",
+            "severity": "error",
+            "summary": "A numeric value is not finite (NaN or infinite).",
+            "action": "Replace the value with a finite number."
+        },
+        {
+            "code": "RN-E302",
+            "severity": "error",
+            "summary": "A road or plan-view segment length is not positive.",
+            "action": "Give the road and each plan-view segment a positive length."
+        },
+        {
+            "code": "RN-E303",
+            "severity": "error",
+            "summary": "The plan-view segments do not cover the road: the first does not start at s = 0, one does not start where the previous ends, or the last does not end at the road length (tolerance 1e-6 m).",
+            "action": "Correct the segment s values and lengths, or the road length."
+        },
+        {
+            "code": "RN-E304",
+            "severity": "error",
+            "summary": "A road has no lane section, its first lane section does not start at s = 0 (tolerance 1e-6 m), or the lane-section s values do not ascend strictly.",
+            "action": "Order the lane sections by strictly increasing s, starting at 0."
+        },
+        {
+            "code": "RN-E305",
+            "severity": "error",
+            "summary": "A plan-view segment starts more than 0.01 m from the end of the previous segment.",
+            "action": "Correct the segment's start position so that the reference line is continuous."
+        },
+        {
+            "code": "RN-E306",
+            "severity": "error",
+            "summary": "A plan-view segment starts with a heading more than 0.001 rad from the end heading of the previous segment.",
+            "action": "Correct the segment's start heading so that the reference line is tangent-continuous."
+        },
+        {
+            "code": "RN-E307",
+            "severity": "error",
+            "summary": "The records of an elevation, lane-offset, or lane-width profile do not ascend strictly in their start s.",
+            "action": "Order the records by strictly increasing s, and remove records that repeat an s value."
+        }
+    ]
 }

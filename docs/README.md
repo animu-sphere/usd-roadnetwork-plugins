@@ -1,8 +1,8 @@
 # USD Road Network Plugins documentation
 
-The project is in **Phase 0 (scaffold and ADRs)**. The workspace, an
-empty OpenDRIVE bundle, and skeleton core and USD libraries are in place, but
-no format is implemented yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
+The project is in **Phase 1 (OpenDRIVE vertical slice)**. The workspace, an
+empty OpenDRIVE bundle, the shared road-network model with its validation,
+and a skeleton USD library are in place, but no format is implemented yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
 
 Use the document that owns the question you are answering. Summaries should
 link to the source; once code exists, implementation and tests are the

@@ -33,6 +33,12 @@ semantic versioning for tagged releases.
   build and run the CTest suite of the workspace, and build, test (L0–L5),
   and package the OpenDRIVE bundle against OpenUSD 26.08. Changes to
   documentation alone do not build.
+- `roadnetwork-core` defines the `RoadNetworkData` model of ADR 0001: roads
+  with analytic reference lines, profiles, and lane sections; junctions and
+  connections; the canonical lane graph; and source provenance.
+  `Validate()` checks the model's identity, reference, lane-structure, and
+  numeric invariants and reports the first failure with a stable `RN-E1xx`
+  or `RN-E3xx` code. No decoder uses it yet, so imports are unchanged.
 
 ### Changed
 

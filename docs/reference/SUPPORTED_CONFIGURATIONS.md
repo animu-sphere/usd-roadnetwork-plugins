@@ -64,6 +64,6 @@ updated with a run link in the PR that proves it.
 
 ## OpenDRIVE input contract
 
-Not yet defined. The [FMT-01 spike](../roadmap/current.md#active-work)
+Not yet defined. The [FMT-01 spike](../reports/format-spike-opendrive-2026-11-22.md)
 establishes the specification versions in scope; the result is recorded in
 [OPENDRIVE_MAPPING.md](OPENDRIVE_MAPPING.md) and summarized here.
