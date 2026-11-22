@@ -2,7 +2,9 @@
 
 - **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
 - **Scope:** layer metadata, georeference provenance, and coordinate
-  conversion for every format
+  conversion for every format whose source coordinates are in a metric
+  frame, such as OpenDRIVE. A format whose coordinates are geodetic only
+  is outside this scope until its own ADR decides its projection (§2).
 - **Phase 1 owner:** USD-01, with ODR-02 for the header decoding
   ([current work](../roadmap/current.md#active-work))
 
@@ -51,9 +53,10 @@ The [ADR probes](../reports/adr-probes-2026-11-22.md) measured three things:
 - **B. Local frame with recorded origin.** Coordinates are expressed relative
   to a recorded origin to keep `float` precision. The origin and CRS are
   recorded, so the original values are reproducible.
-- **C. Reprojection to a fixed CRS.** Rejected for import. It requires a
-  projection library and makes the importer assert geodesy that it cannot
-  verify.
+- **C. Reprojection to a fixed CRS.** Rejected for import from a metric
+  source frame. It requires a projection library and makes the importer
+  assert geodesy that it cannot verify. A geodetic-only source has no
+  metric frame to keep, so this rejection does not decide its case (§2).
 
 ## Proposed decision
 
@@ -84,6 +87,15 @@ visualization points only. Never reproject during import.
 
 All coordinates are authored in the inertial frame of the file, as written.
 The header offset is not applied (§4), and nothing is reprojected.
+
+Some formats have no metric frame: Lanelet2 `.osm` nodes carry only WGS 84
+latitude and longitude
+([Lanelet2 mapping §6](../reports/adr-0001-lanelet2-mapping-2026-11-23.md#6-coordinates)).
+Authoring degrees as written would make `metersPerUnit = 1` false. Such a
+format needs a projection, and its own ADR decides it before the format is
+accepted: the projection, the choice and recording of the origin, and the
+loss it reports. That ADR may supersede this section for its format only.
+For every format in scope, this section is unchanged.
 
 ### 3. Georeference
 
@@ -180,6 +192,15 @@ Gathered in USD-01:
   built in code: the origin is the rounded center of the bounds, and every
   `float` point plus the origin is within 0.5 mm of the tessellator's
   `double` sample.
+
+Gathered in the [Lanelet2 paper mapping](../reports/adr-0001-lanelet2-mapping-2026-11-23.md#6-coordinates):
+
+- Lanelet2's `mapping_example.osm` has WGS 84 `lat` and `lon` on every node
+  and no metric frame, projection string, or origin. The scope said "every
+  format", and §2 would have left such a file nothing valid to author. The
+  maintainer chose on 2026-11-23 to narrow the scope and §2 to metric
+  source frames before acceptance, and to leave the projection of
+  geodetic-only formats to their own ADR.
 
 Needed before acceptance:
 
