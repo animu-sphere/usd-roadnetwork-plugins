@@ -3,8 +3,10 @@
 
 #include "openstrata/rn/RoadNetworkData.h"
 
+#include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace openstrata::rn {
 
@@ -12,6 +14,15 @@ namespace openstrata::rn {
 struct Diagnostic {
   std::string code;    ///< e.g. "RN-E101".
   std::string message; ///< Starts with the bracketed code: "[RN-E101] ...".
+};
+
+/// A warning raised by shared validation: one per code, with the number of
+/// affected elements and, in the message, the first five of them (ADR 0006
+/// section 4).
+struct ValidationWarning {
+  std::string code;    ///< e.g. "RN-W301".
+  std::uint32_t count = 0;
+  std::string message; ///< Starts with the bracketed code.
 };
 
 /// Tolerances of the plan-view checks (ADR 0004 section 6).
@@ -30,6 +41,12 @@ struct ValidationTolerances {
 /// posts the returned message as its one error (ADR 0006 section 3). The message
 /// names the element and its ID but not the source asset, which the bundle
 /// adds.
+///
+/// When the network is valid and `warnings` is non-null, `*warnings`
+/// receives the warnings validation raises, in ascending code order: a lane
+/// border that folds back past an arc's center of curvature without making
+/// any lane invalid (ADR 0004 section 2).
 std::optional<Diagnostic> Validate(const RoadNetworkData& data);
+std::optional<Diagnostic> Validate(const RoadNetworkData& data, std::vector<ValidationWarning>* warnings);
 
 } // namespace openstrata::rn

@@ -245,40 +245,87 @@ void TestNumeric() {
       [](RoadNetworkData& d) { d.roads[0].sections[1].lanes[1].width.records[1].s0 = -1.0; });
 }
 
+/// Expects the network to be valid with exactly one RN-W301 that counts
+/// `count` borders and names `mentions`.
+void ExpectFoldWarning(const RoadNetworkData& data, std::uint32_t count, const std::string& mentions,
+    const std::string& what) {
+  std::vector<ValidationWarning> warnings;
+  const auto failure = Validate(data, &warnings);
+  Check(!failure, what + " is valid" + (failure ? " (got " + failure->message + ")" : ""));
+  Check(warnings.size() == 1, what + ": " + std::to_string(warnings.size()) + " warnings");
+  if (warnings.size() == 1) {
+    const ValidationWarning& w = warnings[0];
+    Check(w.code == "RN-W301" && w.count == count && w.message.rfind("[RN-W301] ", 0) == 0 &&
+              w.message.find(mentions) != std::string::npos,
+        what + ": " + w.code + " " + std::to_string(w.count) + " " + w.message);
+  }
+}
+
 void TestFold() {
   // ADR 0004 section 2. Road "1" section 1 lies on the left arc of radius 10 m
   // (s = 10..20); its lane offset there is 0.001 d^2, at most 0.1 m. A left
-  // lane is on the inside of the arc.
-  const auto addLeftLane = [](RoadNetworkData& d, CubicRecord width) {
+  // lane is on the inside of the arc. With `outer`, a 1 m lane 2 lies
+  // outside lane 1, so lane 1's outer border is lane 2's inner border.
+  const auto addLeftLane = [](RoadNetworkData& d, CubicRecord width, bool outer = false) {
     Lane lane = MakeLane(1);
     lane.width.records = {width};
     std::vector<Lane>& lanes = d.roads[0].sections[1].lanes;
     lanes.insert(lanes.begin(), lane);
+    if (outer) {
+      lanes.insert(lanes.begin(), MakeLane(2, 1.0));
+    }
   };
   RoadNetworkData inside = MakeValid();
   addLeftLane(inside, CubicRecord{0.0, 9.85, 0.0, 0.0, 0.0});
-  ExpectValid(inside, "an inner border 0.05 m short of the center of curvature");
+  std::vector<ValidationWarning> none;
+  Check(!Validate(inside, &none) && none.empty(),
+      "an inner border 0.05 m short of the center of curvature is valid without a warning");
 
+  // An inner lane border at or beyond the center: the lane outside it is
+  // inverted.
   ExpectCode("RN-E308", "an inner border beyond the center of curvature",
-      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 10.5, 0.0, 0.0, 0.0}); });
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 10.5, 0.0, 0.0, 0.0}, true); });
   ExpectCode("RN-E308", "an inner border that reaches the center only at the section end",
-      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 9.0, 0.1, 0.0, 0.0}); });
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 9.0, 0.1, 0.0, 0.0}, true); });
   // 5 + 2 d - 0.2 d^2 is 5 at both ends of the section but 10 at d = 5: the
   // exact maximum of the cubic finds it.
   ExpectCode("RN-E308", "an inner border that folds between its stations",
-      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 5.0, 2.0, -0.2, 0.0}); });
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 5.0, 2.0, -0.2, 0.0}, true); });
   ExpectCode("RN-E308", "a lane offset at the center of curvature",
       [](RoadNetworkData& d) { d.roads[0].laneOffset.records[1].a = 10.0; });
-  // A right turn folds on the right.
-  ExpectCode("RN-E308", "a right lane inside a right turn", [](RoadNetworkData& d) {
+  // A right turn folds on the right: lane -1 is inside lane -2.
+  ExpectCode("RN-E308", "an inner right border inside a right turn", [](RoadNetworkData& d) {
     Road& road = d.roads[0];
     road.referenceLine.segments[1].shape = Arc{-0.1};
-    road.sections[1].lanes[2].width.records = {CubicRecord{0.0, 7.0, 0.0, 0.0, 0.0}};
+    road.sections[1].lanes[1].width.records = {CubicRecord{0.0, 10.5, 0.0, 0.0, 0.0}};
   });
+
+  // Only the outer border of the outermost lane: a counted warning, once per
+  // border however many intervals reach the center (CARLA Town01 and Town02).
+  RoadNetworkData outermost = MakeValid();
+  addLeftLane(outermost, CubicRecord{0.0, 10.5, 0.0, 0.0, 0.0});
+  ExpectFoldWarning(outermost, 1, "road \"1\" lane section 1 lane 1 border", "the outermost left border");
+  RoadNetworkData between = MakeValid();
+  addLeftLane(between, CubicRecord{0.0, 5.0, 2.0, -0.2, 0.0});
+  ExpectFoldWarning(between, 1, "lane 1 border", "an outermost border that folds between its stations");
+  RoadNetworkData right = MakeValid();
+  right.roads[0].referenceLine.segments[1].shape = Arc{-0.1};
+  right.roads[0].sections[1].lanes[2].width.records = {CubicRecord{0.0, 7.0, 0.0, 0.0, 0.0}};
+  ExpectFoldWarning(right, 1, "lane -2 border", "the outermost right border inside a right turn");
+  RoadNetworkData both = right;
+  both.roads[0].sections[0].lanes[2].width.records = {CubicRecord{0.0, 3.5, 0.0, 0.0, 0.0}};
+  both.roads[0].sections[1].lanes.insert(both.roads[0].sections[1].lanes.begin(), MakeLane(1, 1.0));
+  both.roads[0].referenceLine.segments[1].shape = Arc{-0.1};
+  ExpectFoldWarning(both, 1, "lane -2 border", "the warning is unaffected by the other side");
+  // Without a warnings vector the same network is simply valid.
+  ExpectValid(outermost, "an outermost fold without a warnings vector");
+
   // The outside of an arc never folds.
   RoadNetworkData outside = MakeValid();
   outside.roads[0].sections[1].lanes[2].width.records = {CubicRecord{0.0, 50.0, 0.0, 0.0, 0.0}};
-  ExpectValid(outside, "a wide border on the outside of an arc");
+  std::vector<ValidationWarning> outsideWarnings;
+  Check(!Validate(outside, &outsideWarnings) && outsideWarnings.empty(),
+      "a wide border on the outside of an arc is valid without a warning");
 }
 
 void TestArcEnd() {

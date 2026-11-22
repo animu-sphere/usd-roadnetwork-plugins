@@ -103,8 +103,14 @@
         {
             "code": "RN-E308",
             "severity": "error",
-            "summary": "A lane border on the inside of an arc reaches or passes the arc's center of curvature, so the border would fold back on itself.",
+            "summary": "A lane's inner border, the center border or the outer border of a lane with another lane outside it, reaches the center of curvature on the inside of an arc (t * kappa >= 1), so a lane lies beyond the center.",
             "action": "Reduce the lane offset or lane widths on the inside of the arc, or increase the arc's radius."
+        },
+        {
+            "code": "RN-W301",
+            "severity": "warning",
+            "summary": "The outer border of the outermost lane on one side reaches the center of curvature on the inside of an arc (t * kappa >= 1). The semantics are kept; the border's sampled outline loops near the center.",
+            "action": "Narrow the outermost lane on tight arcs, or widen the arc, if the sampled outline must not self-intersect; the import is otherwise complete."
         }
     ]
 }

@@ -10,14 +10,18 @@ CMakeLists.txt                  builds libRoadnetworkOpendriveFileFormat.so into
 cmake/OpenStrataPlugin.cmake    pinned, self-contained build/install mechanics
 src/RoadnetworkOpendriveFileFormat.{h,cpp}  the SdfFileFormat implementation
 src/io/Reader.{h,cpp}           USD-free reader: CanRead() sniff, container, root, header, and version checks
+src/io/Decoder.{h,cpp}          USD-free decoder: RoadNetworkData, the lane graph, validation, and warnings
+src/io/DocumentImpl.h           the parsed XML, shared by the reader and the decoder only
 src/io/Diagnostics.h            the ODR- codes, one constant each
 plugin/resources/roadnetwork-opendrive/plugInfo.json   USD plugin registration (supportsWriting: false)
 plugin/resources/roadnetwork-opendrive/diagnostics.json  ODR- diagnostic catalog (rn-diagnostics.json is installed beside it)
 tests/fixtures/                 basic (valid) + invalid (negative) fixtures, basic golden
 tests/fixtures/reader/          prologue and negative fixtures for the reader
+tests/fixtures/decoder/         the minimal network and a negative fixture per decoder and validation code
 tests/fixtures/carla/           third-party CARLA networks (MIT, see its README and LICENSE)
 THIRD_PARTY_NOTICES.md          notices shipped in every package (manifest `notices`)
 tests/test_reader.cpp           reader unit test, without OpenUSD (CTest)
+tests/test_decoder.cpp          decoder unit test, without OpenUSD (CTest)
 tests/test_*.py                 file-format contract and catalog tests (CTest)
 ```
 
@@ -27,10 +31,11 @@ The bundle declares `roadnetwork-core` and `roadnetwork-usd` in
 `requires.libraries`; `ost plugin build` builds and installs them first, and
 `CMakeLists.txt` finds them with `find_package` unless the composed root build
 already defines the targets. `Read()` checks the document with the reader
-in `src/io/`, then passes a `RoadNetworkData` holding only the header
-provenance to `openstrata::rn::usd::WriteLayer()`, which is the only author of
-the layer and still authors it empty. Roads, lanes, and junctions are not
-decoded yet (ODR-02).
+in `src/io/`, decodes it into `RoadNetworkData` (only the header in a
+metadata-only read), runs `openstrata::rn::Validate()`, and passes the result
+to `openstrata::rn::usd::WriteLayer()`. That function is the only author of
+the layer, and it authors the layer empty until the stage contract (USD-01).
+The decoder's warnings are posted after a successful write, each code once.
 
 The reader parses XML with [pugixml](https://github.com/zeux/pugixml) 1.16
 (MIT), vendored at the repository root in

@@ -6,15 +6,19 @@ composition, metadata-only reads, determinism, and reload, including reload
 under an outer SdfChangeBlock. The reader (ODR-01) adds the CanRead() sniff
 on the prologue fixtures, the rejection of each negative fixture with exactly
 one coded error, the accepted version range, and a failed reload that keeps
-the previous content. The bundle does not decode roads yet, so every
-successful read still authors an empty layer; the checks that depend on
-authored content (/Asset, provenance) arrive with the decoder and the stage
-contract.
+the previous content. The decoder (ODR-02) adds the decoder and validation
+fixtures, which fail a full read but pass a metadata-only one, and the
+warnings: each code posted once per successful read, and none by a failed
+one. The shared writer still authors an empty layer, so the checks that
+depend on authored content (/Asset, provenance) arrive with the stage
+contract (USD-01).
 """
 
 import os
 import pathlib
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -24,6 +28,8 @@ from pxr import Sdf, Tf, Usd
 FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
 BASIC = FIXTURES / "basic.xodr"
 READER = FIXTURES / "reader"
+DECODER = FIXTURES / "decoder"
+NETWORK = DECODER / "network.xodr"
 
 # The fixtures each code is proven by (DIAGNOSTICS.md), and whether CanRead()
 # accepts them: it looks only at the prologue, so a malformed body or an
@@ -37,7 +43,32 @@ REJECTED = [
     (READER / "version-malformed.xodr", "ODR-E006", True),
     (READER / "version-unsupported.xodr", "ODR-E007", True),
 ]
-ACCEPTED = [BASIC, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
+# Content the decoder or validation rejects: a full read fails with the code,
+# and a metadata-only read, which decodes the header only, succeeds
+# (ADR 0006 section 2).
+CONTENT_REJECTED = [(DECODER / f"{name}.xodr", code) for name, code in [
+    ("missing-attribute", "ODR-E008"),
+    ("invalid-number", "ODR-E009"),
+    ("unknown-lane-type", "ODR-E009"),
+    ("duplicate-plan-view", "ODR-E010"),
+    ("lane-group-mismatch", "ODR-E101"),
+    ("lane-link-without-road-link", "ODR-E102"),
+    ("lane-link-into-junction", "ODR-E103"),
+    ("connection-unresolved", "ODR-E104"),
+    ("spiral", "ODR-E201"),
+    ("superelevation", "ODR-E202"),
+    ("lane-border", "ODR-E203"),
+    ("direct-junction", "ODR-E204"),
+    ("temporary-lane-layer", "ODR-E205"),
+    ("unknown-lane-element", "ODR-E206"),
+    ("duplicate-road", "RN-E102"),
+    ("unresolved-link", "RN-E111"),
+    ("unresolved-lane-link", "RN-E115"),
+    ("non-finite", "RN-E301"),
+    ("plan-view-gap", "RN-E305"),
+    ("inner-border", "RN-E308"),
+]]
+ACCEPTED = [BASIC, NETWORK, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
             FIXTURES / "carla" / "Town01.xodr", FIXTURES / "carla" / "Town02.xodr"]
 SNIFF_BYTES = 64 * 1024
 
@@ -99,6 +130,10 @@ def check_reader_fixtures(tmp):
         check_rejected(path, code, path.name)
         # A metadata-only read checks the container, root, and version too.
         check_rejected(path, code, f"metadata-only {path.name}", metadataOnly=True)
+    for path, code in CONTENT_REJECTED:
+        check(fmt.CanRead(str(path)), f"CanRead rejects {path.name}")
+        check_rejected(path, code, path.name)
+        check_opens(path, f"metadata-only {path.name}", metadataOnly=True)
 
     # CanRead() fails quietly on a missing asset.
     _, errors = read_errors(lambda: fmt.CanRead(str(tmp / "missing.xodr")))
@@ -169,6 +204,47 @@ def check_failed_reload_keeps_content(tmp):
     reloaded, errors = read_errors(lambda: layer.Reload(force=True))
     check(bool(reloaded) and not errors, f"reloading the repaired file failed: {errors}")
     check(not layer.GetPrimAtPath("/Marker"), "a successful reload kept the previous content")
+
+
+WARNING_CODE = re.compile(r"\[((?:ODR|RN)-W[0-9]{3})\]")
+OPEN_LAYER = """
+import sys
+from pxr import Sdf, Tf
+try:
+    Sdf.Layer.OpenAsAnonymous(sys.argv[1], metadataOnly=sys.argv[2] == "1")
+except Tf.ErrorException:
+    pass
+"""
+
+
+def posted_warnings(path, metadata_only=False):
+    """The warning codes one read posts, in order. TF_WARN goes to stderr,
+    which a child process captures."""
+    run = subprocess.run([sys.executable, "-c", OPEN_LAYER, str(path), "1" if metadata_only else "0"],
+                         capture_output=True, text=True, encoding="utf-8", errors="replace")
+    return WARNING_CODE.findall(run.stderr)
+
+
+def check_warnings(tmp):
+    """ADR 0006 section 4: each warning code is posted at most once per read,
+    and only by a read that succeeds."""
+    cases = [
+        (NETWORK, False, ["ODR-W201", "ODR-W202", "ODR-W203", "ODR-W204", "ODR-W205",
+                          "ODR-W206", "ODR-W207"]),
+        (NETWORK, True, ["ODR-W204"]),
+        (BASIC, False, []),
+        (FIXTURES / "carla" / "Town01.xodr", False, ["ODR-W201", "ODR-W204", "ODR-W207", "RN-W301"]),
+        (FIXTURES / "carla" / "Town02.xodr", False, ["ODR-W201", "ODR-W204", "ODR-W207", "RN-W301"]),
+    ]
+    for path, metadata_only, expected in cases:
+        posted = posted_warnings(path, metadata_only)
+        check(posted == expected,
+              f"{'metadata-only ' if metadata_only else ''}{path.name} posted {posted}, expected {expected}")
+    # The same network with a spiral fails, and posts its error only.
+    failing = write_variant(tmp / "network-spiral.xodr", NETWORK.read_text(encoding="utf-8").replace(
+        '<arc curvature="0.02"/>', '<spiral curvStart="0.0" curvEnd="0.02"/>', 1))
+    check_rejected(failing, "ODR-E201", "the network with a spiral")
+    check(posted_warnings(failing) == [], "a failed read posted warnings")
 
 
 def check_registration():
@@ -308,6 +384,7 @@ def main():
                      check_determinism,
                      lambda: check_reload(tmp),
                      lambda: check_reader_fixtures(tmp),
+                     lambda: check_warnings(tmp),
                      lambda: check_failed_reload_keeps_content(tmp)):
             try:
                 test()

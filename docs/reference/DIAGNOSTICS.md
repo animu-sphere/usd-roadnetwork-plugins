@@ -3,8 +3,8 @@
 - **Status:** Normative. The numbering scheme was ratified by
   [ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)
   on 2026-11-22, before the first code was assigned. Codes are never
-  renumbered or reused. The `RN-` validation codes and the `ODR-` reader
-  codes below are assigned.
+  renumbered or reused. The `RN-` validation codes and the `ODR-` reader and
+  decoder codes below are assigned.
 
 Each import error and warning carries a bracketed stable code at the start
 of its message (`[ODR-E001] ...`). Automation matches the code, so message
@@ -70,7 +70,11 @@ what raises each code.
 the first failure: identity, then references, then lane structure, then
 numeric values, each in source order. The plan-view tolerances are those of
 [ADR 0004 §6](../adr/0004-opendrive-geometry-retention.md#6-discontinuities).
-No bundle calls it yet.
+The `roadnetwork-opendrive` bundle calls it after every full read and relays
+its error or warnings unchanged. Each code that `.xodr` input can reach has a
+negative fixture in
+[`tests/fixtures/decoder/`](../../plugins/roadnetwork-opendrive/tests/fixtures/decoder/),
+and `roadnetworkCore_validation` fails every code on the model.
 
 | Code | Condition |
 | --- | --- |
@@ -90,7 +94,8 @@ No bundle calls it yet.
 | `RN-E305` | A plan-view segment starts more than 0.01 m from the end of the previous one. |
 | `RN-E306` | A plan-view segment's start heading differs from the previous end heading by more than 0.001 rad. |
 | `RN-E307` | Elevation, lane-offset, or lane-width records do not ascend strictly in `s0`. |
-| `RN-E308` | A lane border, or the center border, on the inside of an arc reaches its center of curvature: `t · κ ≥ 1` ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
+| `RN-E308` | On the inside of an arc, a border that is the inner border of a lane reaches the center of curvature (`t · κ ≥ 1`): the center border, or the outer border of a lane with another lane outside it ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
+| `RN-W301` | Warning. On the inside of an arc, the outer border of the outermost lane on its side reaches the center of curvature. The semantics are kept and only that border's sampled outline loops. CARLA `Town01` has one such border and `Town02` two, all sidewalks. |
 
 ### `ODR-` reader
 
@@ -112,7 +117,52 @@ no input can produce on purpose.
 | `ODR-E005` | The first child element of `<OpenDRIVE>` is not `<header>`. | `reader/missing-header.xodr` |
 | `ODR-E006` | `revMajor` or `revMinor` is missing or not a non-negative decimal integer. | `reader/version-malformed.xodr` |
 | `ODR-E007` | The version is not `revMajor` 1 with `revMinor` 4 to 9 ([FMT-01 §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)). | `reader/version-unsupported.xodr`; 1.0–1.3, 1.10, 1.11, and 2.0 (generated) |
-| `ODR-E901` | An internal failure, such as running out of memory, escaped the reader. | — |
+| `ODR-E901` | An internal failure, such as running out of memory, escaped the reader or the decoder. | — |
+
+### `ODR-` decoder
+
+A full read decodes the document after the reader's checks, then runs
+shared validation. The decoder reports what only the source syntax shows,
+and reports the first failure in document order. Lane-link failures
+(`ODR-E102` to `ODR-E104`) come after all of the content has been read. A
+metadata-only read decodes the header only, so it raises none of these
+codes except `ODR-E008`–`ODR-E010` on `<geoReference>` and `<offset>`. The
+[OpenDRIVE mapping](OPENDRIVE_MAPPING.md) gives the element-by-element rules.
+Each error has a negative fixture in
+[`tests/fixtures/decoder/`](../../plugins/roadnetwork-opendrive/tests/fixtures/decoder/),
+listed in the bundle manifest's `negative` list.
+
+| Code | Condition | Fixture |
+| --- | --- | --- |
+| `ODR-E008` | A required element or attribute is missing: for example a road's `length` or `junction`, a `<geometry>` without `<line>` or `<arc>`, a lane's `type`, or a non-center lane without `<width>`. | `decoder/missing-attribute.xodr` |
+| `ODR-E009` | An attribute value is not valid for its type: not an `xsd:double` or a 32-bit integer, or not a value OpenDRIVE 1.4–1.9 defines, such as a lane type, `contactPoint`, or speed unit. | `decoder/invalid-number.xodr`, `decoder/unknown-lane-type.xodr` |
+| `ODR-E010` | An element is repeated or misplaced: two `<planView>` elements, two shapes in one `<geometry>`, a second `<header>`, a `<width>` on the center lane, and similar. | `decoder/duplicate-plan-view.xodr` |
+| `ODR-E101` | A lane's `id` does not match its group: positive in `<left>`, `0` in `<center>`, negative in `<right>`. | `decoder/lane-group-mismatch.xodr` |
+| `ODR-E102` | A lane predecessor or successor at a road end has no road link to follow. | `decoder/lane-link-without-road-link.xodr` |
+| `ODR-E103` | A lane predecessor or successor at a road end leads into a junction. The junction's `<laneLink>` elements state these links. | `decoder/lane-link-into-junction.xodr` |
+| `ODR-E104` | The end of a connection's incoming road at the junction cannot be determined. | `decoder/connection-unresolved.xodr` |
+| `ODR-E201` | A `<spiral>`, `<poly3>`, or `<paramPoly3>` plan-view geometry ([ADR 0004 §5](../adr/0004-opendrive-geometry-retention.md#5-other-plan-view-shapes)). | `decoder/spiral.xodr` |
+| `ODR-E202` | A `<superelevation>`, `<crossfall>`, or `<shape>` with a non-zero coefficient, or a `<crossSectionSurface>` ([ADR 0004 §4](../adr/0004-opendrive-geometry-retention.md#4-profiles-in-phase-1)). | `decoder/superelevation.xodr` |
+| `ODR-E203` | A lane `<border>`. | `decoder/lane-border.xodr` |
+| `ODR-E204` | A `direct`, `virtual`, or `crossing` junction, or a road link with `elementS` or `elementDir`. | `decoder/direct-junction.xodr` |
+| `ODR-E205` | A temporary lane layer (`<lanes layer="temporary">`), or a lane link to one. | `decoder/temporary-lane-layer.xodr` |
+| `ODR-E206` | An element this decoder does not know, inside the plan view, a profile, or the lane structure, where it could change the geometry or the lanes. | `decoder/unknown-lane-element.xodr` |
+
+Warnings report data that is read but not represented. Each code is posted
+once per successful read, with the count and the first five locations. The
+model's `warnings` mirrors them. A failed read posts no warning.
+`decoder/network.xodr` raises `ODR-W201` to `ODR-W207`.
+
+| Code | Not represented |
+| --- | --- |
+| `ODR-W201` | `<roadMark>`. |
+| `ODR-W202` | `<signal>`, `<signalReference>`, and the root `<controller>`. |
+| `ODR-W203` | `<object>`, `<objectReference>`, `<tunnel>`, and `<bridge>`. |
+| `ODR-W204` | `<userData>`, `<include>`, and `<dataQuality>`, wherever they appear. |
+| `ODR-W205` | A road `<speed>` whose `max` is `"no limit"` or `"undefined"` ([ADR 0002 §3](../adr/0002-usd-schema-strategy.md#3-phase-1-property-list)). |
+| `ODR-W206` | Elements that OpenDRIVE defines and Phase 1 does not represent: lane `<speed>`, `<access>`, `<height>`, `<material>`, `<rule>`, and `<visibility>`; road `<surface>`, `<railroad>`, and `<neighbor>`; junction `<priority>`, `<controller>`, `<surface>`, `<boundary>`, `<elevationGrid>`, and `<crossPath>`; connection `<predecessor>` and `<successor>`; header `<license>` and `<defaultRegulations>`; `<junctionGroup>` and `<station>`. |
+| `ODR-W207` | Attributes the model does not represent, on the elements it decodes, such as road `rule` and road type `type` and `country`. |
+| `ODR-W208` | Elements unknown to this decoder, outside the plan view, the profiles, and the lane structure. |
 
 ## Rules
 

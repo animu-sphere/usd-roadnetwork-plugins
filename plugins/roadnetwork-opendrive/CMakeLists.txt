@@ -42,6 +42,7 @@ endif()
 # tests. pugixml is compiled into it and kept out of every public header.
 add_library(roadnetworkOpendriveIo STATIC
     src/io/Reader.cpp
+    src/io/Decoder.cpp
     "${PUGIXML_ROOT}/pugixml.cpp")
 # Hidden visibility keeps every pugixml symbol inside the plugin library: an
 # OpenUSD host with MaterialX can load another pugixml in the same `pugi`
