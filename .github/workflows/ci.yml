@@ -1,0 +1,29 @@
+# Hand-written, so that regenerating ost-source-ci.yml cannot lose it. ost generates the source
+# jobs with `--reusable-source` and leaves the choice of which changes build to this caller: changes
+# to Markdown, docs/, or LICENSE alone do not build. No Markdown file is packaged today; if one
+# becomes part of a package, exempt it from paths-ignore.
+#
+# Pull requests run the pull_request lane of openstrata.ci.yaml; pushes to main run the main lane;
+# a manual dispatch runs both.
+#
+# Fork-PR safety: this never publishes and uses no secrets.
+name: ci
+
+on:
+  pull_request:
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source:
+    uses: ./.github/workflows/ost-source-ci.yml
