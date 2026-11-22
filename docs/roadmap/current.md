@@ -51,19 +51,15 @@ The `usdview` inspection is recorded in the
 with `--profile lookdev`. What remains for REL-01, against the
 [release gate](../releases/README.md#release-gate):
 
-1. **Narrow or confirm the OpenUSD range** in the bundle manifest
-   (`>=25.05,<27.0`, only 26.08 exercised), as
-   [supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md#openusd-and-openstrata)
-   requires before the first release.
-2. **Package-origin and digest evidence on every platform.** The hosted cells
+1. **Package-origin and digest evidence on every platform.** The hosted cells
    do not run `--from-package`, and digests were compared only on Windows
    (gate items 3 and 4).
-3. **Notices, SBOM, and provenance** checked in the packaged artifact (gate
+2. **Notices, SBOM, and provenance** checked in the packaged artifact (gate
    item 5).
-4. **A release workflow** that assembles a draft release from the hosted
+3. **A release workflow** that assembles a draft release from the hosted
    cells' packages for human review (gate item 6), documented in the
    release gate.
-5. **Format acceptance gate review** for OpenDRIVE, then the format row of
+4. **Format acceptance gate review** for OpenDRIVE, then the format row of
    the capability matrix, the `[0.1.0]` changelog heading, the release
    record, and the tag in one release PR (gate items 1 and 2).
 
