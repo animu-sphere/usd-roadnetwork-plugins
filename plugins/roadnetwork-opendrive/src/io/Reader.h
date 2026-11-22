@@ -58,13 +58,17 @@ public:
 
   /// The header provenance: format, version, and the `name`, `date`,
   /// `vendor`, and `version` attributes verbatim (empty when absent). The
-  /// georeference and offset are read by the decoder (ODR-02).
+  /// georeference and offset are read by the decoder (Decoder.h).
   const SourceInfo& Source() const noexcept;
 
   ElementCounts CountElements() const;
 
-private:
+  /// The parsed XML, opaque outside the reader and the decoder
+  /// (io/DocumentImpl.h).
   struct Impl;
+  const Impl& Internals() const noexcept { return *impl_; }
+
+private:
   explicit Document(std::unique_ptr<Impl> impl) noexcept;
   std::unique_ptr<Impl> impl_;
 };

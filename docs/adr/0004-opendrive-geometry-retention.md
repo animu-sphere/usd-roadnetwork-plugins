@@ -98,10 +98,22 @@ visualization data.
   reference point moved by that amount along the left normal `(−sin hdg,
   cos hdg)`, with `z` set to the elevation at `s`. A lane centerline is the
   midpoint of the lane's two borders at each `s`.
-- A border on the inside of an arc at or beyond the center of curvature
-  (`t · κ ≥ 1`) is `RN-E308`, which validation raises. The offset curve
-  folds back on itself there. Between two stations (§3) a border is one
-  cubic in `s`, so the check uses its exact extremum.
+- On the inside of an arc, a border at or beyond the center of curvature
+  (`t · κ ≥ 1`) folds back on itself. Validation tells two cases apart.
+  Between two stations (§3) a border is one cubic in `s`, so both checks use
+  its exact extremum.
+  - If the border is the inner border of some lane, that lane lies wholly
+    or partly beyond the center and is inverted. This covers the center
+    border and the outer border of a lane with another lane outside it. It
+    is `RN-E308`.
+  - If the border is only the outer border of the outermost lane on its
+    side, every inner border stays short of the center. The semantics are
+    exact, and only that border's sampled outline loops near the center.
+    It is the counted warning `RN-W301`, one count per border. CARLA
+    `Town01` and `Town02` have three such borders, all sidewalks on tight
+    right turns, 0.10 to 0.76 m past the center. An error would reject the
+    Phase 1 compatibility corpus. Treating the fold as acceptable data would
+    also admit an inverted lane.
 
 ### 3. Tessellation
 
@@ -212,9 +224,18 @@ Gathered in GEO-01, in `roadnetwork-core`
   stations, and for a lane offset at the center. A border 0.05 m short of
   the center and a wide border on the outside pass.
 
-Needed before acceptance:
+Gathered in ODR-02, in the `roadnetwork-opendrive` decoder:
 
-- ODR-02 negative fixtures for a non-zero `<superelevation>` and a
-  `<spiral>`. The 0.02 m position gap (`RN-E305`) and the inner border
-  (`RN-E308`) are unit-tested on the IR; ODR-02 adds them as `.xodr`
-  fixtures.
+- Negative fixtures, each failing a full read with its code:
+  `decoder/spiral.xodr` (`ODR-E201`), `decoder/superelevation.xodr`
+  (`ODR-E202`), `decoder/plan-view-gap.xodr` (`RN-E305`), and
+  `decoder/inner-border.xodr` (`RN-E308`, a lane with another lane outside
+  it on an arc of radius 2 m). An all-zero `<superelevation>` in
+  `decoder/network.xodr` is accepted.
+- Decoding CARLA `Town01` and `Town02` found three sidewalk borders that
+  fold past the center of curvature: `Town01` road 13 (0.100 m past, radius
+  8.20 m), and `Town02` roads 2 (0.755 m, radius 7.51 m) and 16 (0.097 m,
+  radius 8.20 m). This led to the `RN-E308` / `RN-W301` split in §2, which
+  the maintainer chose on 2026-11-22. `roadnetworkCore_validation` checks
+  both sides of the split, and `roadnetworkOpendrive_decoder` checks the
+  CARLA counts of 1 and 2.

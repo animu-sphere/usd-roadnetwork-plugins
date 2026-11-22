@@ -182,5 +182,12 @@ Phase 1, the ODR-01 reader (same configuration):
 | `roadnetworkOpendrive_reader` ([source](../../plugins/roadnetwork-opendrive/tests/test_reader.cpp)) | The §1 sniff on 24 prologue cases and a root beyond 64 KiB; each `ODR-E002` to `ODR-E007` condition; the version range; the header scan. |
 | `roadnetworkOpendrive_file_format_contract` | `CanRead()` on the prologue and negative fixtures, and quietly false on a missing asset; each negative fixture fails with exactly one error that starts with its code and names the asset, in full and metadata-only reads; a failed forced reload posts one `ODR-E002` and keeps the previous layer content, and the repaired file reloads. |
 
+Phase 1, the ODR-02 decoder (same configuration):
+
+| Test | Checks |
+| --- | --- |
+| `roadnetworkOpendrive_decoder` ([source](../../plugins/roadnetwork-opendrive/tests/test_decoder.cpp)) | The minimal network decodes to the expected model and lane graph. Each decoder and validation fixture fails with its code, and a metadata-only read of it, which decodes only the header, succeeds. Number parsing is checked under a comma-decimal C locale. |
+| `roadnetworkOpendrive_file_format_contract` | Each decoder fixture fails through the plugin with exactly one error, in a full read only. A successful read posts each warning code once (§4): the network, its metadata-only read, `basic.xodr`, and CARLA `Town01` and `Town02`. A failed read posts no warning. |
+
 The metadata-only `/Asset` and its provenance are checked once the stage
 contract (USD-01) authors them.

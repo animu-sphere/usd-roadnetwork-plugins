@@ -388,11 +388,31 @@ std::optional<Diagnostic> CheckCubics(const Road& road) {
   return std::nullopt;
 }
 
-// ADR 0004 section 2: a border on the inside of an arc may not reach its center
-// of curvature (t * kappa >= 1), where the offset curve folds back. On each
-// interval between stations the border is one cubic, so its extreme is exact.
-std::optional<Diagnostic> CheckFold(const Road& road) {
+// The outer borders that fold back without inverting a lane (RN-W301).
+struct FoldWarnings {
+  std::uint32_t count = 0;
+  std::vector<std::string> first;
+};
+
+// ADR 0004 section 2: a border on the inside of an arc that reaches its
+// center of curvature (t * kappa >= 1) folds back on itself. It is an error
+// when the border is the inner border of a lane, the center border or the
+// outer border of a lane that has another lane outside it, because that lane
+// then lies wholly or partly beyond the center. When it is only the outer
+// border of the outermost lane on its side, every lane keeps a positive
+// extent next to the reference line and only that border's sampled outline
+// loops: a counted warning. On each interval between stations the border is
+// one cubic, so its extreme is exact.
+std::optional<Diagnostic> CheckFold(const Road& road, FoldWarnings& warnings) {
   for (std::size_t sectionIndex = 0; sectionIndex < road.sections.size(); ++sectionIndex) {
+    const std::vector<Lane>& lanes = road.sections[sectionIndex].lanes;
+    std::int32_t outermostLeft = 0;
+    std::int32_t outermostRight = 0;
+    for (const Lane& lane : lanes) {
+      outermostLeft = std::max(outermostLeft, lane.number);
+      outermostRight = std::min(outermostRight, lane.number);
+    }
+    std::vector<bool> warned(lanes.size(), false);
     const std::vector<double> stations = detail::SectionStations(road, sectionIndex);
     for (std::size_t i = 0; i + 1 < stations.size(); ++i) {
       const detail::Interval interval =
@@ -402,40 +422,59 @@ std::optional<Diagnostic> CheckFold(const Road& road) {
         continue;
       }
       const double sign = kappa > 0.0 ? 1.0 : -1.0;
-      const std::vector<Lane>& lanes = road.sections[sectionIndex].lanes;
       for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
         const detail::Poly3& t = interval.borders[lane];
         const detail::Poly3 inward{sign * t.c0, sign * t.c1, sign * t.c2, sign * t.c3};
         const detail::Extremum deepest = detail::Maximum(inward, interval.length);
-        if (deepest.value * std::abs(kappa) >= 1.0) {
-          const std::string border = lanes[lane].number == 0
-                                         ? std::string(" center border")
-                                         : " lane " + std::to_string(lanes[lane].number) + " border";
-          return Fail("[RN-E308]", SectionName(road, sectionIndex) + border + " is " +
-                                       Number(deepest.value) + " m inside plan-view segment " +
-                                       std::to_string(interval.segment) + " at s = " +
-                                       Number(interval.s0 + deepest.x) +
-                                       ", at or beyond its center of curvature (radius " +
-                                       Number(1.0 / std::abs(kappa)) + " m)");
+        if (deepest.value * std::abs(kappa) < 1.0) {
+          continue;
         }
+        const std::int32_t number = lanes[lane].number;
+        const std::string border =
+            number == 0 ? std::string(" center border") : " lane " + std::to_string(number) + " border";
+        const std::string where = SectionName(road, sectionIndex) + border;
+        const double radius = 1.0 / std::abs(kappa);
+        const bool outermost =
+            number != 0 && (number == outermostLeft || number == outermostRight);
+        if (outermost) {
+          if (!warned[lane]) {
+            warned[lane] = true;
+            ++warnings.count;
+            if (warnings.first.size() < 5) {
+              warnings.first.push_back(where + " (" + Number(deepest.value - radius) +
+                                       " m past the center of plan-view segment " +
+                                       std::to_string(interval.segment) + ", radius " +
+                                       Number(radius) + " m)");
+            }
+          }
+          continue;
+        }
+        return Fail("[RN-E308]", where + " is " + Number(deepest.value) +
+                                     " m inside plan-view segment " +
+                                     std::to_string(interval.segment) + " at s = " +
+                                     Number(interval.s0 + deepest.x) +
+                                     ", at or beyond its center of curvature (radius " +
+                                     Number(radius) + " m), so the lane outside it is inverted");
       }
     }
   }
   return std::nullopt;
 }
 
-std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data) {
+std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data, FoldWarnings& folds) {
   if (auto failure = CheckSourceFinite(data)) {
     return failure;
   }
   using RoadCheck = std::optional<Diagnostic> (*)(const Road&);
-  const RoadCheck checks[] = {
-      CheckFinite, CheckLengths, CheckStations, CheckContinuity, CheckCubics, CheckFold};
+  const RoadCheck checks[] = {CheckFinite, CheckLengths, CheckStations, CheckContinuity, CheckCubics};
   for (const Road& road : data.roads) {
     for (RoadCheck check : checks) {
       if (auto failure = check(road)) {
         return failure;
       }
+    }
+    if (auto failure = CheckFold(road, folds)) {
+      return failure;
     }
   }
   return std::nullopt;
@@ -444,6 +483,13 @@ std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data) {
 } // namespace
 
 std::optional<Diagnostic> Validate(const RoadNetworkData& data) {
+  return Validate(data, nullptr);
+}
+
+std::optional<Diagnostic> Validate(const RoadNetworkData& data, std::vector<ValidationWarning>* warnings) {
+  if (warnings) {
+    warnings->clear();
+  }
   Index index;
   if (auto failure = CheckIdentity(data, index)) {
     return failure;
@@ -454,7 +500,21 @@ std::optional<Diagnostic> Validate(const RoadNetworkData& data) {
   if (auto failure = CheckLaneStructure(data)) {
     return failure;
   }
-  return CheckNumeric(data);
+  FoldWarnings folds;
+  if (auto failure = CheckNumeric(data, folds)) {
+    return failure;
+  }
+  if (warnings && folds.count > 0) {
+    std::string message = "[RN-W301] " + std::to_string(folds.count) + " outermost lane border" +
+                          (folds.count == 1 ? " folds" : "s fold") +
+                          " back past the center of curvature of an arc, so their sampled "
+                          "outline loops there; no inner lane border reaches the center: ";
+    for (std::size_t i = 0; i < folds.first.size(); ++i) {
+      message += (i ? ", " : "") + folds.first[i];
+    }
+    warnings->push_back(ValidationWarning{"RN-W301", folds.count, std::move(message)});
+  }
+  return std::nullopt;
 }
 
 } // namespace openstrata::rn

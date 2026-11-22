@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "RoadnetworkOpendriveFileFormat.h"
 
+#include "io/Decoder.h"
 #include "io/Diagnostics.h"
 #include "io/Reader.h"
 
@@ -86,10 +87,9 @@ bool RoadnetworkOpendriveFileFormat::Read(
     SdfLayer* layer,
     const std::string& resolvedPath,
     bool metadataOnly) const {
-  // metadataOnly is a hint (ADR 0006 section 2). Until the decoder (ODR-02)
-  // and the stage contract (USD-01) land, both reads check the container,
-  // root, header, and version, and author the same empty layer.
-  (void)metadataOnly;
+  // A metadata-only read checks the container, root, header, and version,
+  // and decodes the header only (ADR 0006 section 2); a full read decodes
+  // and validates the whole network.
   try {
     std::string bytes;
     if (!ReadAssetBytes(resolvedPath, std::string::npos, &bytes)) {
@@ -98,20 +98,23 @@ bool RoadnetworkOpendriveFileFormat::Read(
     }
 
     odr::Diagnostic diagnostic;
-    const std::unique_ptr<odr::Document> document = odr::Document::Parse(bytes, &diagnostic);
-    if (!document) {
+    odr::ImportResult import;
+    if (!odr::ImportNetwork(bytes, metadataOnly, &import, &diagnostic)) {
       PostReadError(diagnostic.code, resolvedPath, diagnostic.detail);
       return false;
     }
 
-    // Only the header provenance is read so far. The shared writer, the
-    // only author of the layer, does not author it yet.
-    openstrata::rn::RoadNetworkData data;
-    data.source = document->Source();
+    // The shared writer is the only author of the layer. Until the stage
+    // contract (USD-01) it authors an empty layer, so a failure there leaves
+    // the warnings unposted.
     std::string error;
-    if (!openstrata::rn::usd::WriteLayer(data, *layer, &error)) {
+    if (!openstrata::rn::usd::WriteLayer(import.data, *layer, &error)) {
       TF_RUNTIME_ERROR("Could not author a USD layer for '%s': %s", resolvedPath.c_str(), error.c_str());
       return false;
+    }
+    // Each warning code once per read (ADR 0006 section 4).
+    for (const odr::Warning& warning : import.warnings) {
+      TF_WARN("%s %s: %s", warning.code.c_str(), resolvedPath.c_str(), warning.detail.c_str());
     }
     return true;
   } catch (const std::exception& e) {

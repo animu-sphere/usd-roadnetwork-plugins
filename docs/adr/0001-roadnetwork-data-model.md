@@ -302,6 +302,23 @@ Gathered in IR-01:
   code, checks the order of the categories, and checks canonicalization of
   reversed, one-sided, and duplicate links.
 
+Gathered in ODR-02, in the `roadnetwork-opendrive` decoder:
+
+- The decoder fills the §7 header without a change of shape, and checks only
+  what the source syntax shows (`ODR-E008`–`ODR-E206`). It leaves
+  references, lane numbering, and numeric ranges to `Validate()`, which
+  every full read runs. Where a reference is unresolved, the decoder adds no
+  lane-graph edge for it and lets validation report it.
+- The lane graph of §3 is built from the three sources it names.
+  `roadnetworkOpendrive_decoder` gets the same six edges for
+  `decoder/network.xodr` with and without the connecting road's own links,
+  that is from lane links and from the junction's `<laneLink>` elements
+  alone. CARLA `Town01` and `Town02` give 270 and 356 canonical edges and
+  validate.
+- §5 needed one addition: validation can return warnings
+  (`ValidationWarning`, ADR 0004 §2). They join the decoder's warnings in
+  `RoadNetworkData::warnings`.
+
 Needed before acceptance:
 
 - A paper mapping of one redistributable Lanelet2 example onto the common

@@ -47,10 +47,136 @@
             "action": "Convert the file to a supported OpenDRIVE version; versions before 1.4 and after 1.9 are rejected rather than guessed."
         },
         {
+            "code": "ODR-E008",
+            "severity": "error",
+            "summary": "A required element or attribute is missing, such as a road's length or junction, a geometry's <line> or <arc>, a lane's type, or a non-center lane's <width>.",
+            "action": "Add the element or attribute the message names; OpenDRIVE requires it."
+        },
+        {
+            "code": "ODR-E009",
+            "severity": "error",
+            "summary": "An attribute value is not valid for its type: not an xsd:double or a 32-bit integer, or not one of the values OpenDRIVE 1.4 to 1.9 defines for it, such as a lane type or a contactPoint.",
+            "action": "Write the value the message names in the form the OpenDRIVE schema gives, with a decimal point rather than a comma."
+        },
+        {
+            "code": "ODR-E010",
+            "severity": "error",
+            "summary": "An element appears more often than OpenDRIVE allows where it is, or where it is not allowed: for example two <planView> elements, two shapes in one <geometry>, or a <width> on the center lane.",
+            "action": "Remove the repeated or misplaced element."
+        },
+        {
+            "code": "ODR-E101",
+            "severity": "error",
+            "summary": "A lane's id does not match its group: lanes in <left> are positive, the lane in <center> is 0, and lanes in <right> are negative.",
+            "action": "Move the lane to the group its id belongs to, or renumber it."
+        },
+        {
+            "code": "ODR-E102",
+            "severity": "error",
+            "summary": "A lane predecessor or successor at a road's start or end has no road predecessor or successor to follow.",
+            "action": "Add the road link at that end, or remove the lane link."
+        },
+        {
+            "code": "ODR-E103",
+            "severity": "error",
+            "summary": "A lane predecessor or successor at a road's end leads into a junction, where it does not say which connecting road it means.",
+            "action": "Remove the lane link and state it with the junction's <connection>/<laneLink> elements, as OpenDRIVE specifies."
+        },
+        {
+            "code": "ODR-E104",
+            "severity": "error",
+            "summary": "For a junction connection, the end of the incoming road that meets the junction cannot be determined: the connecting road does not link back to the incoming road, and the incoming road does not link to the junction at exactly one end.",
+            "action": "Link the connecting road's contact end to the incoming road, or link the incoming road to the junction."
+        },
+        {
+            "code": "ODR-E201",
+            "severity": "error",
+            "summary": "A plan-view geometry is a <spiral>, <poly3>, or <paramPoly3>, which Phase 1 does not support.",
+            "action": "Convert the geometry to lines and arcs, or wait for Phase 2 support (F-12)."
+        },
+        {
+            "code": "ODR-E202",
+            "severity": "error",
+            "summary": "A <superelevation>, <crossfall>, or <shape> record has a non-zero coefficient, or the road has a <crossSectionSurface>; Phase 1 cannot place the borders out of the road plane.",
+            "action": "Remove the lateral profile or set its coefficients to zero, or wait for Phase 2 support (F-13)."
+        },
+        {
+            "code": "ODR-E203",
+            "severity": "error",
+            "summary": "A lane is defined by a <border>, which Phase 1 does not support.",
+            "action": "Describe the lane with <width> records, or wait for Phase 2 support (F-13)."
+        },
+        {
+            "code": "ODR-E204",
+            "severity": "error",
+            "summary": "A junction is direct, virtual, or crossing, or a road link uses elementS or elementDir; Phase 1 supports default junctions only.",
+            "action": "Model the junction as a default junction with connecting roads."
+        },
+        {
+            "code": "ODR-E205",
+            "severity": "error",
+            "summary": "A road has a temporary lane layer (<lanes layer=\"temporary\">) or a lane link to one; Phase 1 reads the permanent layer only.",
+            "action": "Remove the temporary layer, or wait for lane-layer support."
+        },
+        {
+            "code": "ODR-E206",
+            "severity": "error",
+            "summary": "The plan view, a profile, or the lane structure holds an element this decoder does not know; it could change the geometry or the lanes, so it is not ignored.",
+            "action": "Check the element name against the OpenDRIVE version the header states; remove or correct it."
+        },
+        {
             "code": "ODR-E901",
             "severity": "error",
             "summary": "An internal failure, such as running out of memory, stopped the read.",
             "action": "Report it with the input file if it is not a resource limit; it indicates a bug."
+        },
+        {
+            "code": "ODR-W201",
+            "severity": "warning",
+            "summary": "Road marks (<roadMark>) are not authored in Phase 1.",
+            "action": "None needed unless road marks are required; they are planned with the cross-section extensions (F-13)."
+        },
+        {
+            "code": "ODR-W202",
+            "severity": "warning",
+            "summary": "Signals, signal references, and controllers are not authored in Phase 1.",
+            "action": "None needed unless traffic semantics are required; they are planned for Phase 2 (F-14)."
+        },
+        {
+            "code": "ODR-W203",
+            "severity": "warning",
+            "summary": "Road objects, object references, tunnels, and bridges are not authored in Phase 1.",
+            "action": "None needed unless road objects are required; they are planned for Phase 2 (F-15)."
+        },
+        {
+            "code": "ODR-W204",
+            "severity": "warning",
+            "summary": "User data, <include>, and <dataQuality> elements are not authored.",
+            "action": "None needed; vendor extensions are not part of the stage contract (ADR 0002 section 4)."
+        },
+        {
+            "code": "ODR-W205",
+            "severity": "warning",
+            "summary": "A road speed whose maximum is \"no limit\" or \"undefined\" is not authored.",
+            "action": "None needed; the road keeps its numeric speed records."
+        },
+        {
+            "code": "ODR-W206",
+            "severity": "warning",
+            "summary": "Elements outside the Phase 1 scope, such as lane speeds, lane access and material, road surfaces, junction priorities, and stations, are read but not authored; the message lists them.",
+            "action": "None needed unless those elements are required; the capability matrix lists what is supported."
+        },
+        {
+            "code": "ODR-W207",
+            "severity": "warning",
+            "summary": "Attributes that the model does not represent, such as a road's rule or a road type's type and country, are not authored; the message lists them.",
+            "action": "None needed unless those attributes are required."
+        },
+        {
+            "code": "ODR-W208",
+            "severity": "warning",
+            "summary": "Elements unknown to this decoder, outside the plan view, the profiles, and the lane structure, are ignored; the message lists them.",
+            "action": "Check the element names against the OpenDRIVE version the header states."
         }
     ]
 }

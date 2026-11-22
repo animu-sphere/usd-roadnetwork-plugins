@@ -34,6 +34,18 @@ semantic versioning for tagged releases.
   any version other than 1.4 to 1.9 with `ODR-E001` to `ODR-E007`. A failed
   reload keeps the previous layer content. Accepted files still open as an
   empty layer, because roads are not decoded yet.
+- OpenDRIVE decoder (ODR-02): a full read decodes roads, line and arc
+  reference lines, elevation, lane offset, lane sections and widths, road
+  and lane links, and default junctions into `RoadNetworkData`, builds the
+  canonical lane graph from one-sided or two-sided links, and validates the
+  result. Unsupported representations (spiral, poly3, paramPoly3, non-zero
+  superelevation, lane borders, non-default junctions, temporary lane
+  layers) and ambiguous lane links fail with `ODR-E008` to `ODR-E206`.
+  Validation failures are relayed with their `RN-` code. Data that is read
+  but not represented (road marks, signals, objects, user data, and others)
+  is reported once per kind in `ODR-W201` to `ODR-W208`. CARLA `Town01` and
+  `Town02` decode and validate. Files still open as an empty layer until the
+  stage contract (USD-01).
 - pugixml 1.16 (MIT), vendored in `third_party/pugixml` and compiled into the
   `roadnetwork-opendrive` bundle with hidden symbols.
 - Source CI on GitHub-hosted Windows, Ubuntu, and macOS runners: the
@@ -52,10 +64,17 @@ semantic versioning for tagged releases.
   centerlines. `TessellateRoad()` samples each lane section into polylines
   within a 1 cm error bound, with shared vertices between adjacent lanes.
   `Validate()` now also rejects a lane border that reaches the center of
-  curvature of an arc, with `RN-E308`. No decoder or writer uses them yet.
+  curvature of an arc, with `RN-E308`. The writer does not use them yet.
+- `Validate()` can return warnings. `RN-W301` reports an outermost lane
+  border that folds back past an arc's center of curvature. CARLA has three,
+  all sidewalks.
 
 ### Changed
 
 - `roadnetwork-opendrive` declares `supportsWriting: false`: saving or
   exporting a layer through the `.xodr` format now fails with an explicit
   Sdf error instead of returning false silently.
+- `RN-E308` applies only when the folding border is the inner border of a
+  lane: the center border, or the outer border of a lane with another lane
+  outside it. When only the outermost lane's outer border folds, the result
+  is `RN-W301` (ADR 0004 §2).

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "io/Reader.h"
 
-#include "pugixml.hpp"
+#include "io/DocumentImpl.h"
 
 #include <cstring>
 #include <optional>
@@ -263,7 +263,7 @@ std::uint32_t CountChildren(const pugi::xml_node& node, const char* name) {
 }
 
 Diagnostic Fail(std::string_view code, std::string detail) {
-  return Diagnostic{code, std::move(detail)};
+  return Diagnostic{std::string(code), std::move(detail)};
 }
 
 } // namespace
@@ -320,11 +320,6 @@ bool LooksLikeOpenDrive(std::string_view prefix) noexcept {
     }
   }
 }
-
-struct Document::Impl {
-  pugi::xml_document xml;
-  SourceInfo source;
-};
 
 Document::Document(std::unique_ptr<Impl> impl) noexcept : impl_(std::move(impl)) {}
 Document::~Document() = default;

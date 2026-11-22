@@ -71,12 +71,13 @@ build/test/package` can resolve them. `ost plugin test --workspace
 plugins/roadnetwork-opendrive/src/RoadnetworkOpendriveFileFormat.*
     thin SdfFileFormat integration (scaffolded)
 
-plugins/roadnetwork-opendrive/src/io/OpenDriveReader.*
-    XML parser isolation; element and scalar parsing
+plugins/roadnetwork-opendrive/src/io/Reader.*
+    XML parser isolation; the CanRead() sniff, container, root, header, and
+    version checks
 
-plugins/roadnetwork-opendrive/src/io/OpenDriveDecoder.*
-    version recognition, ID resolution, topology, geometry and profile
-    decoding into RoadNetworkData; diagnostics
+plugins/roadnetwork-opendrive/src/io/Decoder.*
+    scalar parsing, lane-link resolution, topology, geometry and profile
+    decoding into RoadNetworkData; validation; counted warnings
 
 libs/roadnetwork-core/include/openstrata/rn/...
     RoadNetworkData, validation, geometry evaluation, diagnostics helpers
@@ -104,9 +105,9 @@ usd-roadnetwork-plugins/
 │   │   ├── openstrata.plugin.yaml  # bundle contract and declared test fixtures
 │   │   ├── CMakeLists.txt
 │   │   ├── cmake/OpenStrataPlugin.cmake
-│   │   ├── src/                    # src/io/: the USD-free reader
+│   │   ├── src/                    # src/io/: the USD-free reader and decoder
 │   │   ├── plugin/resources/roadnetwork-opendrive/plugInfo.json
-│   │   └── tests/fixtures/         # minimal OpenDRIVE XML, reader fixtures, and the L5 golden
+│   │   └── tests/fixtures/         # minimal OpenDRIVE XML, reader and decoder fixtures, and the L5 golden
 │   ├── roadnetwork-lanelet2/       # future
 │   └── roadnetwork-sumo/           # future
 ├── libs/

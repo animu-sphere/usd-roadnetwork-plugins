@@ -36,9 +36,10 @@ usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/roadnetwork-opendrive/plugInfo.json
 tests:
-  smoke: [tests/fixtures/basic.xodr]
+  smoke: [tests/fixtures/basic.xodr, tests/fixtures/decoder/network.xodr]
   roundtrip: [tests/fixtures/basic.xodr]
-  # Each must fail to open with its ODR- code (docs/reference/DIAGNOSTICS.md).
+  # Each must fail to open with its ODR- or RN- code
+  # (docs/reference/DIAGNOSTICS.md).
   negative:
     - tests/fixtures/invalid.xodr
     - tests/fixtures/reader/not-utf8.xodr
@@ -47,3 +48,23 @@ tests:
     - tests/fixtures/reader/missing-header.xodr
     - tests/fixtures/reader/version-malformed.xodr
     - tests/fixtures/reader/version-unsupported.xodr
+    - tests/fixtures/decoder/missing-attribute.xodr
+    - tests/fixtures/decoder/invalid-number.xodr
+    - tests/fixtures/decoder/unknown-lane-type.xodr
+    - tests/fixtures/decoder/duplicate-plan-view.xodr
+    - tests/fixtures/decoder/lane-group-mismatch.xodr
+    - tests/fixtures/decoder/lane-link-without-road-link.xodr
+    - tests/fixtures/decoder/lane-link-into-junction.xodr
+    - tests/fixtures/decoder/connection-unresolved.xodr
+    - tests/fixtures/decoder/spiral.xodr
+    - tests/fixtures/decoder/superelevation.xodr
+    - tests/fixtures/decoder/lane-border.xodr
+    - tests/fixtures/decoder/direct-junction.xodr
+    - tests/fixtures/decoder/temporary-lane-layer.xodr
+    - tests/fixtures/decoder/unknown-lane-element.xodr
+    - tests/fixtures/decoder/duplicate-road.xodr
+    - tests/fixtures/decoder/unresolved-link.xodr
+    - tests/fixtures/decoder/unresolved-lane-link.xodr
+    - tests/fixtures/decoder/non-finite.xodr
+    - tests/fixtures/decoder/plan-view-gap.xodr
+    - tests/fixtures/decoder/inner-border.xodr
