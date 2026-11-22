@@ -23,7 +23,12 @@ cmake --build build
 ```
 
 Confirm the commands against the `ost` version recorded in
-[supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md). A
+[supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md).
+Pull requests run the same lifecycle on hosted Windows, Ubuntu, and macOS
+runners. The CI contract is [`openstrata.ci.yaml`](openstrata.ci.yaml); after
+editing it, regenerate the workflow with
+`ost ci generate github --reusable-source --out .github/workflows/ost-source-ci.yml --force`
+and commit both files. A
 plain CMake/CTest path for local unit tests will be documented alongside.
 
 ## Where things go

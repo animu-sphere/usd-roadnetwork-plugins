@@ -28,6 +28,9 @@ semantic versioning for tagged releases.
   (`diagnostics.json`, `rn-diagnostics.json`) in its plugin resources.
 - File-format contract, writer change-block, and catalog cross-check tests,
   run by the composed root's CTest suite.
+- Source CI on GitHub-hosted Windows, Ubuntu, and macOS runners: the
+  `openstrata.ci.yaml` support matrix and the workflow generated from it
+  build, test (L0–L5), and package the workspace against OpenUSD 26.08.
 
 ### Changed
 

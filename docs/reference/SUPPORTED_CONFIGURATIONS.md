@@ -32,9 +32,22 @@ the declared range.
 
 | OS / architecture | CI contract | Observed |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | to be declared in Phase 0 | local Windows 11 build; the empty bundle passes `ost plugin test --workspace --up-to 5` and `--from-package --up-to 5` at L0–L5 |
-| macOS 15 / arm64 / libc++ | to be declared in Phase 0 | — |
-| Ubuntu 24.04 / x86_64 | to be declared in Phase 0 | — |
+| Windows 2022 / x86_64 / MSVC 143 | `workspace-{pr,main}-windows` | local Windows 11 build; the empty bundle passes `ost plugin test --workspace --up-to 5` and `--from-package --up-to 5` at L0–L5 |
+| macOS 15 / arm64 / libc++ | `workspace-{pr,main}-macos` | — |
+| Ubuntu 24.04 / x86_64 | `workspace-{pr,main}-linux` | — |
+
+The CI contract is [`openstrata.ci.yaml`](../../openstrata.ci.yaml). Each cell
+is a GitHub-hosted workspace cell that bootstraps the pinned `ost`, pulls the
+digest-pinned OpenUSD 26.08 runtime for its platform, and runs, in order: the
+workspace dependency graph, `ost build`, the composed root's CTest suite
+(`ost test`), every bundle's verification pyramid up to L5, and workspace and
+product packaging (`verify: package`). The package-origin test
+(`--from-package`) is not part of the hosted cells. Pull requests run the
+`pr` cells and pushes to `main` run the `main` cells, through the hand-written
+[`ci.yml`](../../.github/workflows/ci.yml) caller; changes to documentation
+alone do not build. The jobs in
+[`ost-source-ci.yml`](../../.github/workflows/ost-source-ci.yml) are generated
+from the matrix and are not edited by hand.
 
 Hosted support is claimed only after the declared CI jobs complete; a row is
 updated with a run link in the PR that proves it.

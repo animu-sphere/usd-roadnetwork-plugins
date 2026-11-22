@@ -1,0 +1,27 @@
+# Hand-written, so that regenerating ost-source-ci.yml cannot lose it. It decides which changes
+# build: documents alone do not. THIRD_PARTY_NOTICES.md is not exempt, because the packages ship it.
+#
+# Pull requests run the pull_request lane of openstrata.ci.yaml; pushes to main run the main lane;
+# a manual dispatch runs both.
+#
+# Fork-PR safety: this never publishes and uses no secrets.
+name: ci
+
+on:
+  pull_request:
+    paths-ignore: ["docs/**", "CHANGELOG.md", "CONTRIBUTING.md", "README.md", "**/README.md", "LICENSE"]
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "CHANGELOG.md", "CONTRIBUTING.md", "README.md", "**/README.md", "LICENSE"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source:
+    uses: ./.github/workflows/ost-source-ci.yml
