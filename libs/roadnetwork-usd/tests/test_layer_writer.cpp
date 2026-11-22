@@ -464,21 +464,21 @@ void CheckSectionsAndLanes(const SdfLayerRefPtr& layer) {
       "the center lane has no width");
 
   // Lane graph: each edge on both lanes (ADR 0005 section 4).
-  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_0/right_1.roadnetwork:successor") ==
+  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_0/right_1.roadnetwork:endLinks") ==
             Paths({"/Asset/Network/Roads/road_1/section_1/right_1"}),
-      "lane successor across sections");
-  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_1/right_1.roadnetwork:predecessor") ==
+      "lane end links across sections");
+  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_1/right_1.roadnetwork:startLinks") ==
             Paths({"/Asset/Network/Roads/road_1/section_0/right_1"}),
-      "lane predecessor across sections");
-  Check(Targets(layer, "/Asset/Network/Roads/road_a_5fb/section_0/right_1.roadnetwork:predecessor") ==
+      "lane start links across sections");
+  Check(Targets(layer, "/Asset/Network/Roads/road_a_5fb/section_0/right_1.roadnetwork:startLinks") ==
             Paths({"/Asset/Network/Roads/road_1/section_1/right_1"}),
       "into the connecting road");
-  Check(Targets(layer, "/Asset/Network/Roads/road_2/section_0/right_1.roadnetwork:predecessor") ==
+  Check(Targets(layer, "/Asset/Network/Roads/road_2/section_0/right_1.roadnetwork:startLinks") ==
             Paths({"/Asset/Network/Roads/road_a_5fb/section_0/right_1"}),
       "out of the connecting road");
-  Check(!Has(layer, "/Asset/Network/Roads/road_1/section_0/right_1.roadnetwork:predecessor"),
-      "no predecessor relationship without an edge");
-  Check(!Has(layer, "/Asset/Network/Roads/road_1/section_0/left_1.roadnetwork:successor"),
+  Check(!Has(layer, "/Asset/Network/Roads/road_1/section_0/right_1.roadnetwork:startLinks"),
+      "no start-links relationship without an edge");
+  Check(!Has(layer, "/Asset/Network/Roads/road_1/section_0/left_1.roadnetwork:endLinks"),
       "the left lane has no edges");
 }
 
@@ -492,11 +492,11 @@ void CheckSortedLaneTargets() {
   Check(!rn::Validate(data), "the branching network validates");
   SdfLayerRefPtr layer = SdfLayer::CreateAnonymous("branching.usda");
   Check(Write(data, layer), "the branching network is written");
-  Check(Targets(layer, "/Asset/Network/Roads/road_a_5fb/section_0/right_1.roadnetwork:successor") ==
+  Check(Targets(layer, "/Asset/Network/Roads/road_a_5fb/section_0/right_1.roadnetwork:endLinks") ==
             Paths({"/Asset/Network/Roads/road_2/section_0/right_1",
                 "/Asset/Network/Roads/road_2/section_0/right_2"}),
-      "successors sorted by path");
-  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_1/right_1.roadnetwork:successor") ==
+      "end links sorted by path");
+  Check(Targets(layer, "/Asset/Network/Roads/road_1/section_1/right_1.roadnetwork:endLinks") ==
             Paths({"/Asset/Network/Roads/road_1/section_0/left_1",
                 "/Asset/Network/Roads/road_a_5fb/section_0/right_1"}),
       "an end joined to two lanes lists both, sorted");

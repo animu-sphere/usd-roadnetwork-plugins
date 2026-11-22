@@ -185,7 +185,7 @@ be stated on the IR to shared validation
 
 Conceptually the IR has five concerns: **identity**, **geometry**,
 **topology**, **semantics** (types, speeds, rules), and **provenance**.
-[ADR 0001](../adr/0001-roadnetwork-data-model.md) proposes a layered model
+[ADR 0001](../adr/0001-roadnetwork-data-model.md) decides a layered model
 (a common identity and lane-graph layer plus attached geometry
 representations); the concerns are not split into separate types beyond
 what Phase 1 needs. Rules that hold regardless of that ADR's details:
@@ -243,14 +243,14 @@ typed. Policy for that decision:
 
 The invariants every bundle's stage satisfies are owned by the
 [workspace contract §5](../architecture/WORKSPACE.md#5-authored-stage-contract);
-the proposed prim tree and naming rules are in
+the prim tree and naming rules are in
 [ADR 0005](../adr/0005-prim-path-and-id-stability.md#3-hierarchy). Naming is
 deterministic so that reloads and new formats do not move paths, and every
 relationship stays inside the asset so that it is remapped under references.
 
 ### 6.3 Coordinates, units, and georeferencing
 
-[ADR 0003](../adr/0003-crs-axes-units.md) proposes the rules. Policy:
+[ADR 0003](../adr/0003-crs-axes-units.md) decides the rules. Policy:
 
 - Preserve the source CRS, georeference, origin, axis directions, and units
   as far as the source provides them. Never reproject during import.

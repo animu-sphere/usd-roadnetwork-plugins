@@ -91,3 +91,11 @@ semantic versioning for tagged releases.
   lane: the center border, or the outer border of a lane with another lane
   outside it. When only the outermost lane's outer border folds, the result
   is `RN-W301` (ADR 0004 §2).
+- ADRs 0001–0005 accepted: the `RoadNetworkData` model, the USD property
+  vocabulary, CRS and units, geometry retention and tessellation, and prim
+  paths. The stage contract they define is now binding.
+- Lane relationships are `roadnetwork:startLinks` and
+  `roadnetwork:endLinks`, renamed from `roadnetwork:predecessor` and
+  `roadnetwork:successor`: they name the lane's own ends, not a direction of
+  travel. Road links keep `roadnetwork:predecessor` and
+  `roadnetwork:successor` (ADR 0002 §3, ADR 0005 §4).

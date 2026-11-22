@@ -18,11 +18,11 @@ beyond status links and errata.
 
 | ADR | Title | Status | Needed by |
 | --- | --- | --- | --- |
-| [0001](0001-roadnetwork-data-model.md) | `RoadNetworkData` ID, topology, and geometry model | Proposed; ready for review | Phase 1 (IR-01) |
-| [0002](0002-usd-schema-strategy.md) | USD schema strategy | Proposed; ready for review | Phase 1 (USD-01) |
-| [0003](0003-crs-axes-units.md) | CRS, axes, units, and large coordinates | Proposed; ready for review | Phase 1 (USD-01, ODR-02) |
-| [0004](0004-opendrive-geometry-retention.md) | OpenDRIVE curve and cross-section retention; tessellation | Proposed; ready for review | Phase 1 (GEO-01) |
-| [0005](0005-prim-path-and-id-stability.md) | Prim-path and source-ID stability; multiple networks | Proposed; ready for review | Phase 1 (USD-01) |
+| [0001](0001-roadnetwork-data-model.md) | `RoadNetworkData` ID, topology, and geometry model | Accepted (2026-11-23) | Phase 1 (IR-01) |
+| [0002](0002-usd-schema-strategy.md) | USD schema strategy | Accepted (2026-11-23) | Phase 1 (USD-01) |
+| [0003](0003-crs-axes-units.md) | CRS, axes, units, and large coordinates | Accepted (2026-11-23) | Phase 1 (USD-01, ODR-02) |
+| [0004](0004-opendrive-geometry-retention.md) | OpenDRIVE curve and cross-section retention; tessellation | Accepted (2026-11-23) | Phase 1 (GEO-01) |
+| [0005](0005-prim-path-and-id-stability.md) | Prim-path and source-ID stability; multiple networks | Accepted (2026-11-23) | Phase 1 (USD-01) |
 | [0006](0006-fileformat-contract.md) | `SdfFileFormat` metadata-only, reload, and error contract | Accepted (2026-11-22) | Phase 0 scaffold (diagnostic numbering) |
 | [0007](0007-geometry-lod-payload-boundary.md) | Geometry generation, LOD and tiles, payload boundary | Proposed | Phase 3 |
 | [0008](0008-lanelet2-osm-identification.md) | Lanelet2 versus OSM identification; shared regulatory model | Proposed | Phase 4 |

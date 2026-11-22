@@ -45,20 +45,8 @@ work starts.
 
 ## Next actions
 
-1. **Review ADRs 0001–0005 for acceptance.** Each ADR's evidence section
-   now lists what IR-01 to USD-01 gathered, and the
-   [Lanelet2 paper mapping](../reports/adr-0001-lanelet2-mapping-2026-11-23.md)
-   completed ADR 0001's last evidence item. It led to two amendments made
-   before acceptance: ADR 0001 §4 (a variant of lane keys) and ADR 0003's
-   scope and §2 (metric source frames only). Review ADRs 0001 and 0002
-   together: the undirected lane-end links and the USD
-   `predecessor`/`successor` relationships must mean the same thing, and
-   both must extend to a second format. Review at the same time ADR 0004
-   §2's `RN-E308`/`RN-W301` split, found while decoding CARLA in ODR-02,
-   and the choices USD-01 made where ADR 0002 is silent
-   ([ADR 0002 evidence](../adr/0002-usd-schema-strategy.md#evidence)).
-2. **Inspect the fixtures in `usdview`**, as the
+1. **Inspect the fixtures in `usdview`**, as the
    [Phase 1 exit](release-plan.md#phase-1-exit) requires, and record it for
    REL-01 (`ost plugin test --up-to 6` adds the `usdview` level).
-3. Update the capability matrix in the same pull request as each
+2. Update the capability matrix in the same pull request as each
    implementation; a row without test evidence stays unsupported.

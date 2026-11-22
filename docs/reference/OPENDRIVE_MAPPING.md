@@ -4,7 +4,7 @@
   mapping from OpenDRIVE to `RoadNetworkData`, and section 9 what the shared
   writer authors from it (USD-01). A row's status is *authored* when the
   value reaches the stage. The USD rules follow ADRs 0002, 0003, and 0005,
-  which are still Proposed. Each row is completed in the PR that implements
+  accepted on 2026-11-23. Each row is completed in the PR that implements
   it, with the fixtures that prove it, and the matching
   [capability matrix](CAPABILITY_MATRIX.md) row is updated in the same PR.
 
@@ -199,6 +199,6 @@ OpenDRIVE.
 | Lane `type` | `roadnetwork:laneType`, a `token` with the source spelling | |
 | Road `<type>/<speed>` | `roadnetwork:speed:s` and `:max`, in metres per second | `"no limit"` and `"undefined"` are not authored (`ODR-W205`) |
 | Road link `contactPoint` | `roadnetwork:predecessorContact`, `:successorContact` | only for a road target |
-| Lane links and junction `<laneLink>` | `roadnetwork:predecessor` and `:successor` on both lanes of each lane-graph edge (§5.1) | they name the lane's own start and end, not a direction of travel |
+| Lane links and junction `<laneLink>` | `roadnetwork:startLinks` and `:endLinks` on both lanes of each lane-graph edge (§5.1) | they name the lane's own start and end, not a direction of travel; the target's end is not recorded ([ADR 0005 §4](../adr/0005-prim-path-and-id-stability.md#4-relationships)) |
 | Junction `<laneLink from to>` | `roadnetwork:laneLink:from` and `:to` on the connection | source lane numbers in source order, beside the lane relationships |
 | Lane borders and centerlines | `/Asset/Visualization/Boundaries` and `/Centerlines`, one linear `BasisCurves` per road | derived; sampled within 1 cm ([ADR 0004 §3](../adr/0004-opendrive-geometry-retention.md#3-tessellation)) and shifted by the origin of [ADR 0003 §5](../adr/0003-crs-axes-units.md#5-precision) |

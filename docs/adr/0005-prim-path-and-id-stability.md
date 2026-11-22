@@ -1,6 +1,6 @@
 # ADR 0005 — Prim-path and source-ID stability; multiple networks
 
-- **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
+- **Status:** Accepted (2026-11-23)
 - **Scope:** how source IDs become prim paths and relationships, and how
   several road networks compose in one stage
 - **Phase 1 owner:** USD-01 ([current work](../roadmap/current.md#active-work))
@@ -51,7 +51,7 @@ OpenUSD 26.08:
 - **C. Index-based names.** Rejected: paths move when the source order
   changes.
 
-## Proposed decision
+## Decision
 
 Option A, with an injective escaping rule, so that collisions cannot occur.
 
@@ -130,7 +130,7 @@ numbers in names.
 
 | Relationship | On | Targets |
 | --- | --- | --- |
-| `roadnetwork:predecessor`, `roadnetwork:successor` | lane | Every lane joined to this lane's start or end in the lane graph ([ADR 0001 §3](0001-roadnetwork-data-model.md#3-topology)), sorted by path |
+| `roadnetwork:startLinks`, `roadnetwork:endLinks` | lane | Every lane joined to this lane's start or end in the lane graph ([ADR 0001 §3](0001-roadnetwork-data-model.md#3-topology)), sorted by path |
 | `roadnetwork:predecessor`, `roadnetwork:successor` | road | The one road or junction that the source names |
 | `roadnetwork:junction` | road | The junction the road belongs to |
 | `roadnetwork:incomingRoad`, `roadnetwork:connectingRoad` | connection | The roads |
@@ -139,8 +139,16 @@ numbers in names.
 - Each lane-graph edge appears on both of its lanes. A one-sided source
   statement is therefore traversable in both directions, as on CARLA's
   connecting roads.
-- Lane `predecessor` and `successor` mean the start and end of the lane's
-  own `s` range. They do not mean the direction of travel.
+- Lane `startLinks` and `endLinks` mean the start and end of the lane's
+  own `s` range. They do not mean a direction of travel, and so they do not
+  share the road's `predecessor` and `successor` names.
+- A lane relationship does not say which end of the target lane the edge
+  joins. A consumer finds it by looking for this lane in the target's
+  `startLinks` or `endLinks`. When two lanes are joined at both of their
+  ends, as in a ring of two single-section roads, that lookup is ambiguous.
+  The IR edge keeps both ends ([ADR 0001 §3](0001-roadnetwork-data-model.md#3-topology)).
+  This is a known loss of Phase 1, revisited with the
+  [query API boundary](../roadmap/backlog.md#decisions-to-record-later).
 - Every target is inside the same `/Asset`. No relationship leaves the
   asset.
 
@@ -210,7 +218,16 @@ Gathered in USD-01, in `roadnetwork-usd`
   has no centerline, so it has no `Centerlines` prim. Its `Boundaries` prim
   still holds the center border.
 
-Needed before acceptance:
+Gathered in the acceptance review of ADRs 0001–0005 (2026-11-23):
 
-- Review together with ADR 0001's derived identities (current work, next
-  action 1).
+- §1–§3 were reviewed together with ADR 0001's derived identities, and §4
+  together with ADR 0001's lane graph and ADR 0002's property list.
+- The lane relationships were renamed `roadnetwork:startLinks` and
+  `roadnetwork:endLinks` before the first release, as the maintainer chose
+  on 2026-11-23 ([ADR 0002 evidence](0002-usd-schema-strategy.md#evidence)).
+- The review found that a lane relationship does not record the target's
+  end, which is ambiguous for two lanes joined at both ends. The maintainer
+  chose on 2026-11-23 to record it in §4 as a known loss rather than split
+  each relationship by the target's end.
+
+Accepted by the maintainer on 2026-11-23, after the review above.
