@@ -3,16 +3,16 @@
 This document separates what has been exercised from what is only declared or
 targeted. Targets are taken from the sibling `usd-3dgs-plugins` workspace.
 As of 2026-11-22 the scaffolded (empty) `roadnetwork-opendrive` bundle and its
-two libraries are exercised on the three hosted `pr` lanes and in a local
-Windows build. The `main` lanes first run when this CI lands on `main`.
+two libraries are exercised on the hosted `pr` and `main` lanes on all three
+platforms and in a local Windows build.
 
 ## OpenUSD and OpenStrata
 
 | Item | Target | Exercised |
 | --- | --- | --- |
-| OpenStrata | 0.23.21 | 0.23.21 locally (scaffold; library build and test; bundle build, test L0–L5, package, and package-origin test L0–L5) and on the hosted `pr` cells (bootstrapped from the pinned release) |
+| OpenStrata | 0.23.21 | 0.23.21 locally (scaffold; library build and test; bundle build, test L0–L5, package, and package-origin test L0–L5) and on the hosted `pr` and `main` cells (bootstrapped from the pinned release) |
 | OpenUSD tolerated range | `>=25.05,<27.0` (scaffold default in the bundle manifest) | only 26.08; the range is narrowed or confirmed before the first release |
-| OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) and on the hosted `pr` cells (the Windows, Linux, and macOS runtimes pinned in `openstrata.ci.yaml`) |
+| OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) and on the hosted `pr` and `main` cells (the Windows, Linux, and macOS runtimes pinned in `openstrata.ci.yaml`) |
 | OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd` |
 | Python ABI | CPython 3.13 | CPython 3.13 locally |
 
@@ -33,9 +33,9 @@ the declared range.
 
 | OS / architecture | CI contract | Observed |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | `workspace-{pr,main}-windows`, `opendrive-{pr,main}-windows` | hosted `pr` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged. Local Windows 11 also passes `--from-package --up-to 5` at L0–L5 |
-| macOS 15 / arm64 / libc++ | `workspace-{pr,main}-macos`, `opendrive-{pr,main}-macos` | hosted `pr` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
-| Ubuntu 24.04 / x86_64 | `workspace-{pr,main}-linux`, `opendrive-{pr,main}-linux` | hosted `pr` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
+| Windows 2022 / x86_64 / MSVC 143 | `workspace-{pr,main}-windows`, `opendrive-{pr,main}-windows` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged. Local Windows 11 also passes `--from-package --up-to 5` at L0–L5 |
+| macOS 15 / arm64 / libc++ | `workspace-{pr,main}-macos`, `opendrive-{pr,main}-macos` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
+| Ubuntu 24.04 / x86_64 | `workspace-{pr,main}-linux`, `opendrive-{pr,main}-linux` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
 
 The CI contract is [`openstrata.ci.yaml`](../../openstrata.ci.yaml). Every
 cell runs on a GitHub-hosted runner, bootstraps the pinned `ost`, and pulls the
