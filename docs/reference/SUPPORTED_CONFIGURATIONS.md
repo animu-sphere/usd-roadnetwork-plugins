@@ -1,10 +1,10 @@
 # Supported configurations
 
-This document separates what has been exercised from what is only declared or
-targeted. Targets are taken from the sibling `usd-3dgs-plugins` workspace.
-As of 2026-11-22 the scaffolded (empty) `roadnetwork-opendrive` bundle and its
-two libraries are exercised on the hosted `pr` and `main` lanes on all three
-platforms and in a local Windows build.
+This page owns the runtimes, toolchains, and platforms the project targets,
+and separates what has been exercised from what is only declared. Targets
+are taken from the sibling `usd-3dgs-plugins` workspace. What is exercised is
+the build and test lifecycle of the current tree; what the tree *does* is in
+the [capability matrix](CAPABILITY_MATRIX.md).
 
 ## OpenUSD and OpenStrata
 
@@ -64,6 +64,6 @@ updated with a run link in the PR that proves it.
 
 ## OpenDRIVE input contract
 
-Not yet defined. The [FMT-01 spike](../reports/format-spike-opendrive-2026-11-22.md)
-establishes the specification versions in scope; the result is recorded in
-[OPENDRIVE_MAPPING.md](OPENDRIVE_MAPPING.md) and summarized here.
+The accepted specification versions and the per-element behavior are owned
+by the [OpenDRIVE mapping](OPENDRIVE_MAPPING.md#1-versions-and-detection);
+they are not repeated here.

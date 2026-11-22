@@ -26,6 +26,7 @@ beyond status links and errata.
 | [0006](0006-fileformat-contract.md) | `SdfFileFormat` metadata-only, reload, and error contract | Accepted (2026-11-22) | Phase 0 scaffold (diagnostic numbering) |
 | [0007](0007-geometry-lod-payload-boundary.md) | Geometry generation, LOD and tiles, payload boundary | Proposed | Phase 3 |
 | [0008](0008-lanelet2-osm-identification.md) | Lanelet2 versus OSM identification; shared regulatory model | Proposed | Phase 4 |
+| [0009](0009-file-format-arguments-up-axis.md) | File-format arguments: up-axis presentation, static and dynamic | Proposed | Phase 2 (F-27), Phase 3 (F-28) |
 
 ## Writing an ADR
 

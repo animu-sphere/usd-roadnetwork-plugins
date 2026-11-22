@@ -10,7 +10,7 @@
 USD prim names are restricted identifiers. OpenDRIVE IDs are arbitrary
 strings, often numeric, and some entities, such as lanes, are identified only
 by their position: road, lane section, and lane number. The design policy
-([§6.2](../design/DESIGN_POLICY.md#62-stage-contract-proposed),
+([§6.2](../design/DESIGN_POLICY.md#62-stage-contract),
 [§10.5](../design/DESIGN_POLICY.md#105-determinism)) requires deterministic
 naming, so that reloads and new formats do not move paths unnecessarily and
 overrides authored in a stronger layer keep targeting the same prims.
@@ -170,10 +170,11 @@ paths on every read and reload.
 
 ## Consequences
 
-- The [stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract)
-  and the [design policy §6.2](../design/DESIGN_POLICY.md#62-stage-contract-proposed)
-  example take the tree in §3 when this ADR is accepted. Lanes move under
-  their road, and `/Lanes`, `/Signals`, and `/Objects` become reserved.
+- §3 is the only copy of the tree. The
+  [stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract)
+  fixes only the top level and links here, so accepting this ADR changes no
+  other document's tree. Lanes live under their road, and `/Lanes`,
+  `/Signals`, and `/Objects` are reserved.
 - `roadnetwork-usd` owns `E` and its inverse, so every format names prims
   the same way.
 - Renaming a path rule after the first release breaks every override

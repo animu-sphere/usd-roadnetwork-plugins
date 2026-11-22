@@ -63,7 +63,13 @@ visualization points only. Never reproject during import.
 ### 1. Axes and units
 
 - Every layer authors `upAxis = "Z"` and `metersPerUnit = 1`. There is no
-  axis conversion.
+  axis conversion: mapping the source `x`, `y`, `z` to USD `x`, `y`, `z`
+  unchanged is the importer's convention, while the up direction and the
+  unit it exposes are source facts.
+- A consumer that wants a `Y`-up asset can request one with the `upAxis`
+  file-format argument of [ADR 0009](0009-file-format-arguments-up-axis.md),
+  which adds a rotation on `/Asset` and changes no authored value. Without
+  the argument, nothing in this section changes.
 - For OpenDRIVE, both values are **source facts**: the specification defines
   a `z`-up frame in metres. The [OpenDRIVE mapping](../reference/OPENDRIVE_MAPPING.md)
   says so. A later format whose specification defines neither documents them

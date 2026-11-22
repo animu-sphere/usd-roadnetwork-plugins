@@ -1,0 +1,32 @@
+# Hand-written. Checks the documentation for drift (docs/README.md, "Keeping documents in sync").
+# It runs on every change, including the documentation-only changes that ci.yml skips, because a
+# code change can break a documented claim (for example a diagnostic catalog entry).
+#
+# Fork-PR safety: this never publishes and uses no secrets.
+name: docs
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: check-docs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - name: Check documentation
+        run: python tools/check_docs.py

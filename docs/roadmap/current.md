@@ -1,63 +1,57 @@
 # Current: Phase 1 — OpenDRIVE vertical slice
 
-## Goal
+This page owns the active phase's workstreams, their order, and their
+tracking. The scope, the feature list, and the exit criteria are in the
+[release plan](release-plan.md#phase-1--opendrive-vertical-slice); task-level
+status is in issues and pull requests.
 
-Import simple OpenDRIVE roads, lanes, and junctions into USD, with meaning
-and geometry that the small fixtures can verify, and accept ADRs 0001–0005.
-The scope is in the [release plan](release-plan.md#phase-1--opendrive-vertical-slice);
-v0.1.0 is planned at the end of the phase.
+Phase 1 started on 2026-11-22, when Phase 0 met its exit criteria (PRs
+[#1](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/1)–[#5](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/5)).
 
-Phase 0 met its exit criteria on 2026-11-22 (PRs
-[#1](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/1)–[#5](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/5)):
-the empty bundle and both libraries pass the package lifecycle from source
-and from the installed package, ADR 0006 is accepted, ADRs 0001–0005 are
-ready for review, and the [FMT-01 report](../reports/format-spike-opendrive-2026-11-22.md)
-fixes the Phase 1 versions and fixtures.
+## Decisions carried from Phase 0
 
-## Decisions
+Each decision is recorded in its owner; this list only points to it.
 
-Carried from Phase 0:
-
-- OpenDRIVE is the first format (design policy, 2026-11-22).
-- The plugins are read-only.
+- OpenDRIVE is the first format, and the plugins are read-only
+  ([design policy §4](../design/DESIGN_POLICY.md#4-format-strategy), [§12](../design/DESIGN_POLICY.md#12-write-support)).
 - The project is licensed under Apache-2.0, like its sibling OpenStrata
-  projects (2026-11-22).
-- ADR 0006 is accepted (2026-11-22): `RN-` shared plus `ODR-` bundle codes,
-  a metadata-only read authors the header-derived root only, `CanRead()`
-  sniffs the root element within 64 KiB, and the writer authors Sdf specs on
-  the calling thread ([ADR 0006](../adr/0006-fileformat-contract.md)).
-- Phase 1 accepts OpenDRIVE `revMajor="1"` with `revMinor` 4–9 and rejects
-  any other version, including a newer minor version, with a stable error
-  (2026-11-22, [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)).
-- CARLA `Town01.xodr` and `Town02.xodr` are committed unmodified as the
-  real-world compatibility corpus, under their MIT license, which is stated
-  beside the files, in the bundle README, and in
-  [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) (2026-11-22).
-- The `usd-3dgs-plugins` worker-thread reload workaround is not copied: the
-  problem it solves (authoring through a `UsdStage` inside the reload's
-  `SdfChangeBlock`) was reproduced on OpenUSD 26.08 and is avoided by
-  authoring Sdf specs only.
+  projects ([LICENSE](../../LICENSE)).
+- The file-format contract and diagnostic numbering are accepted
+  ([ADR 0006](../adr/0006-fileformat-contract.md)); it replaces the
+  `usd-3dgs-plugins` worker-thread reload workaround with Sdf-only authoring.
+- Phase 1 accepts OpenDRIVE `revMajor="1"` with `revMinor` 4–9
+  ([FMT-01 §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)).
+- CARLA `Town01.xodr` and `Town02.xodr` are the real-world compatibility
+  corpus, committed unmodified under MIT
+  ([THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md#carla-opendrive-test-files)).
 
 ## Active work
 
-All workstreams are owned by `usd-roadnetwork-plugins`. Each names the ADRs
-whose remaining evidence it produces. An ADR is accepted in the workstream
-that produces the last of its evidence, or earlier if review finds the
-evidence sufficient. Add issue or PR links as work starts.
+All workstreams are owned by `usd-roadnetwork-plugins` and are listed in the
+recommended order. They may run in parallel, but a change to the IR or the
+stage contract updates the decoder and writer tests together. An ADR is
+accepted in the workstream that produces the last of its evidence, or
+earlier if review finds the evidence sufficient. Add issue or PR links as
+work starts.
 
-| ID | Work | Component | ADRs | Exit criterion | Tracking |
-| --- | --- | --- | --- | --- | --- |
-| IR-01 | `RoadNetworkData` types and validation | `roadnetwork-core` | [0001](../adr/0001-roadnetwork-data-model.md) | The ADR 0001 types replace the placeholder. Each validation invariant fails a unit test with its `RN-` code. | in review ([#6](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/6)): the types, `Validate()`, `CanonicalizeLaneLinks()`, and `RN-E101`–`RN-E307` land with a negative unit test per invariant (`roadnetworkCore_validation`) |
-| GEO-01 | Line, arc, and cubic evaluation; lane borders; tessellation | `roadnetwork-core` | [0004](../adr/0004-opendrive-geometry-retention.md) | Closed-form position and heading tests pass, and sampled borders stay within the tolerance on a hand-authored fixture. | — |
-| ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. | — |
-| ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The hand-authored fixtures and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | — |
-| USD-01 | Stage contract and the shared writer | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | — |
-| REL-01 | First release | all | — | The [release gate](../releases/README.md#release-gate) passes for v0.1.0. | — |
+| Order | ID | Work | Features | Component | ADRs | Exit criterion | Tracking |
+| ---: | --- | --- | --- | --- | --- | --- | --- |
+| 1 | IR-01 | `RoadNetworkData` types and validation | F-03, F-06 | `roadnetwork-core` | [0001](../adr/0001-roadnetwork-data-model.md) | The ADR 0001 types replace the placeholder. Each validation invariant fails a unit test with its `RN-` code. | merged ([#6](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/6)) |
+| 2 | GEO-01 | Line, arc, and cubic evaluation; lane borders; tessellation | F-04, F-05, F-08 | `roadnetwork-core` | [0004](../adr/0004-opendrive-geometry-retention.md) | Closed-form position and heading tests pass, and sampled borders stay within the tolerance on a hand-authored fixture. | — |
+| 3 | ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | F-01, F-02, F-10 | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. | — |
+| 4 | ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | F-05, F-06, F-09, F-11 | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The minimal fixture set and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | — |
+| 5 | USD-01 | Stage contract and the shared writer | F-07, F-08, F-09 | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | — |
+| 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | — |
 
-## Phase exit
+## Next actions
 
-- The meaning and geometry of the small fixtures are verifiable in USD.
-- ADRs 0001–0005 are accepted.
-- The [format acceptance gate](release-plan.md#format-acceptance-gate) passes
-  for OpenDRIVE, and the [release gate](../releases/README.md#release-gate)
-  passes for v0.1.0.
+1. **Review ADRs 0001 and 0002 together**: the undirected lane-end links and
+   the USD `predecessor`/`successor` relationships must mean the same thing,
+   and both must extend to a second format.
+2. **Fix the minimal fixture set** for GEO-01 and ODR-02: one straight road,
+   one arc, one lane-section change, one junction, and negative fixtures for
+   malformed XML and an unresolved link.
+3. **Write IR-to-USD golden semantic assertions** that check paths, types,
+   values, and relationships rather than whole USDA text.
+4. Update the capability matrix in the same pull request as each
+   implementation; a row without test evidence stays unsupported.

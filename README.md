@@ -1,10 +1,9 @@
 # OpenUSD Road Network Plugins
 
-> **Status: Phase 1 — OpenDRIVE vertical slice, in progress.** No format is
-> implemented yet.
-> This README describes the intended project; the
-> [capability matrix](docs/reference/CAPABILITY_MATRIX.md) is the only source
-> for what the tree supports.
+> **Status:** under development; this README describes the intended project.
+> The [current work](docs/roadmap/current.md) page names the active phase, and
+> the [capability matrix](docs/reference/CAPABILITY_MATRIX.md) is the only
+> source for what the tree supports.
 
 **Open road-network formats — starting with ASAM OpenDRIVE (`.xodr`) —
 directly as OpenUSD layers**, and reuse them for composition, inspection,
@@ -43,14 +42,12 @@ flowchart LR
     writer --> layer["USD layer<br/>/Asset/Network<br/>/Asset/Visualization"]
 ```
 
-## Planned formats
+## Formats
 
-| Priority | Format | Status |
-| --- | --- | --- |
-| P0 | ASAM OpenDRIVE `.xodr` | Phase 1 target |
-| P1 | Lanelet2 `.osm` | candidate |
-| P1–P2 | SUMO `.net.xml` | candidate |
-| P2 | OpenStreetMap `.osm` / `.pbf` | candidate |
+ASAM OpenDRIVE `.xodr` comes first. Lanelet2, SUMO, and OpenStreetMap are
+candidates; their priority is in the
+[design policy](docs/design/DESIGN_POLICY.md#4-format-strategy) and their
+status in the capability matrix.
 
 Import is read-only. Traffic simulation, vehicle control, rendering, and
 physics are out of scope; see the
@@ -61,8 +58,9 @@ physics are out of scope; see the
 - [Documentation index](docs/README.md) — which document owns which question
 - [Design policy](docs/design/DESIGN_POLICY.md) — principles and scope
 - [Workspace contract](docs/architecture/WORKSPACE.md) — components and dependencies
-- [ADRs](docs/adr/) — decisions, currently all Proposed
-- [Roadmap](docs/roadmap/) — phases and current work
+- [ADRs](docs/adr/) — decisions and their status
+- [Release plan](docs/roadmap/release-plan.md) — phases and the feature list
+- [Current work](docs/roadmap/current.md) — what is being built now
 
 ## Contributing
 

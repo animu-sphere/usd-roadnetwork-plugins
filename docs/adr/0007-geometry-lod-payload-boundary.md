@@ -28,12 +28,35 @@ choices do not close off its options.
 ## Constraints for earlier phases
 
 - Phase 1 keeps semantic and visualization data in separate subtrees so
-  either can later move behind a payload.
-- No semantic data may live only in visualization prims.
+  either can later move behind a payload: global semantics and geometry
+  tiles must be able to become separate load units.
+- No semantic data may live only in visualization prims, so topology stays
+  usable while geometry is not loaded.
+- The semantic ID of a road or lane that spans several tiles must not depend
+  on the tile, and an element must be able to refer to a connection target
+  outside its tile.
+- Geometry error and IDs must not depend on tile boundaries or on the order
+  in which tiles are generated.
+- A change to the stage hierarchy or load boundaries updates
+  [ADR 0005](0005-prim-path-and-id-stability.md) or this ADR and states the
+  compatibility of layers authored before.
+
+A conceptual target, not the Phase 1 stage contract:
+
+```text
+RoadNetwork asset
+  global semantic network
+  derived geometry tiles
+    tile_000
+    tile_001
+    ...
+```
 
 ## Evidence needed before acceptance
 
 - Performance measurements (§13 metrics) on at least one large, licensed
   network.
 - A composition prototype showing cross-unit relationships surviving
-  partial loading.
+  partial loading, payload unloading, and reloading.
+- Measured trade-offs between mesh subdivision accuracy, tile granularity,
+  and the size of any global index.

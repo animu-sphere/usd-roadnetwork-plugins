@@ -49,7 +49,7 @@ raises it.
 
 | Range | Category | Examples (illustrative) |
 | --- | --- | --- |
-| `0xx` | Input and container: unreadable file, malformed XML, wrong root element, unsupported version | `ODR-E001` XML parse error |
+| `0xx` | Input and container: unreadable file, malformed XML, wrong root element, unsupported version, invalid file-format argument | `ODR-E001` XML parse error |
 | `1xx` | Identity and references: missing, duplicated, or unresolved IDs; inconsistent links | `ODR-E101` unknown reference |
 | `2xx` | Semantic mapping: unsupported element, lossy or ignored data | `RN-W201` lossy mapping |
 | `3xx` | Geometry and numeric: non-finite values, invalid curve parameters, discontinuities beyond tolerance | — |
