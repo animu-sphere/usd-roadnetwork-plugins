@@ -128,8 +128,18 @@ into prim paths.
     road for elevation and lane offset, and from the lane-section start for a
     lane width, as in the source.
 - A road always carries a reference line. A boundary representation (left
-  and right polylines for each lane) is added as a new optional member with
-  the second format. The common layer (§2, §3) does not change.
+  and right polylines for each lane) is added with the second format. The
+  reference-line types do not change.
+- A lane that belongs to no road, such as a Lanelet2 lanelet, cannot be
+  named by `LaneKey` without synthesizing an ID, which §2 forbids. When the
+  second format is added, `LaneEnd::lane` becomes a variant of lane keys,
+  `LaneKey` for a lane in a road section and one key for each new kind
+  (for example `LaneletKey { id }`). The canonical order of §3 compares the
+  variant index first, then the key. The OpenDRIVE identities of §2, the
+  undirected edges of §3, and the reference-line types keep their meaning.
+  The IR headers are in the contributor tier
+  ([API boundary](../architecture/API_BOUNDARY.md#tiers)), so this is a
+  change to in-repo code only.
 - A consumer that needs a representation the source does not provide gets an
   explicit diagnostic. It never gets a silently derived approximation.
 
@@ -275,7 +285,8 @@ struct RoadNetworkData {
 - The lane-end graph is the input to the relationships of
   [ADR 0005](0005-prim-path-and-id-stability.md).
 - Lanelet2 adds a boundary representation and a lanelet identity without
-  changing the reference-line types. The paper mapping below checks this.
+  changing the reference-line types, and turns `LaneEnd::lane` into a
+  variant (§4). The paper mapping below checks this.
 
 ## Evidence
 
@@ -319,9 +330,23 @@ Gathered in ODR-02, in the `roadnetwork-opendrive` decoder:
   (`ValidationWarning`, ADR 0004 §2). They join the decoder's warnings in
   `RoadNetworkData::warnings`.
 
+Gathered in the [Lanelet2 paper mapping](../reports/adr-0001-lanelet2-mapping-2026-11-23.md)
+of Lanelet2's `mapping_example.osm` (BSD-3-Clause):
+
+- Lanelet IDs are unique within their kind, as §2 requires. The 388
+  lane-end edges derived from shared bound endpoints include 52 between
+  opposing lanelets, and the undirected `LaneEnd` model of §3 holds them
+  (§3 and §4 of the mapping).
+- `LaneKey` cannot name a lanelet without synthesizing a road, a section,
+  and a number, so `LaneEnd` changes with the second format (§3 and §9 of
+  the mapping). §4 originally said that the common layer would not change.
+  The maintainer chose on 2026-11-23 to amend §4 before acceptance with the
+  variant of lane keys.
+- Regulatory elements attach to lanes through the same lane reference, and
+  to physical elements that OpenDRIVE signals and objects also need
+  (§7 of the mapping).
+
 Needed before acceptance:
 
-- A paper mapping of one redistributable Lanelet2 example onto the common
-  layer, showing where its lanelets and regulatory elements would attach.
 - Review of the header (§7, as implemented) and of the derived identities,
   together with ADR 0005.
