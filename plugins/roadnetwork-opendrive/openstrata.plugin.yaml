@@ -10,6 +10,10 @@ plugin:
 # SPDX license for this plugin's own code. Surfaced by `ost plugin inspect` and
 # recorded in the package manifest. Change it to match your project's license.
 license: Apache-2.0
+# Third-party notices shipped in every package. The CARLA test networks are
+# MIT-licensed; see tests/fixtures/carla/.
+notices:
+  - THIRD_PARTY_NOTICES.md
 runtime:
   # The OpenUSD version range this plugin tolerates. The runtime supplies the
   # certified point within it.

@@ -65,7 +65,9 @@ physics are out of scope; see the
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Participation follows the
+[Code of Conduct](.github/CODE_OF_CONDUCT.md); report vulnerabilities
+privately as described in the [security policy](.github/SECURITY.md).
 
 ## License
 

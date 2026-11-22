@@ -23,14 +23,18 @@ Scope, from [design policy §7.1](../design/DESIGN_POLICY.md#71-minimum-useful-i
 
 1. Detection, XML parsing, version recognition, and stable errors.
 2. Line and arc plan-view geometry.
-3. Lane sections, width, type, road and lane links, and junctions.
+3. Lane sections, lane offset, width, type, road and lane links, and
+   `default` junctions.
 4. A defined policy for elevation and superelevation.
 5. Inspectable centerlines and lane boundaries in USD.
 6. `UsdStage::Open`, references, reload, `metadataOnly`, and package
    verification.
 
-Spiral, poly3, and paramPoly3 follow in Phase 2 unless the FMT-01 spike shows
-the first fixtures cannot be represented without them.
+Spiral, poly3, and paramPoly3 follow in Phase 2: the
+[FMT-01 spike](../reports/format-spike-opendrive-2026-11-22.md#5-elements-needed-for-phase-1)
+found that the first fixtures need only line and arc. The same spike puts
+lane offset in scope, because the real-world files examined use it on almost
+every road, and proposes accepting `revMajor="1"` with `revMinor` 4–9.
 
 ## Format acceptance gate
 

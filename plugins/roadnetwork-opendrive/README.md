@@ -12,6 +12,8 @@ src/RoadnetworkOpendriveFileFormat.{h,cpp}  the SdfFileFormat implementation
 plugin/resources/roadnetwork-opendrive/plugInfo.json   USD plugin registration (supportsWriting: false)
 plugin/resources/roadnetwork-opendrive/diagnostics.json  ODR- diagnostic catalog (rn-diagnostics.json is installed beside it)
 tests/fixtures/                 basic (valid) + invalid (negative) fixtures, basic golden
+tests/fixtures/carla/           third-party CARLA networks (MIT, see its README and LICENSE)
+THIRD_PARTY_NOTICES.md          notices shipped in every package (manifest `notices`)
 tests/test_*.py                 file-format contract and catalog tests (CTest)
 ```
 
@@ -26,15 +28,29 @@ OpenDRIVE is not parsed yet.
 
 ## Fixtures
 
-Both fixtures are hand-authored for this project and carry no third-party
-content. Their header revision (1.8) is illustrative until the FMT-01 spike
-fixes the versions in scope; they are not validated against the ASAM schema.
+The top-level fixtures are hand-authored for this project, licensed
+Apache-2.0, and carry no third-party content. Their header revision (1.8) is
+inside the Phase 1 scope set by the
+[FMT-01 spike](../../docs/reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy);
+they are not validated against the ASAM schema.
 
 | Fixture | Role | Content |
 | --- | --- | --- |
 | `basic.xodr` | smoke, roundtrip (L3–L5) | one straight 10 m road with one right-hand driving lane |
 | `basic.xodr.golden.usda` | L5 oracle | the flattened stage of `basic.xodr` (currently empty) |
 | `invalid.xodr` | negative | XML that is not well-formed; not yet rejected, because nothing parses it |
+
+`carla/` holds two **third-party** networks, `Town01.xodr` and `Town02.xodr`,
+from [carla-simulator/opendrive-test-files](https://github.com/carla-simulator/opendrive-test-files).
+They are licensed under the **MIT License**, copyright (c) 2019 Computer
+Vision Center (CVC) at the Universitat Autonoma de Barcelona (UAB), not under
+Apache-2.0. The upstream licence text is in
+[`carla/LICENSE`](tests/fixtures/carla/LICENSE), and the pinned commit and
+checksums are in [`carla/README.md`](tests/fixtures/carla/README.md). The
+files are unmodified. The licence text is also in the bundle's
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md), declared under `notices`
+in the manifest, so every package carries it. The networks are not yet named
+in the manifest's test lists, so `ost plugin package` does not pack them yet.
 
 Regenerate the golden after an intended output change:
 

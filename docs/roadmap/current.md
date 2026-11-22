@@ -17,6 +17,13 @@ needs before any decoder code is written.
   a metadata-only read authors the header-derived root only, `CanRead()`
   sniffs the root element within 64 KiB, and the writer authors Sdf specs on
   the calling thread ([ADR 0006](../adr/0006-fileformat-contract.md)).
+- Phase 1 accepts OpenDRIVE `revMajor="1"` with `revMinor` 4–9 and rejects
+  any other version, including a newer minor version, with a stable error
+  (2026-11-22, [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)).
+- CARLA `Town01.xodr` and `Town02.xodr` are committed unmodified as the
+  real-world compatibility corpus, under their MIT license, which is stated
+  beside the files, in the bundle README, and in
+  [THIRD_PARTY_NOTICES.md](../../THIRD_PARTY_NOTICES.md) (2026-11-22).
 - The `usd-3dgs-plugins` worker-thread reload workaround is not copied: the
   problem it solves (authoring through a `UsdStage` inside the reload's
   `SdfChangeBlock`) was reproduced on OpenUSD 26.08 and is avoided by
@@ -33,7 +40,7 @@ as work starts.
 | SCF-01 | Scaffold the OpenStrata workspace | `ost` scaffold output committed; [WORKSPACE.md](../architecture/WORKSPACE.md) paths and identities updated to match; `ost plugin inspect` and `ost plugin doctor` pass. | done 2026-11-22 (local Windows): root and bundle regenerated with `ost` 0.23.21; inspect and doctor pass after build; `ost plugin test --up-to 5` passes L0–L4, L5 skipped (no golden) |
 | SCF-02 | Empty bundle and libraries pass the package lifecycle | `roadnetwork-core` and `roadnetwork-usd` added with library descriptors and wired into the bundle's `requires.libraries`; the scaffold placeholder fixtures replaced by minimal OpenDRIVE XML; `ost plugin test --workspace --up-to 5` (including an L5 golden), `ost plugin package`, and `ost plugin test --from-package` pass on the local host. | done 2026-11-22 (local Windows, `ost` 0.23.21, OpenUSD 26.08): `--graph-only` valid (1 bundle, 2 libraries, 3 library edges); workspace test L0–L5 pass; package, then `--from-package --up-to 5` L0–L5 pass; `ost library test` and the composed root `ost test` pass |
 | CI-01 | Source CI | Hosted build and test run on the declared platforms; [supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md) updated with run links. | done 2026-11-22 ([#2](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/2)): the `pr` cells pass on hosted Windows, Ubuntu, and macOS ([run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286)); workspace cells stop at `test` until [open-strata#304](https://github.com/animu-sphere/open-strata/issues/304) is fixed |
-| FMT-01 | OpenDRIVE format spike | A [report](../reports/) records the specification versions and how to recognize them, specification access and licensing, coordinate and georeference conventions, the elements needed for Phase 1, candidate XML parsers and existing OpenDRIVE libraries with licenses, and redistributable fixtures with provenance. | — |
+| FMT-01 | OpenDRIVE format spike | A [report](../reports/) records the specification versions and how to recognize them, specification access and licensing, coordinate and georeference conventions, the elements needed for Phase 1, candidate XML parsers and existing OpenDRIVE libraries with licenses, and redistributable fixtures with provenance. | done 2026-11-22 ([report](../reports/format-spike-opendrive-2026-11-22.md)): Phase 1 accepts `revMajor="1"` with `revMinor` 4–9; pugixml 1.16 is the parser candidate; CARLA `opendrive-test-files` (MIT) is the real-world corpus candidate; `<laneOffset>` joins the Phase 1 scope |
 | ADR-06 | Accept ADR 0006 | Numbering scheme, `CanRead()`, `metadataOnly`, and error behavior accepted; reload test on the empty bundle written. | done 2026-11-22: ADR accepted; contract, writer, and catalog tests pass under `ost test` (local Windows, OpenUSD 26.08) |
 | ADR-01..05 | Draft ADRs 0001–0005 to acceptance-ready | Each ADR lists the evidence it needs and a Phase 1 owner. Acceptance may land early in Phase 1. | — |
 
