@@ -8,10 +8,24 @@
 # and do not edit that file by hand. .github/workflows/ci.yml is hand-written
 # and decides which changes run it.
 #
-# Every cell is a workspace cell: it builds the composed root (both libraries
-# and the roadnetwork-opendrive bundle), runs its CTest suite, runs every
-# bundle's verification pyramid up to L5, and packages. That is the lifecycle
-# SCF-02 measured locally; the hosted cells prove it on the declared platforms.
+# Each platform and lane has two cells, which together cover the lifecycle
+# SCF-02 measured locally:
+#
+#   workspace-*  builds the composed root (both libraries and the bundle) and
+#                runs its CTest suite (`verify: test`): the file-format
+#                contract, writer, and catalog tests.
+#   opendrive-*  builds the roadnetwork-opendrive bundle with its required
+#                libraries, runs its verification pyramid up to L5, and
+#                packages it.
+#
+# The workspace cells stop at `test` on purpose. In ost 0.23.21 the generated
+# workspace job runs the pyramid right after `ost build`, which does not write
+# the library install snapshots `ost plugin test --workspace` reads, so
+# `verify: pyramid` and `verify: package` fail on a clean checkout with
+# WORKSPACE_LIBRARY_RUNTIME_MISSING
+# (https://github.com/animu-sphere/open-strata/issues/304). The bundle cells
+# run `ost plugin build` first, which does. Merge them back into
+# `verify: package` workspace cells once a fixed ost is bootstrapped.
 #
 # RUNTIME PINS. The three runtimes are the OpenUSD 26.08 imaging leaves of
 # ost's canonical runtime matrix (Python 3.13, `sdk` layout, SBOM and
@@ -71,7 +85,20 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    verify: package
+    verify: test
+  - name: opendrive-pr-windows
+    lane: pull_request
+    runner: windows
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
     up_to: 5
   - name: workspace-pr-linux
     kind: workspace
@@ -88,7 +115,22 @@ cells:
     host_python: "3.13"
     host_packages:
       apt: [libx11-dev, libxt-dev]
-    verify: package
+    verify: test
+  - name: opendrive-pr-linux
+    lane: pull_request
+    runner: linux
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
     up_to: 5
   - name: workspace-pr-macos
     kind: workspace
@@ -103,7 +145,20 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    verify: package
+    verify: test
+  - name: opendrive-pr-macos
+    lane: pull_request
+    runner: macos
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
     up_to: 5
   - name: workspace-main-windows
     kind: workspace
@@ -118,7 +173,20 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    verify: package
+    verify: test
+  - name: opendrive-main-windows
+    lane: main
+    runner: windows
+    runtime_artifact: sha256:ebb0c7da509ee14ada19ee5b461de6996aad0024b5c9640f12dde76912e849b5
+    require_openusd: cy2026/windows/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+      expected_oci_digest: sha256:d3ff79a6f330558c3b9a427a927d340fe3dcab1fe89107faa0ea9f66a104b7bf
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
     up_to: 5
   - name: workspace-main-linux
     kind: workspace
@@ -135,7 +203,22 @@ cells:
     host_python: "3.13"
     host_packages:
       apt: [libx11-dev, libxt-dev]
-    verify: package
+    verify: test
+  - name: opendrive-main-linux
+    lane: main
+    runner: linux
+    runtime_artifact: sha256:3bf31789daa60ef650df35ab276bd67d0c0ee44a960311f78835cc0962efe261
+    require_openusd: cy2026/linux/x86_64/gl
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+      expected_oci_digest: sha256:8d2d599489ee623044f4360ad3a2b979e2966e6ad2f949e5aa9083570e59cc4f
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
+    host_packages:
+      apt: [libx11-dev, libxt-dev]
     up_to: 5
   - name: workspace-main-macos
     kind: workspace
@@ -150,5 +233,18 @@ cells:
     platform: cy2026
     profile: usd
     host_python: "3.13"
-    verify: package
+    verify: test
+  - name: opendrive-main-macos
+    lane: main
+    runner: macos
+    runtime_artifact: sha256:8d1322126b8f3aa4dd1791184603d7e1b4571bd4d6d89dd80bb75bdf5eef397c
+    require_openusd: cy2026/macos/arm64/metal
+    require_openusd_version: "26.08"
+    runtime_remote:
+      uri: oci://ghcr.io/animu-sphere/openstrata-runtime-cy2026-usd@sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+      expected_oci_digest: sha256:8486d94286b60cc20b53c926757f1802442569f9d9a7eecdadf2c9895b2efeb6
+    bundle: plugins/roadnetwork-opendrive
+    platform: cy2026
+    profile: usd
+    host_python: "3.13"
     up_to: 5

@@ -30,7 +30,9 @@ semantic versioning for tagged releases.
   run by the composed root's CTest suite.
 - Source CI on GitHub-hosted Windows, Ubuntu, and macOS runners: the
   `openstrata.ci.yaml` support matrix and the workflow generated from it
-  build, test (L0–L5), and package the workspace against OpenUSD 26.08.
+  build and run the CTest suite of the workspace, and build, test (L0–L5),
+  and package the OpenDRIVE bundle against OpenUSD 26.08. Changes to
+  documentation alone do not build.
 
 ### Changed
 
