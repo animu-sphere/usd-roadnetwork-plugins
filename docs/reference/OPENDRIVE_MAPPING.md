@@ -17,7 +17,7 @@ records the differences between versions that touch the Phase 1 elements.
 | --- | --- |
 | Specification versions in scope | `revMajor="1"`, `revMinor` 4–9, per the [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy); not implemented |
 | Version source | `<header revMajor revMinor>` |
-| Unsupported version | error, code assigned under ADR 0006 |
+| Unsupported version | error, code assigned under ADR 0006 (feature F-02) |
 | `CanRead()` signature | `.xodr` extension and an `<OpenDRIVE>` root element; no body parsing ([design policy §10.2](../design/DESIGN_POLICY.md#102-canread-is-a-cheap-routing-decision)) |
 
 A per-version table records, for each element below, whether it is supported,

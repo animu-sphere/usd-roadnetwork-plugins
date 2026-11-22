@@ -1,30 +1,32 @@
 # Design and development policy
 
-- **Status:** Proposal (2026-11-22). Nothing in this document describes
-  implemented behavior. Rules marked *open* are settled by the ADRs listed in
-  §16 before the corresponding code lands.
+- **Status:** Proposal (2026-11-22; revised the same day to take in the
+  feature and implementation-order policy). This document states intent and
+  rules, not behavior. Where an ADR decides a question, the ADR is the rule
+  and this document only links to it.
 
-This document defines the product intent and engineering policy for
-`usd-roadnetwork-plugins`. It governs format selection, semantic conversion,
-scene authoring, and verification. Current behavior lives in
-[reference/](../reference/); release scope and work order live in the
-[roadmap](../roadmap/).
+This document owns the product intent and the engineering rules of
+`usd-roadnetwork-plugins`: why the project exists, what it will and will not
+do, and the principles that format selection, decoding, USD authoring, and
+verification follow. It deliberately does not repeat material owned
+elsewhere:
+
+| For | See |
+| --- | --- |
+| What the tree supports now | [Capability matrix](../reference/CAPABILITY_MATRIX.md) |
+| Phases, the feature list, and exit criteria | [Release plan](../roadmap/release-plan.md) |
+| Components, dependency directions, and the stage contract | [Workspace contract](../architecture/WORKSPACE.md) |
+| Who owns which API and compatibility promise | [API boundary](../architecture/API_BOUNDARY.md) |
+| Individual decisions and their status | [ADR index](../adr/README.md) |
+| Build, test, and review procedure | [CONTRIBUTING.md](../../CONTRIBUTING.md) |
 
 ## 1. Project overview
 
 `usd-roadnetwork-plugins` is an OpenStrata (`ost`) project that provides
-OpenUSD file-format plugins for road-network formats.
-
-The planned repository identity is:
-
-```text
-animu-sphere/usd-roadnetwork-plugins
-```
-
-Like [`usd-3dgs-plugins`](https://github.com/animu-sphere/usd-3dgs-plugins),
-the project keeps each format's reading in a thin `SdfFileFormat` bundle and
-concentrates shared work in a USD-independent model and one shared USD
-authoring layer.
+OpenUSD file-format plugins for road-network formats. Like
+[`usd-3dgs-plugins`](https://github.com/animu-sphere/usd-3dgs-plugins), it
+keeps each format's reading in a thin `SdfFileFormat` bundle and concentrates
+shared work in a USD-independent model and one shared USD authoring library.
 
 **The first format is ASAM OpenDRIVE (`.xodr`).** Names, boundaries, and
 verification methods are chosen so that Lanelet2, SUMO, OpenStreetMap, and
@@ -32,33 +34,49 @@ other formats can be added later without duplicating the USD writer.
 
 ## 2. Vision and purpose
 
-Open road-network formats as OpenUSD layers without an external conversion
-step, and reuse them for composition, inspection, visualization, and
-simulation.
+Treat a road network not as a road mesh but as a **semantic asset** that
+OpenUSD can compose, inspect, visualize, and reuse, opened directly from its
+source format without an external conversion step.
 
-The governing principles are:
+### Principles
 
-- implement each road-network format as an OpenUSD `SdfFileFormat` plugin;
-- separate syntactic parsing, semantic decoding, and USD authoring;
-- share a format-independent intermediate representation, `RoadNetworkData`;
-- author through one shared USD writer that every format satisfies;
-- never discard unrecoverable source information silently;
-- keep import read-only; require a separate design for export (§12);
-- optimize for semantic fidelity and testability before performance (§13).
+1. **Semantic first.** Roads, lanes, connectivity, and rules are represented
+   correctly before anything is drawn. An import whose geometry looks right
+   but whose topology is wrong is a failure.
+2. **Read-only first.** Import comes first; export to a source format needs
+   its own ADR (§12).
+3. **One model, one writer.** Every format decodes into `RoadNetworkData`,
+   and one shared writer authors every stage. No bundle authors prims
+   directly.
+4. **USD-independent core.** The public API of `roadnetwork-core` uses
+   standard C++17 types only; no USD or parser type appears in it.
+5. **Source fidelity and explicit loss.** Analytic geometry, source IDs,
+   frames, and units are kept. What cannot be represented is diagnosed,
+   never silently approximated or dropped.
+6. **Stable contract.** Prim paths, property names, relationships, and
+   diagnostic codes are public behavior and change only with compatibility
+   review ([API boundary](../architecture/API_BOUNDARY.md#tiers)).
+7. **Test before claiming support.** A capability is claimed only with
+   deterministic tests and package verification
+   ([capability matrix](../reference/CAPABILITY_MATRIX.md)).
+8. **Optimize after measuring.** LOD, tiling, and streaming are added only
+   when measurements show the need (§13).
 
 ### Definition of success
 
 - A `.xodr` file opens through ordinary USD APIs such as
-  `SdfLayer::FindOrOpen` and `UsdStage::Open`.
-- Roads, lanes, junctions, and their connectivity are available in
-  machine-readable form without loss of meaning.
-- Differences between formats are normalized explicitly; information that
-  cannot be represented is diagnosed, not dropped.
-- The result composes with other scenes through ordinary USD references and
-  payloads.
-- The project passes OpenStrata's build, inspection, and package verification
-  flow.
-- A second format can be added without duplicating the USD writer.
+  `SdfLayer::FindOrOpen` and `UsdStage::Open`, with no conversion step.
+- Roads, lanes, junctions, connectivity, the coordinate reference, and the
+  source provenance are available as machine-readable, verifiable meaning.
+- Visual geometry (curves, boundaries, surfaces) is regenerated from the
+  semantics and is never their only carrier.
+- The asset composes with other scenes through references and payloads
+  without breaking relationships or stable IDs.
+- A second format is added without duplicating the USD writer.
+- Supported scope, rejections, information loss, and performance are
+  explained by tests and the capability matrix.
+- The project passes OpenStrata's build, inspection, and package
+  verification flow.
 
 ## 3. Scope and responsibilities
 
@@ -70,12 +88,12 @@ The governing principles are:
 | Preserving source alignment, boundaries, elevation, and superelevation | Full physics and collision systems |
 | Minimal inspection geometry and alignment curves (introduced in stages) | Large-scale road-asset or city generation |
 | Provenance, diagnostics, tests, and per-format capability tables | Terrain fusion and runtime world integration |
+| The **data contract** that runtimes consume | The runtime algorithms that consume it |
 
-`usd-mobility-runtime` is a candidate **integration target**. Runtime
-composition with `usd-stage-runner`, `usd-http-resolver`, and geospatial
-plugins is anticipated, but none of them is a required dependency of this
-repository. The [API boundary](../architecture/API_BOUNDARY.md) records
-ownership.
+`usd-mobility-runtime` is a candidate **integration target**; none of the
+runtime projects is a dependency of this repository. The
+[API boundary](../architecture/API_BOUNDARY.md) records which repository owns
+what and the contract notes for each integration.
 
 ## 4. Format strategy
 
@@ -83,7 +101,7 @@ ownership.
 | --- | --- | --- | --- |
 | **P0** | ASAM OpenDRIVE `.xodr` | reference line, lane sections, junctions, signals, objects | First implementation. Maintain a per-version support table. |
 | **P1** | Lanelet2 `.osm` | lanelet boundaries, regulatory elements | Second candidate, chosen to validate the shared model. |
-| **P1–P2** | SUMO `.net.xml` | edges, lanes, connections, traffic-light programs | Validates traffic topology and runtime integration. |
+| **P1–P2** | SUMO `.net.xml` | edges, lanes, connections, traffic-light programs | Validates traffic topology and runtime integration. Differences in meaning are stated, not forced into OpenDRIVE's. |
 | **P2** | OpenStreetMap `.osm` / `.pbf` | ways, nodes, tags, road graph | Must be distinguished strictly from Lanelet2 (§4.2). |
 | **Evaluate** | CityGML Transportation, GDF, others | urban-traffic or navigation models | Individual ADR after demand, specification, and license review. |
 | **Separate** | OpenCRG | high-resolution road-surface properties | Not a road network; evaluate as auxiliary data. |
@@ -108,8 +126,7 @@ lists what must be true before a format is claimed.
 **A file extension alone never identifies a format.** Lanelet2 and general
 OpenStreetMap both use `.osm`; ADR 0008 defines how they are told apart and
 which bundle owns the extension. Ambiguity is resolved by structural
-signatures in `CanRead()` (§10.2), never by loosening one bundle until it
-accepts the other's files.
+signatures, never by loosening one bundle until it accepts the other's files.
 
 ## 5. Architecture
 
@@ -131,7 +148,8 @@ SdfFileFormat   SdfFileFormat     SdfFileFormat   SdfFileFormat
                           |
                   Shared USD writer
                           |
-                OpenUSD layer / stage
+       OpenUSD layer: /Asset/Network (required)
+                      /Asset/Visualization (derived)
 ```
 
 Principles:
@@ -139,14 +157,15 @@ Principles:
 1. The `SdfFileFormat` entry point stays thin and contains no parsing logic.
 2. Syntactic parsing and semantic conversion are separate responsibilities
    within a bundle.
-3. `RoadNetworkData` uses standard C++ types; no USD type appears in its
-   public API.
-4. There is one USD writer, and every format satisfies the same stage
+3. There is one USD writer, and every format satisfies the same stage
    contract.
-5. When the source meaning cannot be represented, the importer emits a
-   diagnostic and keeps the necessary provenance or source-specific metadata.
-6. Parsers and SDKs stay inside the bundle that needs them; third-party
+4. When the source meaning cannot be represented, the importer emits a
+   diagnostic rather than inventing a value.
+5. Parsers and SDKs stay inside the bundle that needs them; third-party
    versions and licenses are pinned (§14).
+
+What each component owns, and what it must not take on, is fixed in the
+[workspace contract §1](../architecture/WORKSPACE.md#1-components).
 
 ### 5.1 Format reader
 
@@ -156,140 +175,126 @@ not escape the reader.
 
 ### 5.2 Semantic decoder
 
-Owns meaning: version recognition, required-element validation, ID resolution,
-topology construction, unit and frame conversion, non-finite checks, and
-lossy-mapping diagnostics. It produces `RoadNetworkData`.
+Owns meaning: version recognition, required-element checks, ID resolution,
+topology construction, unit and frame conversion, and lossy-mapping
+diagnostics. It produces `RoadNetworkData` and leaves the invariants that can
+be stated on the IR to shared validation
+([ADR 0001 §6](../adr/0001-roadnetwork-data-model.md#6-validation)).
 
 ### 5.3 Intermediate representation
 
-The conceptual model is settled by ADR 0001:
+Conceptually the IR has five concerns: **identity**, **geometry**,
+**topology**, **semantics** (types, speeds, rules), and **provenance**.
+[ADR 0001](../adr/0001-roadnetwork-data-model.md) proposes a layered model
+(a common identity and lane-graph layer plus attached geometry
+representations); the concerns are not split into separate types beyond
+what Phase 1 needs. Rules that hold regardless of that ADR's details:
 
-```text
-RoadNetworkData
-├── metadata / source provenance / CRS
-├── roads
-│   ├── reference geometry (line / arc / spiral / paramPoly3 ...)
-│   ├── elevation / superelevation / lateral profile
-│   └── lane sections
-├── lanes
-│   ├── boundary / width / type / direction
-│   └── predecessor / successor / adjacency
-├── junctions / connections / lane links
-├── traffic controls / regulatory rules
-├── signals / signs
-├── road objects (e.g. barriers, guardrails)
-└── coordinate transforms / source IDs
-```
-
-*Open (ADR 0004):* whether OpenDRIVE's analytic curves and cross-section
-functions are kept in the IR or converted to sampled geometry. The initial
-direction is **to keep analytic information where possible** and treat
-discretization for visualization and LOD as a separate step. Any lossy
-normalization is explicit.
+- Do not force one format's geometry model onto another: OpenDRIVE's
+  reference lines are not imposed on Lanelet2's boundary polylines, nor the
+  reverse. A new representation is **added** beside the existing ones; it
+  does not replace them.
+- Connectivity is stored as its own data. It is never inferred from curves,
+  meshes, or geometric contact.
+- A lane-end link has no direction and does not mean "drivable from A to B".
+  Travel direction and routability are separate, later decisions
+  ([backlog](../roadmap/backlog.md#decisions-to-record-later)).
+- Analytic information is kept where possible; discretization for
+  visualization and LOD is a separate, explicit step
+  ([ADR 0004](../adr/0004-opendrive-geometry-retention.md)).
+- There is no untyped metadata bag. A new representation enters through an
+  ADR with its specification, validation, and compatibility.
 
 ### 5.4 Shared USD writer
 
-Owns prim and schema creation, relationships, attribute values and types,
-layer and asset metadata, `defaultPrim`, deterministic path naming, and
-writer-side diagnostics. Diagnostic codes for format-specific failures stay
-owned by the calling bundle (§11).
+Owns prim and property authoring, relationships, value types, layer and
+asset metadata, `defaultPrim`, deterministic path naming, and provenance. It
+contains no XML parsing and no geometry math of its own; derived geometry
+comes from `roadnetwork-core`.
 
 ## 6. USD representation
 
 ### 6.1 Separate data from visualization
 
 - **Semantic layer (required):** stable IDs; road, lane, and junction
-  relationships; speed, priority, and traffic rules; source parameters.
-- **Visualization layer (introduced in stages):** centerlines, lane
-  boundaries, and road surfaces as `UsdGeomBasisCurves`, `UsdGeomMesh`, or
-  similar.
+  relationships; speeds, priorities, and rules; source parameters in
+  `double` precision.
+- **Visualization layer (derived):** centerlines, lane boundaries, and later
+  road surfaces as `UsdGeomBasisCurves`, `UsdGeomMesh`, or similar.
 - **Runtime layer (out of scope):** driving, walking, collision, and traffic
   flow belong to integration projects.
 
-Standard USD schemas are preferred wherever they can express the data.
-Standard `UsdGeom` types alone cannot carry road-network topology and
-semantics, so *ADR 0002 evaluates* whether to introduce custom typed or API
-schemas. **No schema is adopted before its specification is settled.**
+Standard USD prims are preferred wherever they can express the data.
+Standard `UsdGeom` types alone cannot carry road-network topology, so
+[ADR 0002](../adr/0002-usd-schema-strategy.md) decides how semantics are
+typed. Policy for that decision:
 
-### 6.2 Stage contract (proposed)
+- **No schema is adopted before its specification is settled.** A
+  project-specific schema is considered only once a second format has
+  stabilized the shared vocabulary.
+- The first candidate is an applied API schema that keeps the already
+  authored property names and types, so that adopting it re-types prims
+  without changing values. A typed (IsA) schema waits until its benefit is
+  shown.
+- Until then, the name, type, meaning, and absence behavior of every
+  property are tested, which keeps a later migration mechanical.
 
-```text
-/Asset                             Xform / defaultPrim
-  /Network                         semantic root
-    /Roads
-    /Lanes
-    /Junctions
-    /Signals
-    /Objects
-  /Visualization                   optional generated geometry
-    /Centerlines
-    /Boundaries
-    /Surfaces
-```
+### 6.2 Stage contract
 
-This is a **design example, not a fixed schema.** ADR 0005 settles source-ID to
-prim-path mapping, name collisions, relationship direction and typing, and how
-multiple road networks compose. Naming is deterministic so that reloads and
-new formats do not move paths unnecessarily. The binding contract will live in
-[WORKSPACE.md §5](../architecture/WORKSPACE.md#5-authored-stage-contract).
+The invariants every bundle's stage satisfies are owned by the
+[workspace contract §5](../architecture/WORKSPACE.md#5-authored-stage-contract);
+the proposed prim tree and naming rules are in
+[ADR 0005](../adr/0005-prim-path-and-id-stability.md#3-hierarchy). Naming is
+deterministic so that reloads and new formats do not move paths, and every
+relationship stays inside the asset so that it is remapped under references.
 
 ### 6.3 Coordinates, units, and georeferencing
 
-Settled by ADR 0003. Policy:
+[ADR 0003](../adr/0003-crs-axes-units.md) proposes the rules. Policy:
 
 - Preserve the source CRS, georeference, origin, axis directions, and units
-  as far as the source provides them.
-- Never treat an unknown CRS as known. Default `upAxis` and `metersPerUnit`
-  values are documented as **importer defaults**, not source-derived claims.
-- Avoid float precision loss on large geographic coordinates; evaluate local
-  frames and origin shifts.
-- Make the pre- and post-normalization transform reproducible; test the
-  convention and its numeric tolerances.
-- Treat georeference-versus-scene transforms and consistency across multiple
-  referenced files as design problems, not implementation details.
+  as far as the source provides them. Never reproject during import.
+- Never treat an unknown CRS as known. Distinguish **source facts** from
+  **importer defaults**: each format's mapping states which `upAxis` and
+  `metersPerUnit` values its specification defines and which are importer
+  conventions.
+- Keep semantic coordinates in `double`. Where USD stores single-precision
+  values (visualization `points`), use a recorded local origin so that large
+  world coordinates do not lose precision.
+- Make every transform between source and authored values reproducible, and
+  test the convention and its tolerances.
 
 ## 7. OpenDRIVE initial scope
 
 ### 7.1 Minimum useful implementation (MVP)
 
-1. `.xodr` detection, XML parsing, specification-version recognition, and
-   stable errors.
-2. Road geometry: line and arc as the first vertical slice, then spiral,
-   poly3, and paramPoly3 in stages.
-3. Lane sections, lane width, lane type, road and lane links, and junctions.
-4. A defined policy for elevation, superelevation, and other profiles, which
-   are not silently omitted.
-5. An inspectable USD representation of centerlines and lane boundaries.
-6. Verification of `UsdStage::Open`, references, reload, `metadataOnly`, and
-   packaged distribution.
+The MVP is Phase 1; its features (F-01 to F-11) and acceptance criteria are
+listed in the [release plan](../roadmap/release-plan.md#phase-1--opendrive-vertical-slice).
+Rules for it:
+
+- The MVP stays small. Scope beyond it (LOD, schemas, query APIs) never
+  blocks it.
+- Elevation, superelevation, and other profiles have a defined policy; none
+  is silently omitted.
+- Representations outside the scope (for example spiral, poly3, and
+  paramPoly3 in Phase 1) are rejected with a stable error, not approximated.
 
 ### 7.2 After the MVP
 
-Signals, road marks, objects (guardrails, obstacles), advanced junctions,
-surface meshes, LOD and tiling, and partial loading. **A feature is not
-described as supported until it is implemented and tested.**
-
-The MVP stays small, but a **silent fallback that only looks right is
-forbidden** wherever road, lane, or junction relationships would break.
-
-The per-version mapping is maintained in
+**A feature is not described as supported until it is implemented and
+tested.** The MVP may be narrow, but a **silent fallback that only looks
+right is forbidden** wherever road, lane, or junction relationships, or the
+position of a border, would be wrong. Elements read but not represented are
+counted and reported. The per-element mapping is maintained in
 [OPENDRIVE_MAPPING.md](../reference/OPENDRIVE_MAPPING.md).
 
 ## 8. Naming
 
-Bundle identities are format-oriented and share a family prefix:
-
-```text
-roadnetwork-opendrive
-roadnetwork-lanelet2      (future)
-roadnetwork-sumo          (future)
-```
-
-Shared libraries live in `libs/roadnetwork-core` and `libs/roadnetwork-usd`.
-Their CMake/OpenStrata identities and the C++ namespaces are fixed during the
-Phase 0 scaffold; the proposed defaults, following `usd-3dgs-plugins`, are
-`roadnetworkCore` / `roadnetworkUsd` and `openstrata::rn`,
-`openstrata::rn::odr`, `openstrata::rn::usd`.
+Bundle identities are format-oriented and share the `roadnetwork-` family
+prefix (`roadnetwork-opendrive`, later `roadnetwork-lanelet2`,
+`roadnetwork-sumo`). The library identities, CMake packages, and targets are
+fixed in the [workspace contract §2](../architecture/WORKSPACE.md#2-dependency-directions);
+C++ code lives in `openstrata::rn` and its `odr` and `usd` sub-namespaces.
 
 ## 9. Strictness
 
@@ -298,58 +303,68 @@ missing or inconsistent: malformed XML, unknown or duplicated IDs, unresolved
 references, non-finite values, or a representation the decoder does not
 support. The load may continue with a warning only when the loss is
 explicit, bounded, and recorded in the authored stage or diagnostics, for
-example an ignored optional element. ADR 0006 fixes the exact error contract.
+example an ignored optional element.
+
+Input is treated as untrusted: malformed or very large XML, external
+entities, reference cycles, unresolved IDs, and extreme values are expected.
+Each reader documents, for the parser it uses, how external references are
+disabled and which size, depth, and time limits apply; limits that are hit
+fail the load with a stable code (category `5xx` in the
+[diagnostics reference](../reference/DIAGNOSTICS.md)).
 
 ## 10. File-format plugin contract
 
-Settled by ADR 0006.
+[ADR 0006](../adr/0006-fileformat-contract.md) is accepted and is the
+normative contract; the subsections state the intent behind it.
 
 ### 10.1 Read-only first
 
-Exporting to the source format (`WriteToFile`) is out of initial scope.
-`WriteToString` may expose the imported layer as USDA for inspection and
-testing; it is not export. See §12.
+Exporting to the source format is out of scope (§12). `WriteToString` may
+expose the imported layer as USDA for inspection and testing; it is not
+export.
 
 ### 10.2 `CanRead()` is a cheap routing decision
 
-It checks the extension and the minimal structural signature (for example the
-XML root element) and reads no more than needed. Full validation belongs to
-`Read()`. **`CanRead()` returning `true` does not mean the asset is valid.**
-Any failure inside `CanRead()` returns `false` rather than propagating.
-OpenUSD selects a layer's format by extension and does not call `CanRead()`
-when it opens a layer, so the routing decision serves tools; `Read()` repeats
-the structural check ([ADR 0006](../adr/0006-fileformat-contract.md#1-canread)).
+It checks the extension and a minimal structural signature and reads no more
+than needed; full validation belongs to `Read()`. **`CanRead()` returning
+`true` does not mean the asset is valid.** OpenUSD does not call `CanRead()`
+when it opens a layer, so the routing decision is advice to tools, and
+`Read()` repeats the structural check
+([ADR 0006 §1](../adr/0006-fileformat-contract.md#1-canread)).
 
 ### 10.3 Respect `metadataOnly`
 
-A metadata-only read returns header-derived information and the minimal
-structure, and avoids generating geometry for the whole network.
+A metadata-only read returns header-derived information and minimal
+structure, and generates no geometry for the whole network.
 
 ### 10.4 Explicit failure
 
-Malformed XML, missing IDs, non-finite values, reference inconsistencies, and
-unsupported representations each receive a stable diagnostic code (§11).
+Every failure has a stable diagnostic code (§11) and leaves the target layer
+unchanged.
 
 ### 10.5 Determinism
 
-The same input with the same settings yields the same IDs, relationships, and
-attributes.
+The same input with the same settings yields the same prim paths, values,
+and relationships. No environment-dependent value, such as an absolute local
+path, is authored into the stage.
 
 ### 10.6 Reload consistency
 
-Verify OpenUSD's `Sdf` change handling and `TransferContent` behavior on the
-supported runtime. **Do not copy the `usd-3dgs-plugins` worker-thread
-workaround unconditionally;** adopt it only if a test reproduces the problem
-it solves here. ADR 0006 avoids the problem instead: the shared writer
-authors Sdf specs only, which work inside the reload's `SdfChangeBlock`
-([§5 of the ADR](../adr/0006-fileformat-contract.md#5-reload-and-authoring-thread)).
+Reload behavior is verified on the supported runtime rather than assumed.
+The `usd-3dgs-plugins` worker-thread workaround is not copied: the shared
+writer authors Sdf specs only, which work inside the reload's
+`SdfChangeBlock`
+([ADR 0006 §5](../adr/0006-fileformat-contract.md#5-reload-and-authoring-thread)).
 
 ## 11. Diagnostics
 
-Every error and warning has a stable code. Codes are never renumbered or
-reused, and each bundle ships a machine-readable catalog. **The numbering
-scheme is fixed before implementation**; the proposal is in
-[DIAGNOSTICS.md](../reference/DIAGNOSTICS.md) and is ratified by ADR 0006.
+Every error and warning has a stable code: `ODR-` (and later other format
+prefixes) for format-specific conditions, `RN-` for conditions stated on the
+shared model. Codes are never renumbered or reused, and each owner ships a
+machine-readable catalog. The numbering is fixed by
+[ADR 0006 §6](../adr/0006-fileformat-contract.md#6-diagnostic-numbering);
+the codes and their rules are in [DIAGNOSTICS.md](../reference/DIAGNOSTICS.md).
+A failure message identifies enough (asset, element, ID) to find the cause.
 
 ## 12. Write support
 
@@ -364,13 +379,14 @@ Semantic precision comes first; do not add complex optimization before
 measuring.
 
 - Metrics: source size, road and lane counts, parse and authoring time, peak
-  RSS, generated layer size, reload time.
-- Centerlines and surface meshes are derived data and should be regenerable.
-- **LOD, tiling, streaming, and lazy loading** are designed (ADR 0007) only
-  after load units, topology boundaries, and USD composition constraints are
-  understood.
+  RSS, generated layer size, reload time, and time until the stage can be
+  displayed.
+- Centerlines and surface meshes are derived data and must be regenerable.
+- **LOD, tiling, streaming, and lazy loading** are designed in
+  [ADR 0007](../adr/0007-geometry-lod-payload-boundary.md), which also lists
+  the constraints that earlier phases must not break.
 - `UsdProcGenerativeProcedural`, Hydra, and runtime geometry generation are
-  exploration topics, not MVP assumptions.
+  research topics and never a dependency of a basic read.
 - Remote assets through an HTTP resolver require relative-reference,
   security, cache, and failure behavior to be defined first.
 
@@ -387,37 +403,25 @@ measuring.
 
 ## 15. Test strategy
 
-1. **Parser and IR unit tests:** curves, lane width, cross-sections,
-   connectivity, XML errors, unknown IDs, boundary values.
-2. **Geometry numeric tests:** positions and tangents of lines, arcs, and
-   spirals; boundaries; elevation; superelevation — against known solutions.
-3. **USD authoring tests:** prim paths, metadata, relationships, types,
-   values, `defaultPrim`, coordinate conventions.
-4. **File-format integration tests:** `SdfLayer::FindOrOpen`,
-   `UsdStage::Open`, references and reload, `metadataOnly`.
-5. **OpenStrata lifecycle and package tests:** plugin discovery after install,
-   runtime linking, missing-dependency checks.
-6. **Cross-format contract tests (from the second format):** read the same
-   road semantics from different formats and verify equality, and the
-   unavoidable differences, at the IR and USD level.
+| Kind | Checks | Required from |
+| --- | --- | --- |
+| Core unit | IDs, references, numeric and station checks; canonicalization of one-sided lane links | Phase 1 |
+| Geometry numeric | Line and arc position and heading against closed-form values; border positions; sampling error | Phase 1 |
+| Reader and decoder | Versions, malformed input, unknown elements, each rejection and its code | Phase 1 |
+| USD semantic | Prim paths, property names, types and precision, relationships, `/Asset` provenance | Phase 1 |
+| Composition | Two references of one network, flattening, reload, `metadataOnly` | Phase 1 |
+| Packaging | Plugin discovery and opening a real fixture **from the installed package** | Phase 1 |
+| Profile fidelity | Spiral, superelevation, and other Phase 2 shapes against reference values and rejection rules | Phase 2 |
+| Performance | Parse, author, peak RSS, reload, and layer size on a large licensed network | Phase 3 |
+| Cross-format contract | The same meaning, and the stated differences, read from two formats at the IR and USD level | Phase 4 |
+| Runtime contract | Independent deployment, dependencies, and coordinate agreement with an integrating runtime | Phase 5 |
 
-The supported lifecycle is:
+The commands that run these tests are in
+[CONTRIBUTING.md](../../CONTRIBUTING.md#development-path).
 
-```sh
-ost plugin inspect
-ost plugin build
-ost plugin doctor
-ost plugin test --workspace --up-to 5
-ost plugin package
-ost plugin test --from-package
-```
-
-Confirm each command against the `ost` version in use. Plain CMake/CTest
-builds and unit tests stay supported for local work.
-
-**Golden-test policy:** golden outputs check stable stage semantics, not
-incidental formatting. Prefer semantic assertions over full USDA text
-comparisons.
+**Golden-test policy:** goldens check stable stage semantics, not incidental
+formatting. Prefer semantic assertions (paths, types, values, relationship
+targets) over full USDA text comparisons.
 
 ### 15.1 Test data
 
@@ -426,18 +430,13 @@ hand-checkable. Large real-world networks may extend a compatibility and
 performance corpus after license and provenance review; they are never the
 only evidence for a claim.
 
-## 16. Decisions to record first
+## 16. Decisions
 
-| ADR | Question |
-| --- | --- |
-| [0001](../adr/0001-roadnetwork-data-model.md) | `RoadNetworkData` ID, topology, and geometry model |
-| [0002](../adr/0002-usd-schema-strategy.md) | Existing schemas with attributes and relationships, or a custom schema |
-| [0003](../adr/0003-crs-axes-units.md) | CRS, `upAxis`, units, and large coordinates |
-| [0004](../adr/0004-opendrive-geometry-retention.md) | Retaining OpenDRIVE curves and cross-sections; tessellation conventions |
-| [0005](../adr/0005-prim-path-and-id-stability.md) | Prim-path and source-ID stability; composing multiple networks |
-| [0006](../adr/0006-fileformat-contract.md) | `SdfFileFormat` `metadataOnly`, reload, error contract, and diagnostic numbering |
-| [0007](../adr/0007-geometry-lod-payload-boundary.md) | Geometry generation, LOD and tiles, payload boundaries |
-| [0008](../adr/0008-lanelet2-osm-identification.md) | Distinguishing Lanelet2 from OSM; sharing regulatory information |
+Decisions are recorded as ADRs; the [ADR index](../adr/README.md) owns their
+list, status, and the phase that needs each. Questions not yet ready for an
+ADR are in the [backlog](../roadmap/backlog.md#decisions-to-record-later). A
+proposal that differs from an existing ADR becomes a new ADR; it never
+changes a decision by being written down elsewhere.
 
 ## 17. Workspace structure
 
@@ -448,10 +447,11 @@ authoring in `roadnetwork-usd`.
 
 ## 18. Initial non-goals
 
+- Vehicle control, pedestrian AI, traffic-flow simulation, route-planning
+  engines, collision physics, city generation, and renderer-specific
+  features.
 - Covering every OpenDRIVE version and element in the first release.
 - Fully lossless conversion between OpenDRIVE, Lanelet2, and SUMO.
-- Executing traffic-signal control, traffic-flow simulation, or vehicle
-  physics.
 - Requiring a road mesh to be generated and displayable for an `SdfFileFormat`
   read to succeed.
 - Fixing a custom schema or renderer first and bending format semantics to

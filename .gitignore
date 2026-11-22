@@ -1,27 +1,43 @@
-# OpenStrata and out-of-source build products.
+# OpenStrata and out-of-source build products. Anchored to the root; each
+# workspace member's own .gitignore covers its directory.
 /.strata/
 /strata.lock
 /strata.openstrata-*.lock
 /build/
-/cmake-build-*/
 /dist/
 /install/
 /lib/
 /out/
-/CMakeUserPresets.json
-/compile_commands.json
 
-# Accidental in-source CMake and Ninja products.
-/CMakeCache.txt
-/CMakeFiles/
-/CTestTestfile.cmake
-/Testing/
-/build.ninja
-/cmake_install.cmake
-/install_manifest.txt
-/Makefile
-/.ninja_deps
-/.ninja_log
+# CMake and Ninja products. Unanchored, so they are ignored at any depth:
+# in-source configures of a library or bundle, IDE-managed build trees, and
+# per-developer presets.
+cmake-build-*/
+CMakeUserPresets.json
+CMakeLists.txt.user
+compile_commands.json
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+CTestTestfile.cmake
+DartConfiguration.tcl
+Testing/
+_deps/
+.cmake/
+build.ninja
+rules.ninja
+.ninja_deps
+.ninja_log
+cmake_install.cmake
+install_manifest.txt
+Makefile
+
+# Visual Studio generator products from an in-source configure.
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.dir/
+x64/
 
 # Python tooling and test caches.
 __pycache__/
@@ -29,9 +45,9 @@ __pycache__/
 .pytest_cache/
 
 # Local editor, compiler-index, and OS metadata.
-/.vs/
-/.idea/
-/.cache/clangd/
+.vs/
+.idea/
+.cache/clangd/
 *.suo
 *.user
 *.VC.db
