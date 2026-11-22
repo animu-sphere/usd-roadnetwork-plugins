@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "RoadnetworkOpendriveFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/libRoadnetworkOpendriveFileFormat.dll",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "RoadnetworkOpendriveFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "RoadnetworkOpendrive File Format",
+                        "extensions": ["xodr"],
+                        "formatId": "xodr",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

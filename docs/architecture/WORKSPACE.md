@@ -1,8 +1,10 @@
 # Workspace contract
 
-- **Status:** Proposed (2026-11-22). Paths and identities are adjusted to what
-  the OpenStrata scaffold actually generates in Phase 0; this document is then
-  updated in the same PR and becomes binding.
+- **Status:** Proposed (2026-11-22). The workspace root and the
+  `roadnetwork-opendrive` bundle were scaffolded with `ost` 0.23.20
+  (`usd-plugin-workspace` 1.1.1, `usd-fileformat-cpp` 1.2.1); the paths below
+  match that output. The libraries are added in SCF-02, after which this
+  document becomes binding.
 
 This is the structural contract for `usd-roadnetwork-plugins`. It fixes
 component identities, dependency directions, root responsibilities, and the
@@ -16,7 +18,7 @@ components support.
 
 | Identity | Kind | Responsibility | State |
 | --- | --- | --- | --- |
-| `roadnetwork-opendrive` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and parse ASAM OpenDRIVE `.xodr`; decode it into `RoadNetworkData`. | planned (Phase 0 empty bundle) |
+| `roadnetwork-opendrive` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and parse ASAM OpenDRIVE `.xodr`; decode it into `RoadNetworkData`. | scaffolded: registers `.xodr` and authors an empty layer |
 | `roadnetwork-lanelet2` | plugin bundle | Lanelet2 `.osm`. | future (Phase 4 candidate) |
 | `roadnetwork-sumo` | plugin bundle | SUMO `.net.xml`. | future (Phase 4 candidate) |
 | `roadnetwork-core` | plain CMake/OpenStrata static library | `RoadNetworkData`, validation, shared geometry math, diagnostics helpers, and a decoder test kit. No OpenUSD types. | planned |
@@ -55,8 +57,8 @@ Libraries declare an OpenStrata descriptor so that bundles can name them in
 ## 3. Source boundaries (proposed)
 
 ```text
-plugins/roadnetwork-opendrive/src/OpenDriveFileFormat.*
-    thin SdfFileFormat integration
+plugins/roadnetwork-opendrive/src/RoadnetworkOpendriveFileFormat.*
+    thin SdfFileFormat integration (scaffolded)
 
 plugins/roadnetwork-opendrive/src/io/OpenDriveReader.*
     XML parser isolation; element and scalar parsing
@@ -81,19 +83,25 @@ usd-roadnetwork-plugins/
 ├── THIRD_PARTY_NOTICES.md
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── openstrata.toml                 # name per scaffold
+├── openstrata.toml                 # project manifest (platform cy2026, profile usd)
+├── openstrata.scaffold.yaml        # scaffold template provenance
+├── CMakeLists.txt                  # dual-mode root: plain CMake builds every bundle
+├── CMakePresets.json
+├── .gitattributes                  # LF for sources, docs, and XML fixtures
 ├── plugins/
 │   ├── roadnetwork-opendrive/
+│   │   ├── openstrata.plugin.yaml  # bundle contract and declared test fixtures
+│   │   ├── CMakeLists.txt
+│   │   ├── cmake/OpenStrataPlugin.cmake
+│   │   ├── src/
+│   │   ├── plugin/resources/roadnetwork-opendrive/plugInfo.json
+│   │   └── tests/fixtures/
 │   ├── roadnetwork-lanelet2/       # future
 │   └── roadnetwork-sumo/           # future
-├── libs/
+├── libs/                           # SCF-02
 │   ├── roadnetwork-core/
 │   └── roadnetwork-usd/
-├── tests/
-│   ├── fixtures/
-│   ├── unit/
-│   ├── integration/
-│   └── package/
+├── tests/                          # cross-format and aggregate package tests, when needed
 ├── docs/
 │   ├── design/
 │   ├── architecture/
@@ -105,10 +113,11 @@ usd-roadnetwork-plugins/
 └── examples/
 ```
 
-Whether tests live at the root or inside each bundle and library (as in
-`usd-3dgs-plugins`) is decided with the scaffold; bundle-specific fixtures
-must be declared in the bundle manifest either way so package tests can find
-them.
+As in `usd-3dgs-plugins`, tests and fixtures live inside the bundle or
+library they exercise; the root `tests/` holds only cross-format and
+aggregate package tests. Bundle fixtures are declared in the bundle manifest
+so package tests can find them. Build state (`.strata/`, `build/`, `lib/`,
+`strata.lock`) is generated and ignored.
 
 ## 5. Authored stage contract
 

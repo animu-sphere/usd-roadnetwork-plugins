@@ -26,8 +26,8 @@ as work starts.
 | ID | Work | Exit criterion | Tracking |
 | --- | --- | --- | --- |
 | DOC-01 | Initial documentation set | Design policy, architecture, reference skeletons, ADR drafts, and roadmap are in the tree and linked from the [index](../README.md). | this PR |
-| SCF-01 | Scaffold the OpenStrata workspace | `ost` scaffold output committed; [WORKSPACE.md](../architecture/WORKSPACE.md) paths and identities updated to match; `ost plugin inspect` and `ost plugin doctor` pass. | — |
-| SCF-02 | Empty bundle and libraries pass the package lifecycle | The empty `.xodr` bundle registers, `ost plugin test --workspace --up-to 5`, `ost plugin package`, and `ost plugin test --from-package` pass on the local host. | — |
+| SCF-01 | Scaffold the OpenStrata workspace | `ost` scaffold output committed; [WORKSPACE.md](../architecture/WORKSPACE.md) paths and identities updated to match; `ost plugin inspect` and `ost plugin doctor` pass. | done 2026-11-22 (local Windows): inspect and doctor pass after build; `ost plugin test --up-to 5` passes L0–L4, L5 skipped (no golden) |
+| SCF-02 | Empty bundle and libraries pass the package lifecycle | `roadnetwork-core` and `roadnetwork-usd` added with library descriptors and wired into the bundle's `requires.libraries`; the scaffold placeholder fixtures replaced by minimal OpenDRIVE XML; `ost plugin test --workspace --up-to 5` (including an L5 golden), `ost plugin package`, and `ost plugin test --from-package` pass on the local host. | — |
 | CI-01 | Source CI | Hosted build and test run on the declared platforms; [supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md) updated with run links. | — |
 | FMT-01 | OpenDRIVE format spike | A [report](../reports/) records the specification versions and how to recognize them, specification access and licensing, coordinate and georeference conventions, the elements needed for Phase 1, candidate XML parsers and existing OpenDRIVE libraries with licenses, and redistributable fixtures with provenance. | — |
 | ADR-06 | Accept ADR 0006 | Numbering scheme, `CanRead()`, `metadataOnly`, and error behavior accepted; reload test on the empty bundle written. | — |

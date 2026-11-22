@@ -1,18 +1,19 @@
 # Supported configurations
 
 This document separates what has been exercised from what is only declared or
-targeted. As of 2026-11-22 nothing has been built or exercised in this
-repository; every row below is a **target**, taken from the sibling
-`usd-3dgs-plugins` workspace, and is confirmed by the Phase 0 scaffold and CI.
+targeted. Targets are taken from the sibling `usd-3dgs-plugins` workspace.
+As of 2026-11-22 the only exercised configuration is a local Windows build of
+the scaffolded (empty) `roadnetwork-opendrive` bundle.
 
 ## OpenUSD and OpenStrata
 
 | Item | Target | Exercised |
 | --- | --- | --- |
-| OpenStrata | 0.23.20 (version used by `usd-3dgs-plugins`) | — |
-| OpenUSD | 26.08 runtime, tolerated range to be declared | — |
-| OpenStrata platform/profile | `cy2026` / `usd` | — |
-| Python ABI | CPython 3.13 | — |
+| OpenStrata | 0.23.20 | 0.23.20 locally (scaffold, build, doctor, test L0–L4) |
+| OpenUSD tolerated range | `>=26.08,<27.0` (declared in the bundle manifest) | — |
+| OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) |
+| OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd` |
+| Python ABI | CPython 3.13 | CPython 3.13 locally |
 
 OpenUSD does not promise C++ ABI compatibility across versions. Rebuild the
 plugins against the target OpenUSD runtime even when the version falls inside
@@ -31,7 +32,7 @@ the declared range.
 
 | OS / architecture | CI contract | Observed |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | to be declared in Phase 0 | — |
+| Windows 2022 / x86_64 / MSVC 143 | to be declared in Phase 0 | local Windows 11 build; scaffold bundle passes `ost plugin test --up-to 5` at L0–L4 |
 | macOS 15 / arm64 / libc++ | to be declared in Phase 0 | — |
 | Ubuntu 24.04 / x86_64 | to be declared in Phase 0 | — |
 

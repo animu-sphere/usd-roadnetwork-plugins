@@ -1,19 +1,25 @@
 # Contributing
 
-The project is in Phase 0: the workspace is being scaffolded and the initial
-ADRs drafted. Build instructions are added with the scaffold (SCF-01); until
-then contributions are documentation and design review.
+The project is in Phase 0: the workspace and an empty `roadnetwork-opendrive`
+bundle are scaffolded, and the initial ADRs are being drafted.
 
-## Development path (after the scaffold)
+## Development path
 
 ```sh
-ost runtime pull cy2026 --profile usd            # once
-ost plugin inspect
-ost plugin build
-ost plugin doctor
-ost plugin test --workspace --up-to 5            # the gate PRs must pass
-ost plugin package
-ost plugin test --from-package
+git clone https://github.com/animu-sphere/usd-roadnetwork-plugins
+cd usd-roadnetwork-plugins
+ost runtime pull cy2026 --profile usd                       # once
+ost plugin build plugins/roadnetwork-opendrive              # build
+ost plugin doctor plugins/roadnetwork-opendrive             # L0-L1 diagnostics
+ost plugin test plugins/roadnetwork-opendrive --up-to 5     # the gate PRs must pass
+ost plugin package plugins/roadnetwork-opendrive
+```
+
+Without `ost`, the dual-mode root builds every bundle with plain CMake:
+
+```sh
+cmake -S . -B build -DCMAKE_PREFIX_PATH=<your-openusd-install>
+cmake --build build
 ```
 
 Confirm the commands against the `ost` version recorded in

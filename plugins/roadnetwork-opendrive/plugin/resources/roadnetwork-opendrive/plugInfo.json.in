@@ -1,0 +1,23 @@
+{
+    "Plugins": [
+        {
+            "Type": "library",
+            "Name": "RoadnetworkOpendriveFileFormat",
+            "Root": ".",
+            "LibraryPath": "../../../lib/@OPENSTRATA_PLUGIN_LIBRARY_PREFIX@RoadnetworkOpendriveFileFormat@CMAKE_SHARED_LIBRARY_SUFFIX@",
+            "ResourcePath": ".",
+            "Info": {
+                "Types": {
+                    "RoadnetworkOpendriveFileFormat": {
+                        "bases": ["SdfFileFormat"],
+                        "displayName": "RoadnetworkOpendrive File Format",
+                        "extensions": ["xodr"],
+                        "formatId": "xodr",
+                        "primary": true,
+                        "target": "usd"
+                    }
+                }
+            }
+        }
+    ]
+}

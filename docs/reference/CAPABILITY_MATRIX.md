@@ -4,7 +4,10 @@ This table describes the current tree. Planned capabilities belong in the
 [roadmap](../roadmap/), not here. A row moves to **supported** only in the PR
 that lands the implementation and its deterministic tests.
 
-As of 2026-11-22 the repository contains documentation only.
+As of 2026-11-22 the repository contains the documentation and the scaffolded
+`roadnetwork-opendrive` bundle. The scaffold registers the `.xodr` extension
+and authors an empty layer for any file; that is a placeholder, not support,
+so every OpenDRIVE row below remains unsupported.
 
 ## Status vocabulary
 

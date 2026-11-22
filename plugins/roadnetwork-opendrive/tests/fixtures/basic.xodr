@@ -1,0 +1,4 @@
+roadnetwork-opendrive 1.0
+# A minimal, valid fixture for the xodr format.
+# `ost plugin test` opens this with the built plugin (smoke + roundtrip).
+node root

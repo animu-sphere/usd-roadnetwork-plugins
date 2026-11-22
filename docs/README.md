@@ -1,7 +1,7 @@
 # USD Road Network Plugins documentation
 
-The project is in **Phase 0 (scaffold and ADRs)**. No format is implemented
-yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
+The project is in **Phase 0 (scaffold and ADRs)**. The workspace and an
+empty OpenDRIVE bundle are scaffolded, but no format is implemented yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
 
 Use the document that owns the question you are answering. Summaries should
 link to the source; once code exists, implementation and tests are the
@@ -47,10 +47,8 @@ documentation in the same PR.
 
 ## Component documentation
 
-Component READMEs are added with the Phase 0 scaffold.
-
 | Component | Kind | Documentation |
 | --- | --- | --- |
-| `roadnetwork-opendrive` | plugin bundle | planned: `plugins/roadnetwork-opendrive/README.md` |
+| `roadnetwork-opendrive` | plugin bundle | [Plugin README](../plugins/roadnetwork-opendrive/README.md) (scaffold) |
 | `roadnetwork-core` | library | planned: `libs/roadnetwork-core/README.md` |
 | `roadnetwork-usd` | library | planned: `libs/roadnetwork-usd/README.md` |
