@@ -36,6 +36,22 @@ found that the first fixtures need only line and arc. The same spike puts
 lane offset in scope, because the real-world files examined use it on almost
 every road, and proposes accepting `revMajor="1"` with `revMinor` 4–9.
 
+### Phase 1 workstreams
+
+These workstreams are proposed. Each names the ADRs whose remaining evidence
+it produces. They move to [current work](current.md) when Phase 1 starts. An
+ADR is accepted in the workstream that produces the last of its evidence, or
+earlier if review finds the evidence sufficient.
+
+| ID | Work | Component | ADRs | Exit criterion |
+| --- | --- | --- | --- | --- |
+| IR-01 | `RoadNetworkData` types and validation | `roadnetwork-core` | [0001](../adr/0001-roadnetwork-data-model.md) | The ADR 0001 types replace the placeholder. Each validation invariant fails a unit test with its `RN-` code. |
+| GEO-01 | Line, arc, and cubic evaluation; lane borders; tessellation | `roadnetwork-core` | [0004](../adr/0004-opendrive-geometry-retention.md) | Closed-form position and heading tests pass, and sampled borders stay within the tolerance on a hand-authored fixture. |
+| ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. |
+| ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The hand-authored fixtures and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. |
+| USD-01 | Stage contract and the shared writer | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. |
+| REL-01 | First release | all | — | The [release gate](../releases/README.md#release-gate) passes for v0.1.0. |
+
 ## Format acceptance gate
 
 A format is claimed as supported only when:
