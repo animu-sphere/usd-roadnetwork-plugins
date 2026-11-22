@@ -1,9 +1,9 @@
 # Third-party notices
 
-No third-party code is included yet. The repository contains the third-party
+The repository vendors the third-party code and contains the third-party
 test data listed below.
 
-Each dependency added later gets a section here with:
+Each dependency gets a section here with:
 
 - the project URL;
 - the exact pinned version or commit (and archive checksum when vendored from
@@ -14,6 +14,29 @@ Each dependency added later gets a section here with:
 
 Dependencies stay private to the bundle that needs them; see the
 [dependency policy](docs/design/DESIGN_POLICY.md#14-dependency-policy).
+
+## Code
+
+### pugixml 1.16
+
+- **Project:** [zeux/pugixml](https://github.com/zeux/pugixml)
+- **Version:** release `v1.16` (2026-06-16), from the release archive
+  `pugixml-1.16.tar.gz` (SHA-256
+  `4cee1ca4aad395170f4c7a07824f3bdd41f28316c6e1e1090a1425b278ec0b4b`)
+- **Files:** `pugixml.cpp`, `pugixml.hpp`, `pugiconfig.hpp`, and `LICENSE.md`
+  in [`third_party/pugixml/`](third_party/pugixml/). The per-file checksums and
+  build definitions are in its [VENDORING.md](third_party/pugixml/VENDORING.md).
+- **Used by:** the `roadnetwork-opendrive` bundle only, compiled into its
+  reader with hidden symbols and kept out of every public header. No shared
+  library depends on it.
+- **License:** MIT License, Copyright (c) 2006-2026 Arseny Kapoulkine. The
+  upstream license text is retained unchanged in
+  [`third_party/pugixml/LICENSE.md`](third_party/pugixml/LICENSE.md) and
+  repeated in the bundle's
+  [`THIRD_PARTY_NOTICES.md`](plugins/roadnetwork-opendrive/THIRD_PARTY_NOTICES.md),
+  so every bundle package carries it.
+- **Modifications:** none. Configuration is by build definitions only.
+- **Selection:** [FMT-01 spike §6](docs/reports/format-spike-opendrive-2026-11-22.md#6-xml-parser).
 
 ## Test data
 

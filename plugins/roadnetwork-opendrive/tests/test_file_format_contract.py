@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 """SdfFileFormat contract of the roadnetwork-opendrive bundle (ADR 0006).
 
-Phase 0 evidence on the empty bundle: registration and read-only routing,
-open, sublayer and reference composition, metadata-only reads, determinism,
-and reload, including reload under an outer SdfChangeBlock. The bundle does
-not decode OpenDRIVE yet, so every read authors an empty layer; the checks
-that depend on content (/Asset, provenance, rejected input) arrive with the
-Phase 1 reader.
+Registration and read-only routing, open, sublayer and reference
+composition, metadata-only reads, determinism, and reload, including reload
+under an outer SdfChangeBlock. The reader (ODR-01) adds the CanRead() sniff
+on the prologue fixtures, the rejection of each negative fixture with exactly
+one coded error, the accepted version range, and a failed reload that keeps
+the previous content. The bundle does not decode roads yet, so every
+successful read still authors an empty layer; the checks that depend on
+authored content (/Asset, provenance) arrive with the decoder and the stage
+contract.
 """
 
 import os
@@ -20,6 +23,23 @@ from pxr import Sdf, Tf, Usd
 
 FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
 BASIC = FIXTURES / "basic.xodr"
+READER = FIXTURES / "reader"
+
+# The fixtures each code is proven by (DIAGNOSTICS.md), and whether CanRead()
+# accepts them: it looks only at the prologue, so a malformed body or an
+# unsupported version still passes the sniff.
+REJECTED = [
+    (FIXTURES / "invalid.xodr", "ODR-E002", True),
+    (READER / "not-utf8.xodr", "ODR-E003", False),
+    (READER / "wrong-root.xodr", "ODR-E004", False),
+    (READER / "namespaced-root.xodr", "ODR-E004", False),
+    (READER / "missing-header.xodr", "ODR-E005", True),
+    (READER / "version-malformed.xodr", "ODR-E006", True),
+    (READER / "version-unsupported.xodr", "ODR-E007", True),
+]
+ACCEPTED = [BASIC, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
+            FIXTURES / "carla" / "Town01.xodr", FIXTURES / "carla" / "Town02.xodr"]
+SNIFF_BYTES = 64 * 1024
 
 failures = []
 
@@ -35,6 +55,120 @@ def expect_tf_error(fn):
         return not fn()
     except Tf.ErrorException:
         return True
+
+
+def read_errors(fn):
+    """Run fn and return (its result, the messages of the Tf errors it posted)."""
+    try:
+        return fn(), []
+    except Tf.ErrorException as error:
+        return None, [str(getattr(e, "commentary", e)) for e in error.args]
+
+
+def check_opens(path, what, **kwargs):
+    layer, errors = read_errors(lambda: Sdf.Layer.OpenAsAnonymous(str(path), **kwargs))
+    check(layer is not None and not errors, f"{what} did not open: {errors}")
+
+
+def check_rejected(path, code, what, **kwargs):
+    """ADR 0006 section 3: a failed read posts exactly one error, starting with
+    the bracketed code and naming the asset, and opens no layer or stage."""
+    layer, errors = read_errors(lambda: Sdf.Layer.OpenAsAnonymous(str(path), **kwargs))
+    check(layer is None, f"{what}: the layer opened")
+    check(len(errors) == 1, f"{what}: expected one error, got {errors}")
+    if errors:
+        check(errors[0].startswith(f"[{code}] "), f"{what}: expected [{code}], got {errors[0]!r}")
+        check(path.name in errors[0], f"{what}: the error does not name the asset: {errors[0]!r}")
+    if not kwargs:
+        stage, _ = read_errors(lambda: Usd.Stage.Open(str(path)))
+        check(not stage, f"{what}: a stage opened")
+
+
+def write_variant(path, text):
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+def check_reader_fixtures(tmp):
+    fmt = Sdf.FileFormat.FindByExtension("xodr")
+    for path in ACCEPTED:
+        check(fmt.CanRead(str(path)), f"CanRead rejects {path.name}")
+        check_opens(path, path.name)
+    for path, code, can_read in REJECTED:
+        check(fmt.CanRead(str(path)) == can_read, f"CanRead({path.name}) is not {can_read}")
+        check_rejected(path, code, path.name)
+        # A metadata-only read checks the container, root, and version too.
+        check_rejected(path, code, f"metadata-only {path.name}", metadataOnly=True)
+
+    # CanRead() fails quietly on a missing asset.
+    _, errors = read_errors(lambda: fmt.CanRead(str(tmp / "missing.xodr")))
+    check(not errors, f"CanRead posted errors for a missing asset: {errors}")
+
+    text = BASIC.read_text(encoding="utf-8")
+
+    # A comment that pushes the root past the 64 KiB sniff window: CanRead()
+    # says no, and Read() still accepts the document.
+    long_comment = write_variant(tmp / "long-comment.xodr", text.replace(
+        "<OpenDRIVE>", "<!--" + "x" * SNIFF_BYTES + "-->\n<OpenDRIVE>", 1))
+    check(not fmt.CanRead(str(long_comment)), "CanRead finds a root beyond 64 KiB")
+    check_opens(long_comment, "a long leading comment")
+
+    # The same document in UTF-16, with a byte-order mark.
+    utf16 = tmp / "utf16.xodr"
+    utf16.write_bytes(text.replace('encoding="UTF-8"', 'encoding="UTF-16"').encode("utf-16"))
+    check(not fmt.CanRead(str(utf16)), "CanRead accepts UTF-16")
+    check_rejected(utf16, "ODR-E003", "UTF-16")
+
+    # A directory resolves, but cannot be read as an asset.
+    directory = tmp / "directory.xodr"
+    directory.mkdir()
+    check(not fmt.CanRead(str(directory)), "CanRead accepts a directory")
+    check_rejected(directory, "ODR-E001", "a directory")
+
+    # The version range: revMajor 1 with revMinor 4 to 9 (FMT-01 section 3.3).
+    for minor in range(0, 12):
+        path = write_variant(tmp / f"version-1-{minor}.xodr",
+                             text.replace('revMinor="8"', f'revMinor="{minor}"', 1))
+        if 4 <= minor <= 9:
+            check_opens(path, f"OpenDRIVE 1.{minor}")
+        else:
+            check_rejected(path, "ODR-E007", f"OpenDRIVE 1.{minor}")
+    path = write_variant(tmp / "version-2-0.xodr",
+                         text.replace('revMajor="1" revMinor="8"', 'revMajor="2" revMinor="0"', 1))
+    check_rejected(path, "ODR-E007", "OpenDRIVE 2.0")
+
+
+def check_failed_reload_keeps_content(tmp):
+    """ADR 0006 section 3: a failed Read() leaves the target layer unchanged,
+    so the previous content survives a failed reload."""
+    path = tmp / "failed-reload.xodr"
+    shutil.copyfile(BASIC, path)
+    layer = Sdf.Layer.FindOrOpen(str(path))
+    check(layer is not None, "the failed-reload fixture did not open")
+    if layer is None:
+        return
+    # The read authored an empty layer. Give it content that only a
+    # successful read replaces.
+    Sdf.CreatePrimInLayer(layer, "/Marker")
+    check(bool(layer.GetPrimAtPath("/Marker")), "the marker prim was not authored")
+
+    def rewrite(source, bump):
+        shutil.copyfile(source, path)
+        later = time.time() + bump
+        os.utime(path, (later, later))
+
+    rewrite(FIXTURES / "invalid.xodr", 10)
+    reloaded, errors = read_errors(lambda: layer.Reload(force=True))
+    check(not reloaded, "reloading a malformed file succeeded")
+    check(len(errors) == 1 and errors[0].startswith("[ODR-E002] "),
+          f"a failed reload did not post one ODR-E002: {errors}")
+    check(bool(layer.GetPrimAtPath("/Marker")), "a failed reload replaced the previous content")
+
+    # Repaired, the file reloads and replaces the content.
+    rewrite(BASIC, 20)
+    reloaded, errors = read_errors(lambda: layer.Reload(force=True))
+    check(bool(reloaded) and not errors, f"reloading the repaired file failed: {errors}")
+    check(not layer.GetPrimAtPath("/Marker"), "a successful reload kept the previous content")
 
 
 def check_registration():
@@ -61,7 +195,7 @@ def check_open_and_read_only(tmp):
     # WriteToString exposes the layer as USDA for inspection; that is not export.
     text = layer.ExportToString()
     check(text.startswith("#usda 1.0"), "ExportToString does not produce USDA")
-    check(not layer.rootPrims, "the Phase 0 layer is not empty")
+    check(not layer.rootPrims, "the layer is not empty before the stage contract")
     # Exporting through the xodr format is refused explicitly.
     target = tmp / "export.xodr"
     check(expect_tf_error(lambda: layer.Export(str(target))),
@@ -84,8 +218,8 @@ def check_composition(tmp):
         formats = {layer.GetFileFormat().formatId for layer in stage.GetUsedLayers()}
         check("xodr" in formats, "the sublayered xodr layer is not used by the stage")
 
-    # Reference: Pcp resolves and opens the xodr asset. The Phase 0 layer has
-    # no defaultPrim, so the arc targets nothing yet; the check is that the
+    # Reference: Pcp resolves and opens the xodr asset. Until the stage
+    # contract lands the layer has no defaultPrim, so the arc targets nothing yet; the check is that the
     # asset is reached through the plugin. Prim contents are checked once the
     # writer authors /Asset (WORKSPACE.md §5).
     write_usda(tmp / "reference.usda",
@@ -106,10 +240,11 @@ def check_metadata_only():
     if full is None or meta is None:
         return
     # ADR 0006: a metadata-only read authors the header-derived root and no
-    # per-element content. In Phase 0 both reads are empty and must agree.
-    check(not meta.rootPrims, "the Phase 0 metadata-only layer is not empty")
+    # per-element content. Until the decoder and the stage contract land,
+    # both reads are empty and must agree.
+    check(not meta.rootPrims, "the metadata-only layer is not empty")
     check(meta.ExportToString() == full.ExportToString(),
-          "metadata-only and full reads differ on the empty bundle")
+          "metadata-only and full reads differ")
 
 
 def check_determinism():
@@ -171,7 +306,9 @@ def main():
                      lambda: check_composition(tmp),
                      check_metadata_only,
                      check_determinism,
-                     lambda: check_reload(tmp)):
+                     lambda: check_reload(tmp),
+                     lambda: check_reader_fixtures(tmp),
+                     lambda: check_failed_reload_keeps_content(tmp)):
             try:
                 test()
             except Tf.ErrorException as error:

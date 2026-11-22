@@ -53,7 +53,8 @@ path for local unit tests will be documented alongside.
 | Format-independent model and validation | `libs/roadnetwork-core/` |
 | USD authoring | `libs/roadnetwork-usd/` — shared by every bundle |
 | Test inputs | the bundle's fixtures, small and redistributable, with provenance |
-| New diagnostics | the bundle's diagnostics header **and** its catalog; codes are never renumbered or reused |
+| Vendored third-party source | `third_party/<name>/`, unmodified, with a `VENDORING.md` (archive, checksums, build definitions); compiled only into the bundle that needs it |
+| New diagnostics | the bundle's diagnostics header (`src/io/Diagnostics.h`) **and** its catalog; codes are never renumbered or reused |
 | Behavior claims | `docs/reference/` — a claim without a fixture is a bug |
 | A new or changed feature | the [release plan](docs/roadmap/release-plan.md) feature list; cite its `F-` ID from the workstream and the capability row |
 

@@ -3,5 +3,54 @@
     "prefix": "ODR",
     "owner": "roadnetwork-opendrive",
     "description": "Stable diagnostics raised by the OpenDRIVE reader and decoder. Codes are <PREFIX>-<E|W><NNN>, never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[ODR-E001] ...\". Format-independent conditions use the RN- catalog shipped beside this file as rn-diagnostics.json. See docs/reference/DIAGNOSTICS.md.",
-    "diagnostics": []
+    "diagnostics": [
+        {
+            "code": "ODR-E001",
+            "severity": "error",
+            "summary": "The source asset could not be opened or read.",
+            "action": "Check that the path resolves to a readable file, not a directory, and that the resolver can open it."
+        },
+        {
+            "code": "ODR-E002",
+            "severity": "error",
+            "summary": "The document is not well-formed XML: a parse error, no element, more than one top-level element, or text outside the root element.",
+            "action": "Fix the XML at the reported line and column; a non-validating XML checker reports the same position."
+        },
+        {
+            "code": "ODR-E003",
+            "severity": "error",
+            "summary": "The document is not UTF-8: it has a UTF-16 or UTF-32 byte-order mark or content, or its XML declaration names another encoding.",
+            "action": "Re-encode the file as UTF-8 and declare encoding=\"UTF-8\" or omit the encoding."
+        },
+        {
+            "code": "ODR-E004",
+            "severity": "error",
+            "summary": "The root element is not <OpenDRIVE> in no namespace.",
+            "action": "Check that the file is ASAM OpenDRIVE; remove a namespace prefix or a default xmlns from the root element, which OpenDRIVE does not define."
+        },
+        {
+            "code": "ODR-E005",
+            "severity": "error",
+            "summary": "The first child element of <OpenDRIVE> is not <header>.",
+            "action": "Add the mandatory <header> as the first child of <OpenDRIVE>."
+        },
+        {
+            "code": "ODR-E006",
+            "severity": "error",
+            "summary": "<header> has no revMajor or revMinor attribute, or one is not a non-negative decimal integer.",
+            "action": "State the specification version as integers, for example revMajor=\"1\" revMinor=\"8\"."
+        },
+        {
+            "code": "ODR-E007",
+            "severity": "error",
+            "summary": "The OpenDRIVE version is outside the supported range, revMajor 1 with revMinor 4 to 9.",
+            "action": "Convert the file to a supported OpenDRIVE version; versions before 1.4 and after 1.9 are rejected rather than guessed."
+        },
+        {
+            "code": "ODR-E901",
+            "severity": "error",
+            "summary": "An internal failure, such as running out of memory, stopped the read.",
+            "action": "Report it with the input file if it is not a resource limit; it indicates a bug."
+        }
+    ]
 }

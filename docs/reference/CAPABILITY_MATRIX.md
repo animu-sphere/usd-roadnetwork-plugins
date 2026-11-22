@@ -6,13 +6,13 @@ IDs in the *Feature* column. A row moves to **supported** only in the PR that
 lands the implementation and its deterministic tests, and a supported row
 must cite that evidence (`tools/check_docs.py` enforces it).
 
-Today the `roadnetwork-opendrive` bundle registers `.xodr` and, for any file
-it can open, authors an empty layer through the shared writer without
-parsing the file. That is a placeholder, not support, so every OpenDRIVE row
-below remains unsupported; in particular the malformed `invalid.xodr`
-fixture still opens as an empty stage. The `roadnetwork-core` model,
-validation, geometry evaluation, and tessellation are unit-tested, but no
-decoder produces the model yet.
+Today the `roadnetwork-opendrive` bundle registers `.xodr`, recognizes the
+format and its version, and rejects malformed XML, a wrong root, a missing
+header, and an unsupported version with stable `ODR-` errors. A file that
+passes these checks still opens as an empty layer, because nothing decodes
+roads, lanes, or junctions yet, so the content rows below remain
+unsupported. The `roadnetwork-core` model, validation, geometry evaluation,
+and tessellation are unit-tested, but no decoder produces the model yet.
 
 ## Status vocabulary
 
@@ -37,8 +37,9 @@ decoder produces the model yet.
 
 | Capability | Feature | Status | Evidence / behavior |
 | --- | --- | --- | --- |
-| Format detection (`CanRead`) | F-01 | unsupported | — |
-| Specification-version recognition | F-02 | unsupported | — |
+| Format detection (`CanRead`) | F-01 | supported | the [ADR 0006 §1](../adr/0006-fileformat-contract.md#1-canread) sniff of the first 64 KiB through `ArResolver`: a UTF-8 BOM, the XML declaration, comments, processing instructions, and a DOCTYPE may precede an unprefixed, un-namespaced `<OpenDRIVE>`; `roadnetworkOpendrive_reader` (24 prologue cases) and `roadnetworkOpendrive_file_format_contract` (the `reader/prologue-*` fixtures, CARLA `Town01` and `Town02`, a root beyond 64 KiB, UTF-16, a directory, and a missing asset) |
+| Malformed-input rejection | F-01 | supported | `ODR-E001` to `ODR-E005` ([DIAGNOSTICS.md](DIAGNOSTICS.md#odr--reader)): exactly one error naming the asset, and no layer or stage, in full and metadata-only reads; each code has a negative fixture in the manifest's `negative` list, checked by `roadnetworkOpendrive_file_format_contract` |
+| Specification-version recognition | F-02 | supported | `<header revMajor revMinor>`: 1.4 to 1.9 open, other versions fail with `ODR-E007`, and malformed ones with `ODR-E006` ([FMT-01 §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)); every `revMinor` from 0 to 11, and 2.0, in `roadnetworkOpendrive_file_format_contract` |
 | Plan-view geometry: line, arc | F-04 | unsupported | no decoder yet; the `roadnetwork-core` evaluator passes the closed-form tests of `roadnetworkCore_geometry` ([ADR 0004 evidence](../adr/0004-opendrive-geometry-retention.md#evidence)) |
 | Plan-view geometry: spiral, poly3, paramPoly3 | F-12 | unsupported | — |
 | Elevation and superelevation profiles | F-05, F-13 | unsupported | — |
@@ -47,8 +48,8 @@ decoder produces the model yet.
 | Junctions and connections | F-06 | unsupported | — |
 | Signals, road marks, objects | F-13, F-14, F-15 | unsupported | — |
 | Georeference and offset | F-09 | unsupported | — |
-| Metadata-only read | F-10 | unsupported | — |
-| Stable diagnostics | F-11 | unsupported | numbering ratified ([ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)); both catalogs ship in the bundle resources and are cross-checked against source by `roadnetworkOpendrive_diagnostics_catalog`; the `RN-` validation codes are assigned and unit-tested, but no read raises a code yet and the `ODR-` catalog is empty |
+| Metadata-only read | F-10 | unsupported | a metadata-only read checks the container, root, header, and version too (tested), and the reader's header scan yields the provenance and element counts (`roadnetworkOpendrive_reader`), but nothing is authored on `/Asset` until the stage contract (USD-01) |
+| Stable diagnostics | F-11 | unsupported | numbering ratified ([ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)); both catalogs ship in the bundle resources and are cross-checked against source by `roadnetworkOpendrive_diagnostics_catalog`; the `RN-` validation codes are assigned and unit-tested; the reader raises the `ODR-` codes in [DIAGNOSTICS.md](DIAGNOSTICS.md#odr--reader), but no read validates the model, raises an `RN-` code, or posts a warning yet |
 
 ## File-format arguments
 
@@ -66,5 +67,5 @@ Planned arguments are defined in [ADR 0009](../adr/0009-file-format-arguments-up
 | --- | --- | --- | --- |
 | Semantic layer (`/Asset/Network`) | F-07 | unsupported | contract proposed in [WORKSPACE.md §5](../architecture/WORKSPACE.md#5-authored-stage-contract) |
 | Visualization layer (`/Asset/Visualization`) | F-08 | unsupported | not authored yet; the `roadnetwork-core` tessellator keeps borders and centerlines within 1 cm of the analytic curves on a hand-authored road (`roadnetworkCore_tessellation`) |
-| Reference, payload, reload | F-10 | unsupported | on the empty layer, sublayer and reference composition and reload (forced, unforced after a file change, and under an outer `SdfChangeBlock`) pass `roadnetworkOpendrive_file_format_contract`; nothing is claimed until the layer has content |
+| Reference, payload, reload | F-10 | unsupported | on the empty layer, sublayer and reference composition and reload (forced, unforced after a file change, and under an outer `SdfChangeBlock`) pass `roadnetworkOpendrive_file_format_contract`, and a failed reload keeps the previous layer content; nothing is claimed until the layer has content |
 | Export (`WriteToFile`) | — | unsupported | out of scope ([design policy §12](../design/DESIGN_POLICY.md#12-write-support)); `plugInfo.json` declares `supportsWriting: false`, so saving or exporting through the format fails with an Sdf error (tested) |

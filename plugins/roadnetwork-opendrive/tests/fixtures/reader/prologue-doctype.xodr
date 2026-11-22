@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Everything ADR 0006 allows before the root element: comments, a
+  processing instruction, and a document type declaration with an internal
+  subset whose entity is not expanded.
+-->
+<?roadnetwork note?>
+<!DOCTYPE OpenDRIVE [
+  <!ENTITY unused "a > b">
+]>
+<!-- the root follows -->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="reader" version="1.0" date="2026-11-22T00:00:00"/>
+</OpenDRIVE>

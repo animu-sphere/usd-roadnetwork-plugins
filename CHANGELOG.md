@@ -28,6 +28,14 @@ semantic versioning for tagged releases.
   (`diagnostics.json`, `rn-diagnostics.json`) in its plugin resources.
 - File-format contract, writer change-block, and catalog cross-check tests,
   run by the composed root's CTest suite.
+- OpenDRIVE reader (ODR-01): `CanRead()` sniffs the first 64 KiB for an
+  `<OpenDRIVE>` root, and `Read()` rejects an unreadable asset, a non-UTF-8
+  document, malformed XML, a wrong or namespaced root, a missing header, and
+  any version other than 1.4 to 1.9 with `ODR-E001` to `ODR-E007`. A failed
+  reload keeps the previous layer content. Accepted files still open as an
+  empty layer, because roads are not decoded yet.
+- pugixml 1.16 (MIT), vendored in `third_party/pugixml` and compiled into the
+  `roadnetwork-opendrive` bundle with hidden symbols.
 - Source CI on GitHub-hosted Windows, Ubuntu, and macOS runners: the
   `openstrata.ci.yaml` support matrix and the workflow generated from it
   build and run the CTest suite of the workspace, and build, test (L0–L5),

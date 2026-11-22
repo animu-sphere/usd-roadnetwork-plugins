@@ -38,4 +38,12 @@ usd:
 tests:
   smoke: [tests/fixtures/basic.xodr]
   roundtrip: [tests/fixtures/basic.xodr]
-  negative: [tests/fixtures/invalid.xodr]
+  # Each must fail to open with its ODR- code (docs/reference/DIAGNOSTICS.md).
+  negative:
+    - tests/fixtures/invalid.xodr
+    - tests/fixtures/reader/not-utf8.xodr
+    - tests/fixtures/reader/wrong-root.xodr
+    - tests/fixtures/reader/namespaced-root.xodr
+    - tests/fixtures/reader/missing-header.xodr
+    - tests/fixtures/reader/version-malformed.xodr
+    - tests/fixtures/reader/version-unsupported.xodr
