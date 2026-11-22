@@ -36,7 +36,7 @@ usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/roadnetwork-opendrive/plugInfo.json
 tests:
-  smoke: [tests/fixtures/basic.xodr, tests/fixtures/decoder/network.xodr]
+  smoke: [tests/fixtures/basic.xodr, tests/fixtures/decoder/network.xodr, tests/fixtures/writer/projected.xodr]
   roundtrip: [tests/fixtures/basic.xodr]
   # Each must fail to open with its ODR- or RN- code
   # (docs/reference/DIAGNOSTICS.md).

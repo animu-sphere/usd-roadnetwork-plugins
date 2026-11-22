@@ -36,7 +36,8 @@ if(NOT TARGET openstrata::roadnetworkCore)
 endif()
 
 add_library(roadnetworkUsd STATIC
-    src/LayerWriter.cpp)
+    src/LayerWriter.cpp
+    src/PrimNames.cpp)
 add_library(openstrata::roadnetworkUsd ALIAS roadnetworkUsd)
 set_target_properties(roadnetworkUsd PROPERTIES
     EXPORT_NAME roadnetworkUsd

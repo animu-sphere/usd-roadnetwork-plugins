@@ -107,6 +107,12 @@
             "action": "Reduce the lane offset or lane widths on the inside of the arc, or increase the arc's radius."
         },
         {
+            "code": "RN-E901",
+            "severity": "error",
+            "summary": "The shared USD writer could not author a network that passed validation: an invariant that validation guarantees did not hold, or Sdf refused a spec. This is a bug in the importer.",
+            "action": "Report the issue with the source file. The read fails, and on reload the previous layer content is kept."
+        },
+        {
             "code": "RN-W301",
             "severity": "warning",
             "summary": "The outer border of the outermost lane on one side reaches the center of curvature on the inside of an arc (t * kappa >= 1). The semantics are kept; the border's sampled outline loops near the center.",

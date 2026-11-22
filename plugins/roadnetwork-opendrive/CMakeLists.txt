@@ -70,6 +70,10 @@ target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PLUGIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     ${PXR_INCLUDE_DIRS})
+# Recorded on /Asset as roadnetwork:import:importerVersion; the contract test
+# checks that it matches the bundle manifest.
+target_compile_definitions(${PLUGIN_NAME} PRIVATE
+    ROADNETWORKOPENDRIVE_VERSION="${PROJECT_VERSION}")
 target_link_libraries(${PLUGIN_NAME} PRIVATE
     roadnetworkOpendriveIo
     openstrata::roadnetworkCore

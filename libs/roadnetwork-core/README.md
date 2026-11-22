@@ -11,7 +11,8 @@ holds the types of
 codes listed in the [diagnostics reference](../../docs/reference/DIAGNOSTICS.md#rn--shared-validation).
 The evaluator, lane borders, and tessellator follow
 [ADR 0004 §2–§3](../../docs/adr/0004-opendrive-geometry-retention.md#2-evaluation)
-(still Proposed). No decoder produces the model yet.
+(still Proposed). The OpenDRIVE decoder produces the model, and the
+`roadnetwork-usd` writer authors it and its samples.
 
 | Item | Value |
 | --- | --- |

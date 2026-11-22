@@ -190,12 +190,27 @@ Gathered in the [ADR probes](../reports/adr-probes-2026-11-22.md):
   relationships that survive flattening (§4);
 - the one-sided lane links that make §4 write each edge on both lanes (§6).
 
+Gathered in USD-01, in `roadnetwork-usd`
+([`PrimNames.h`](../../libs/roadnetwork-usd/include/openstrata/rn/usd/PrimNames.h)):
+
+- `roadnetworkUsd_layer_writer` checks `E` against the §1 table and for the
+  underscore, an escape-like ID (`_5f`), punctuation, spaces and tabs,
+  multi-byte UTF-8, NUL and `0xff` bytes, and the empty ID, which
+  `PrimName()` rejects. It checks that `E⁻¹(E(id)) = id` and that every name
+  is ASCII and a valid identifier. `E⁻¹` rejects strings that `E` cannot
+  produce, such as an uppercase escape or an escape of a letter or digit.
+- The same test checks the §3 order of roads, sections, and lanes, the §4
+  relationships on both lanes of an edge, sorted by path, and the §5 curve
+  order with `roadnetwork:represents`.
+- `roadnetworkOpendrive_file_format_contract` reloads `decoder/network.xodr`
+  and finds the same prim paths and relationship targets. It references the
+  same network twice into one stage, finds every relationship target inside
+  its own reference, and finds the same targets after `Flatten()`.
+- One case §5 does not state: a road whose sections hold only a center lane
+  has no centerline, so it has no `Centerlines` prim. Its `Boundaries` prim
+  still holds the center border.
+
 Needed before acceptance:
 
-- USD-01 unit tests of `E` and its inverse for numeric IDs, negative IDs,
-  the underscore, punctuation, spaces, multi-byte UTF-8, and the empty ID
-  (rejected).
-- An ODR-02 reload test with content, showing unchanged paths and
-  relationship targets for an unchanged file.
-- A file-format test that references two decoded fixtures into one stage and
-  checks that their relationships stay inside their own reference.
+- Review together with ADR 0001's derived identities (current work, next
+  action 1).

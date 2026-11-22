@@ -6,28 +6,42 @@ format bundle authors its stage only through this library
 It depends on `roadnetwork-core` and OpenUSD, never on a plugin bundle or a
 format parser.
 
-**State: skeleton.** `WriteLayer()` replaces the target layer with an empty
-one (no prims, no layer metadata). It authors the stage contract once ADRs
-[0002](../../docs/adr/0002-usd-schema-strategy.md),
-[0003](../../docs/adr/0003-crs-axes-units.md), and
-[0005](../../docs/adr/0005-prim-path-and-id-stability.md) are accepted.
+**State: stage contract.** `WriteLayer()` authors the decisions proposed in
+ADRs [0002](../../docs/adr/0002-usd-schema-strategy.md) (prim types and the
+`roadnetwork:` properties), [0003](../../docs/adr/0003-crs-axes-units.md)
+(`Z`-up metres and the visualization origin shift), and
+[0005](../../docs/adr/0005-prim-path-and-id-stability.md) (names, hierarchy,
+and relationships). The ADRs are still Proposed; this library is their
+evidence, and it changes with them.
 
 | Item | Value |
 | --- | --- |
 | Library id | `roadnetwork-usd` (`openstrata.library.yaml`), requires `roadnetwork-core` `>=0.1,<0.2` |
 | CMake | `find_package(roadnetworkUsd CONFIG REQUIRED)`, target `openstrata::roadnetworkUsd` |
 | Kind | static library, C++17; links OpenUSD `arch tf vt sdf` (or `usd_ms`) publicly |
-| Header | `openstrata/rn/usd/LayerWriter.h` |
+| Headers | `openstrata/rn/usd/LayerWriter.h` (`WriteLayer()`, `ImportRecord`), `openstrata/rn/usd/PrimNames.h` (the ADR 0005 name encoding `E` and its inverse, section and lane names; no OpenUSD types) |
 | API tier | Contributor ([API boundary](../../docs/architecture/API_BOUNDARY.md#tiers)): no external API or ABI guarantee |
 
 ## Writer contract
 
-`bool WriteLayer(const RoadNetworkData&, SdfLayer&, std::string* error)`
-authors into a scratch layer and transfers it into the target only on
-success, so a failure leaves the target layer unchanged. The unit test checks
-that existing content is replaced, that two writes of the same data export
-identical text, and that a write inside an `SdfChangeBlock` matches one
-outside.
+`bool WriteLayer(const RoadNetworkData&, const ImportRecord&, SdfLayer&, Diagnostic* error)`
+authors validated data into a scratch layer and transfers it into the target
+only on success, so a failure leaves the target layer unchanged. The data
+must have passed `Validate()`; an invariant that does not hold anyway, such
+as a lane edge to a missing lane, fails the write with `RN-E901` instead of
+authoring a dangling relationship. The output is a pure function of the data
+and the record. The visualization points come from
+`openstrata::rn::TessellateRoad()`; the writer's only arithmetic is the
+origin shift and the curve extents.
+
+`roadnetworkUsd_layer_writer` checks the name encoding and its inverse (the
+ADR 0005 table, the underscore, punctuation, multi-byte UTF-8, NUL, and the
+empty ID), each ADR 0002 property group on a hand-built network with a
+junction, the sorted lane relationships, the absence of single-precision and
+non-uniform values under `/Asset/Network`, a header-only write, the origin
+shift at UTM scale (points within 0.5 mm of their samples), a failure that
+leaves the layer unchanged, determinism, and a write inside an
+`SdfChangeBlock` that matches one outside.
 
 The writer authors **Sdf specs only**, on the calling thread
 ([ADR 0006 §5](../../docs/adr/0006-fileformat-contract.md#5-reload-and-authoring-thread)).

@@ -68,6 +68,19 @@ semantic versioning for tagged releases.
 - `Validate()` can return warnings. `RN-W301` reports an outermost lane
   border that folds back past an arc's center of curvature. CARLA has three,
   all sidewalks.
+- Stage contract (USD-01): an `.xodr` file now opens with content. The
+  shared `roadnetwork-usd` writer authors `/Asset` (an `Xform`, kind
+  `component`, the `defaultPrim`) with the source header, georeference,
+  offset, element counts, and warning codes and counts; `/Asset/Network`
+  with a prim for every road, lane section, lane, junction, and connection,
+  their `roadnetwork:` properties, and road, lane, and junction
+  relationships; and `/Asset/Visualization` with lane centerlines and
+  borders as linear `BasisCurves`, shifted by a double-precision origin for
+  networks far from the coordinate origin. Layers are `Z`-up in metres.
+  Prim names come from source IDs by a reversible escaping rule
+  (ADR 0005). A metadata-only read authors `/Asset` and an empty
+  `/Asset/Network`. Generated layers of the fixtures and of CARLA `Town01`
+  and `Town02` pass `usdchecker`. A writer failure is the new `RN-E901`.
 
 ### Changed
 

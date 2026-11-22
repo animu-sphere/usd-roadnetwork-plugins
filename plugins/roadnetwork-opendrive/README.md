@@ -18,6 +18,7 @@ plugin/resources/roadnetwork-opendrive/diagnostics.json  ODR- diagnostic catalog
 tests/fixtures/                 basic (valid) + invalid (negative) fixtures, basic golden
 tests/fixtures/reader/          prologue and negative fixtures for the reader
 tests/fixtures/decoder/         the minimal network and a negative fixture per decoder and validation code
+tests/fixtures/writer/          a UTM-scale road for the visualization origin shift (ADR 0003)
 tests/fixtures/carla/           third-party CARLA networks (MIT, see its README and LICENSE)
 THIRD_PARTY_NOTICES.md          notices shipped in every package (manifest `notices`)
 tests/test_reader.cpp           reader unit test, without OpenUSD (CTest)
@@ -33,9 +34,14 @@ The bundle declares `roadnetwork-core` and `roadnetwork-usd` in
 already defines the targets. `Read()` checks the document with the reader
 in `src/io/`, decodes it into `RoadNetworkData` (only the header in a
 metadata-only read), runs `openstrata::rn::Validate()`, and passes the result
-to `openstrata::rn::usd::WriteLayer()`. That function is the only author of
-the layer, and it authors the layer empty until the stage contract (USD-01).
-The decoder's warnings are posted after a successful write, each code once.
+to `openstrata::rn::usd::WriteLayer()`, the only author of the layer, which
+authors the stage contract
+([WORKSPACE.md §5](../../docs/architecture/WORKSPACE.md#5-authored-stage-contract)).
+The bundle gives the writer its import record: the importer identity, the
+version of this CMake project, and the reader's element counts, which a
+metadata-only read takes too. A writer failure (`RN-E901`) fails the read
+like any other error. The decoder's warnings are posted after a successful
+write, each code once.
 
 The reader parses XML with [pugixml](https://github.com/zeux/pugixml) 1.16
 (MIT), vendored at the repository root in
@@ -55,7 +61,8 @@ they are not validated against the ASAM schema.
 | Fixture | Role | Content |
 | --- | --- | --- |
 | `basic.xodr` | smoke, roundtrip (L3–L5) | one straight 10 m road with one right-hand driving lane |
-| `basic.xodr.golden.usda` | L5 oracle | the flattened stage of `basic.xodr` (currently empty) |
+| `basic.xodr.golden.usda` | L5 oracle | the flattened stage of `basic.xodr` |
+| `writer/projected.xodr` | smoke, contract | one road at UTM-scale coordinates with a georeference and an `<offset>`; its points must recover their closed-form curves within 0.5 mm (ADR 0003 §5) |
 | `invalid.xodr` | negative | XML that is not well-formed (`ODR-E002`) |
 | `reader/prologue-bom.xodr` | reader | a UTF-8 byte-order mark before the XML declaration |
 | `reader/prologue-doctype.xodr` | reader | comments, a processing instruction, and a DOCTYPE with an internal subset before the root |
@@ -104,7 +111,7 @@ repository root:
 | Test | Checks |
 | --- | --- |
 | `roadnetworkOpendrive_reader` | the `CanRead()` sniff, each reader failure and its code, the version range, and the header scan, without OpenUSD |
-| `roadnetworkOpendrive_file_format_contract` | registration, read-only export, open, sublayer and reference composition, metadata-only read, determinism, reload (also under an outer `SdfChangeBlock`), `CanRead()` and the rejection of every negative fixture through the plugin, and a failed reload that keeps the previous content |
+| `roadnetworkOpendrive_file_format_contract` | registration, read-only export, open, sublayer, reference, and payload composition, two references of one network with their own relationship targets, flattening, the metadata-only `/Asset`, the import record, the origin shift on `writer/projected.xodr`, `usdchecker` on the generated layers, determinism, reload with unchanged paths and targets (also under an outer `SdfChangeBlock`), `CanRead()` and the rejection of every negative fixture through the plugin, the warnings, and a failed reload that keeps the previous content |
 | `roadnetworkOpendrive_diagnostics_catalog` | both catalogs are well-formed and every bracketed code used in source is catalogued by its owner |
 
 The contract test loads the bundle from this source tree (`lib/` and
@@ -156,9 +163,9 @@ ost plugin doctor roadnetwork-opendrive      # staged diagnostics (L0–L1; L2+ 
 ost plugin test roadnetwork-opendrive        # orchestrate the levels and write a report
 ```
 
-`RoadnetworkOpendriveFileFormat::Read` checks the container, root, header, and
-version, and fails with a stable code otherwise. It does not decode roads yet,
-so an accepted `.xodr` file opens as a valid, empty stage.
+`RoadnetworkOpendriveFileFormat::Read` checks, decodes, and validates the
+file, fails with one stable code otherwise, and authors the result through the
+shared writer.
 
 ## Co-hosting a Typed Schema
 

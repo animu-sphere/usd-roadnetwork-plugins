@@ -1,6 +1,101 @@
 #usda 1.0
 (
+    defaultPrim = "Asset"
     doc = """Generated from Composed Stage of root layer C:\\dev\\usd-roadnetwork-plugins\\plugins\\roadnetwork-opendrive\\tests\\fixtures\\basic.xodr
 """
+    metersPerUnit = 1
+    upAxis = "Z"
 )
+
+def Xform "Asset" (
+    kind = "component"
+)
+{
+    custom uniform string roadnetwork:import:importer = "roadnetwork-opendrive"
+    custom uniform string roadnetwork:import:importerVersion = "0.1.0"
+    custom uniform int roadnetwork:import:junctionCount = 0
+    custom uniform int roadnetwork:import:laneCount = 2
+    custom uniform int roadnetwork:import:roadCount = 1
+    custom uniform string[] roadnetwork:import:warningCodes = []
+    custom uniform int[] roadnetwork:import:warningCounts = []
+    custom uniform string roadnetwork:source:date = "2026-11-22T00:00:00"
+    custom uniform string roadnetwork:source:format = "opendrive"
+    custom uniform string roadnetwork:source:formatVersion = "1.8"
+    custom uniform string roadnetwork:source:name = "basic"
+    custom uniform string roadnetwork:source:version = "1.0"
+
+    def Scope "Network"
+    {
+        def Scope "Roads"
+        {
+            def Scope "road_1"
+            {
+                custom uniform string roadnetwork:id = "1"
+                custom uniform double roadnetwork:length = 10
+                custom uniform string roadnetwork:name = "basic"
+                custom uniform double[] roadnetwork:referenceLine:curvature = [0]
+                custom uniform double[] roadnetwork:referenceLine:hdg = [0]
+                custom uniform token[] roadnetwork:referenceLine:kind = ["line"]
+                custom uniform double[] roadnetwork:referenceLine:length = [10]
+                custom uniform double[] roadnetwork:referenceLine:s = [0]
+                custom uniform double[] roadnetwork:referenceLine:x = [0]
+                custom uniform double[] roadnetwork:referenceLine:y = [0]
+
+                def Scope "section_0"
+                {
+                    custom uniform double roadnetwork:s = 0
+
+                    def Scope "center"
+                    {
+                        custom uniform int roadnetwork:laneNumber = 0
+                        custom uniform token roadnetwork:laneType = "none"
+                        custom uniform bool roadnetwork:level = 0
+                    }
+
+                    def Scope "right_1"
+                    {
+                        custom uniform int roadnetwork:laneNumber = -1
+                        custom uniform token roadnetwork:laneType = "driving"
+                        custom uniform bool roadnetwork:level = 0
+                        custom uniform double[] roadnetwork:width:a = [3.5]
+                        custom uniform double[] roadnetwork:width:b = [0]
+                        custom uniform double[] roadnetwork:width:c = [0]
+                        custom uniform double[] roadnetwork:width:d = [0]
+                        custom uniform double[] roadnetwork:width:sOffset = [0]
+                    }
+                }
+            }
+        }
+    }
+
+    def Xform "Visualization"
+    {
+        def Scope "Centerlines"
+        {
+            def BasisCurves "road_1"
+            {
+                int[] curveVertexCounts = [2]
+                float3[] extent = [(0, -1.75, 0), (10, -1.75, 0)]
+                point3f[] points = [(0, -1.75, 0), (10, -1.75, 0)]
+                custom rel roadnetwork:represents = </Asset/Network/Roads/road_1/section_0/right_1>
+                uniform token type = "linear"
+            }
+        }
+
+        def Scope "Boundaries"
+        {
+            def BasisCurves "road_1"
+            {
+                int[] curveVertexCounts = [2, 2]
+                float3[] extent = [(0, -3.5, 0), (10, 0, 0)]
+                point3f[] points = [(0, 0, 0), (10, 0, 0), (0, -3.5, 0), (10, -3.5, 0)]
+                custom rel roadnetwork:represents = [
+                    </Asset/Network/Roads/road_1/section_0/center>,
+                    </Asset/Network/Roads/road_1/section_0/right_1>,
+                ]
+                uniform token type = "linear"
+            }
+        }
+    }
+}
 
