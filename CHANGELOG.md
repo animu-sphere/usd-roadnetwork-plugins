@@ -105,6 +105,9 @@ semantic versioning for tagged releases.
   libraries' switches it defaults to the root's `ROADNETWORK_BUILD_TESTS`.
 - The root `CMakePresets.json` has a `default` test preset, and
   CONTRIBUTING.md documents the plain CMake build and test without `ost`.
+- `roadnetwork-opendrive` requires OpenUSD `>=26.08,<27.0`, narrowed from the
+  scaffold default `>=25.05,<27.0`: 26.08 is the only runtime the build and
+  tests exercise.
 
 ### Fixed
 
