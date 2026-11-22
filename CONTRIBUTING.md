@@ -3,6 +3,12 @@
 The project is in Phase 0: the workspace and an empty `roadnetwork-opendrive`
 bundle are scaffolded, and the initial ADRs are being drafted.
 
+Participation follows the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
+Report suspected vulnerabilities privately as described in the
+[security policy](.github/SECURITY.md), never in a public issue. Bug reports
+and feature requests use the [issue templates](.github/ISSUE_TEMPLATE/), and
+pull requests start from the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
+
 ## Development path
 
 ```sh

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Contribution guide
+    url: https://github.com/animu-sphere/usd-roadnetwork-plugins/blob/main/CONTRIBUTING.md
+    about: Build, test, and organize a contribution.
+  - name: Security policy
+    url: https://github.com/animu-sphere/usd-roadnetwork-plugins/security/policy
+    about: Report suspected vulnerabilities privately; do not use a public issue.
