@@ -365,10 +365,10 @@ def check_two_references(tmp):
               f"{owner} targets outside its reference: {paths}")
     lane = "Network/Roads/road_1/section_0/right_1"
     for city in ("CityA", "CityB"):
-        successor = stage.GetPrimAtPath(f"/World/{city}/{lane}").GetRelationship("roadnetwork:successor")
-        check([str(t) for t in successor.GetTargets()] ==
+        end_links = stage.GetPrimAtPath(f"/World/{city}/{lane}").GetRelationship("roadnetwork:endLinks")
+        check([str(t) for t in end_links.GetTargets()] ==
               [f"/World/{city}/Network/Roads/road_1/section_1/right_1"],
-              f"{city}: the lane successor is not remapped into its reference")
+              f"{city}: the lane's end links are not remapped into their reference")
         geo = stage.GetPrimAtPath(f"/World/{city}").GetAttribute("roadnetwork:source:geoReference").Get()
         check(bool(geo), f"{city}: the georeference does not reach the referencing prim")
 

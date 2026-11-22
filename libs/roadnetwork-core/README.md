@@ -6,12 +6,12 @@ workspace. It has no OpenUSD, plugin, or format-parser dependency
 
 **State: model, validation, geometry, and tessellation.** `RoadNetworkData`
 holds the types of
-[ADR 0001 §7](../../docs/adr/0001-roadnetwork-data-model.md#7-header-sketch)
-(still Proposed), and `Validate()` checks its §6 invariants with the `RN-`
+[ADR 0001 §7](../../docs/adr/0001-roadnetwork-data-model.md#7-header-sketch),
+and `Validate()` checks its §6 invariants with the `RN-`
 codes listed in the [diagnostics reference](../../docs/reference/DIAGNOSTICS.md#rn--shared-validation).
 The evaluator, lane borders, and tessellator follow
-[ADR 0004 §2–§3](../../docs/adr/0004-opendrive-geometry-retention.md#2-evaluation)
-(still Proposed). The OpenDRIVE decoder produces the model, and the
+[ADR 0004 §2–§3](../../docs/adr/0004-opendrive-geometry-retention.md#2-evaluation).
+The OpenDRIVE decoder produces the model, and the
 `roadnetwork-usd` writer authors it and its samples.
 
 | Item | Value |

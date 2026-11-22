@@ -6,13 +6,12 @@ format bundle authors its stage only through this library
 It depends on `roadnetwork-core` and OpenUSD, never on a plugin bundle or a
 format parser.
 
-**State: stage contract.** `WriteLayer()` authors the decisions proposed in
+**State: stage contract.** `WriteLayer()` authors the decisions of
 ADRs [0002](../../docs/adr/0002-usd-schema-strategy.md) (prim types and the
 `roadnetwork:` properties), [0003](../../docs/adr/0003-crs-axes-units.md)
 (`Z`-up metres and the visualization origin shift), and
 [0005](../../docs/adr/0005-prim-path-and-id-stability.md) (names, hierarchy,
-and relationships). The ADRs are still Proposed; this library is their
-evidence, and it changes with them.
+and relationships), accepted on 2026-11-23.
 
 | Item | Value |
 | --- | --- |

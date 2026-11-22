@@ -150,8 +150,8 @@ LaneId IdOf(const LaneKey& key) {
 
 /// The relationship targets of one lane (ADR 0005 section 4).
 struct LaneNeighbours {
-  SdfPathVector predecessors; ///< Joined at this lane's start.
-  SdfPathVector successors;   ///< Joined at this lane's end.
+  SdfPathVector atStart; ///< Joined at this lane's start (lowest `s`).
+  SdfPathVector atEnd;   ///< Joined at this lane's end.
 };
 
 /// Sorted by the path text, byte order, without repeats.
@@ -281,8 +281,8 @@ private:
       AddNeighbour(link.b, LanePath(link.a.lane));
     }
     for (auto& [id, entry] : lanes_) {
-      SortTargets(entry.neighbours.predecessors);
-      SortTargets(entry.neighbours.successors);
+      SortTargets(entry.neighbours.atStart);
+      SortTargets(entry.neighbours.atEnd);
     }
   }
 
@@ -322,7 +322,7 @@ private:
   void AddNeighbour(const LaneEnd& end, const SdfPath& other) {
     LanePath(end.lane); // Fails when the lane does not exist.
     LaneNeighbours& neighbours = lanes_.at(IdOf(end.lane)).neighbours;
-    (end.end == ContactPoint::Start ? neighbours.predecessors : neighbours.successors)
+    (end.end == ContactPoint::Start ? neighbours.atStart : neighbours.atEnd)
         .push_back(other);
   }
 
@@ -419,11 +419,13 @@ private:
     SetAttribute(prim, "roadnetwork:level", SdfValueTypeNames->Bool, lane.level);
     SetCubic(prim, "roadnetwork:width", "sOffset", lane.width);
     const LaneNeighbours& neighbours = lanes_.at(IdOf(key)).neighbours;
-    if (!neighbours.predecessors.empty()) {
-      SetRelationship(prim, "roadnetwork:predecessor", neighbours.predecessors);
+    // Named by the lane's own ends, not by a direction of travel (ADR 0005
+    // section 4).
+    if (!neighbours.atStart.empty()) {
+      SetRelationship(prim, "roadnetwork:startLinks", neighbours.atStart);
     }
-    if (!neighbours.successors.empty()) {
-      SetRelationship(prim, "roadnetwork:successor", neighbours.successors);
+    if (!neighbours.atEnd.empty()) {
+      SetRelationship(prim, "roadnetwork:endLinks", neighbours.atEnd);
     }
   }
 

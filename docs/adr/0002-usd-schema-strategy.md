@@ -1,6 +1,6 @@
 # ADR 0002 — USD schema strategy
 
-- **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
+- **Status:** Accepted (2026-11-23)
 - **Scope:** how the semantic layer under `/Asset/Network` is typed in USD,
   and which properties the shared writer authors in Phase 1
 - **Phase 1 owner:** USD-01 ([current work](../roadmap/current.md#active-work))
@@ -42,7 +42,7 @@ reach a referencing stage, but attributes on `/Asset` do.
 - **C. Typed IsA schemas (`RoadNetworkRoad`, `RoadNetworkLane`, …).**
   The strongest typing, with the highest commitment and migration cost.
 
-## Proposed decision
+## Decision
 
 Option A for Phase 1. The property names are fixed as if they were schema
 properties, so that a later move to B is a re-typing, not a semantic change.
@@ -74,7 +74,8 @@ fixes the prim names and the hierarchy.
 - Value types:
   - `double` for every length, angle, and coefficient, so that `/Network`
     contains no single-precision value;
-  - `int` for lane numbers;
+  - `int` for lane numbers and counts;
+  - `bool` for source flags, such as `level`;
   - `token` for closed vocabularies;
   - `string` for source IDs and opaque source text.
 - A piecewise function is authored as parallel arrays of equal length, one
@@ -103,7 +104,7 @@ fixes the prim names and the hierarchy.
 | `roadnetwork:source:offsetHeading` | `double` | [ADR 0003](0003-crs-axes-units.md) |
 | `roadnetwork:import:importer` | `string` | the bundle identity, `"roadnetwork-opendrive"` |
 | `roadnetwork:import:importerVersion` | `string` | the bundle version |
-| `roadnetwork:import:roadCount`, `:junctionCount`, `:laneCount` | `int` | element counts |
+| `roadnetwork:import:roadCount`, `:junctionCount`, `:laneCount` | `int` | element counts; `laneCount` counts every lane prim, center lanes included |
 | `roadnetwork:import:warningCodes` | `string[]` | the codes posted during the read, in ascending order |
 | `roadnetwork:import:warningCounts` | `int[]` | the affected-element count for each code |
 
@@ -119,7 +120,7 @@ Road:
 | `roadnetwork:id`, `roadnetwork:name` | `string` | source ID; name when present |
 | `roadnetwork:length` | `double` | metres |
 | `roadnetwork:junction` | `rel` | the junction, when the road belongs to one |
-| `roadnetwork:predecessor`, `roadnetwork:successor` | `rel` | one road or junction |
+| `roadnetwork:predecessor`, `roadnetwork:successor` | `rel` | one road or junction, as the source states the road link, in the reference-line direction |
 | `roadnetwork:predecessorContact`, `roadnetwork:successorContact` | `token` | `start` or `end`, when the target is a road |
 | `roadnetwork:referenceLine:kind` | `token[]` | `line` or `arc` |
 | `roadnetwork:referenceLine:s`, `:x`, `:y`, `:hdg`, `:length`, `:curvature` | `double[]` | one entry per segment; `curvature` is 0 for a line |
@@ -137,8 +138,16 @@ Lane:
 | `roadnetwork:laneType` | `token` | the source spelling, for example `driving` or `bidirectional` |
 | `roadnetwork:level` | `bool` | the source `level` attribute |
 | `roadnetwork:width:sOffset`, `:a`, `:b`, `:c`, `:d` | `double[]` | cubic records, relative to the section start |
-| `roadnetwork:predecessor` | `rel` | the lanes joined at this lane's start, from the lane graph |
-| `roadnetwork:successor` | `rel` | the lanes joined at this lane's end |
+| `roadnetwork:startLinks` | `rel` | the lanes joined at this lane's start, from the lane graph |
+| `roadnetwork:endLinks` | `rel` | the lanes joined at this lane's end |
+
+A road's `predecessor` and `successor` keep OpenDRIVE's names, because
+they record the road link as the source states it: a link stated on one
+road only is authored on that road only. A lane's `startLinks` and
+`endLinks` come from the undirected lane graph, normalized, and name the
+lane's own ends. They do not use the road names, which a reader takes for a
+direction of travel
+([ADR 0005 §4](0005-prim-path-and-id-stability.md#4-relationships)).
 
 Junction: `roadnetwork:id` and `roadnetwork:name` (`string`).
 
@@ -232,8 +241,22 @@ Gathered in USD-01, in the shared writer
     `RN-E901`, so that the one error of a failed read still starts with a
     code ([ADR 0006 §3](0006-fileformat-contract.md#3-errors)).
 
-Needed before acceptance:
+Gathered in the acceptance review of ADRs 0001–0005 (2026-11-23):
 
-- Review of the property list, the choices above, and the
+- The property list, the choices above, and the
   [OpenDRIVE mapping §9](../reference/OPENDRIVE_MAPPING.md#9-usd-authoring)
-  together with ADR 0001 (current work, next action 1).
+  were reviewed together with ADR 0001. The choices above are kept.
+- The lane relationships were `roadnetwork:predecessor` and
+  `roadnetwork:successor`. They mean the lane's own `s` range, so on an
+  OpenDRIVE left lane, and on the 52 end–end and start–start edges between
+  opposing Lanelet2 lanelets
+  ([Lanelet2 mapping §4](../reports/adr-0001-lanelet2-mapping-2026-11-23.md#4-topology)),
+  a `successor` is not downstream. Renaming after the first release breaks
+  the public behavior tier, so the maintainer chose on 2026-11-23 to rename
+  them `roadnetwork:startLinks` and `roadnetwork:endLinks` now. Road links
+  keep their names. `roadnetworkUsd_layer_writer` and
+  `roadnetworkOpendrive_file_format_contract` check the new names.
+- §2 now lists `bool`, which `roadnetwork:level` already used, and §3 says
+  that `laneCount` includes center lanes, as the writer counts them.
+
+Accepted by the maintainer on 2026-11-23, after the review above.

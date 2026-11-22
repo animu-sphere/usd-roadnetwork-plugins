@@ -1,6 +1,6 @@
 # ADR 0001 — `RoadNetworkData` ID, topology, and geometry model
 
-- **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
+- **Status:** Accepted (2026-11-23)
 - **Scope:** the shared intermediate representation in `roadnetwork-core`
   that every format decoder produces and the shared USD writer consumes
 - **Phase 1 owner:** IR-01 ([current work](../roadmap/current.md#active-work))
@@ -57,7 +57,7 @@ way.
   formats, plus optional geometry representations attached to it (analytic
   reference-line geometry, boundary polylines).
 
-## Proposed decision
+## Decision
 
 Option C.
 
@@ -99,8 +99,9 @@ into prim paths.
   states them.
 - **The lane graph** is a separate edge list, `std::vector<LaneLink>`. Each
   edge joins two lane ends, `LaneEnd { LaneKey, end: start | end }`, where
-  `start` is the lane's lowest `s`. An edge has no direction and implies no
-  direction of travel.
+  `start` is the end at which the lane's own parametrization begins: the
+  lowest `s` for a lane in a road section. An edge has no direction and
+  implies no direction of travel.
   - The decoder derives the edges from three sources: lane `<link>` elements
     between sections of the same road, lane `<link>` elements across road
     links (using the road link's contact point), and junction `<laneLink>`
@@ -135,8 +136,11 @@ into prim paths.
   second format is added, `LaneEnd::lane` becomes a variant of lane keys,
   `LaneKey` for a lane in a road section and one key for each new kind
   (for example `LaneletKey { id }`). The canonical order of §3 compares the
-  variant index first, then the key. The OpenDRIVE identities of §2, the
-  undirected edges of §3, and the reference-line types keep their meaning.
+  variant index first, then the key. A lanelet's `start` is the first
+  points of its aligned bounds, as the
+  [Lanelet2 mapping §4](../reports/adr-0001-lanelet2-mapping-2026-11-23.md#4-topology)
+  derives them. The OpenDRIVE identities of §2, the undirected edges of §3,
+  and the reference-line types keep their meaning.
   The IR headers are in the contributor tier
   ([API boundary](../architecture/API_BOUNDARY.md#tiers)), so this is a
   change to in-repo code only.
@@ -346,7 +350,18 @@ of Lanelet2's `mapping_example.osm` (BSD-3-Clause):
   to physical elements that OpenDRIVE signals and objects also need
   (§7 of the mapping).
 
-Needed before acceptance:
+Gathered in the acceptance review of ADRs 0001–0005 (2026-11-23):
 
-- Review of the header (§7, as implemented) and of the derived identities,
-  together with ADR 0005.
+- The header (§7) as implemented and the derived identities were reviewed
+  together with ADR 0005, and the lane-end graph together with the USD lane
+  relationships of ADR 0002.
+- §3 defined `start` as the lowest `s`, which a lanelet does not have. It
+  now names the start of the lane's own parametrization, and §4 says what
+  that is for a lanelet.
+- The USD lane relationships carried the names `predecessor` and
+  `successor`, which a reader takes for a direction of travel that the
+  undirected edges of §3 do not have. The maintainer chose on 2026-11-23 to
+  rename them before the first release
+  ([ADR 0005 §4](0005-prim-path-and-id-stability.md#4-relationships)).
+
+Accepted by the maintainer on 2026-11-23, after the review above.

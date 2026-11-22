@@ -1,6 +1,6 @@
 # ADR 0004 — OpenDRIVE curve and cross-section retention; tessellation
 
-- **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
+- **Status:** Accepted (2026-11-23)
 - **Scope:** how OpenDRIVE plan-view geometry, profiles, and lane width
   functions are kept in `RoadNetworkData`, how they are evaluated, and how
   derived geometry is sampled
@@ -50,7 +50,7 @@ measured two things in CARLA `Town01` and `Town02`:
 - **C. Samples only.** Rejected: lossy by construction, and contrary to the
   initial direction of the policy.
 
-## Proposed decision
+## Decision
 
 Analytic in the IR. In USD, the analytic parameters are the normative
 semantic data, as in A. Phase 1 also authors samples, as derived
@@ -239,3 +239,12 @@ Gathered in ODR-02, in the `roadnetwork-opendrive` decoder:
   the maintainer chose on 2026-11-22. `roadnetworkCore_validation` checks
   both sides of the split, and `roadnetworkOpendrive_decoder` checks the
   CARLA counts of 1 and 2.
+
+Gathered in the acceptance review of ADRs 0001–0005 (2026-11-23):
+
+- The `RN-E308` / `RN-W301` split of §2 was reviewed. It is kept: an
+  inverted lane stays an error, and the only loss that the warning admits is
+  the sampled outline of an outermost border, whose analytic data is exact.
+- §1, §3–§6 were reviewed against GEO-01 and ODR-02. No change was needed.
+
+Accepted by the maintainer on 2026-11-23, after the review above.

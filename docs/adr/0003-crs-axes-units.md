@@ -1,6 +1,6 @@
 # ADR 0003 — CRS, axes, units, and large coordinates
 
-- **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
+- **Status:** Accepted (2026-11-23)
 - **Scope:** layer metadata, georeference provenance, and coordinate
   conversion for every format whose source coordinates are in a metric
   frame, such as OpenDRIVE. A format whose coordinates are geodetic only
@@ -58,7 +58,7 @@ The [ADR probes](../reports/adr-probes-2026-11-22.md) measured three things:
   assert geodesy that it cannot verify. A geodetic-only source has no
   metric frame to keep, so this rejection does not decide its case (§2).
 
-## Proposed decision
+## Decision
 
 A for axes, units, and the semantic layer. B for the single-precision
 visualization points only. Never reproject during import.
@@ -202,6 +202,11 @@ Gathered in the [Lanelet2 paper mapping](../reports/adr-0001-lanelet2-mapping-20
   source frames before acceptance, and to leave the projection of
   geodetic-only formats to their own ADR.
 
-Needed before acceptance:
+Gathered in the acceptance review of ADRs 0001–0005 (2026-11-23):
 
-- Review (current work, next action 1).
+- §1–§6 were reviewed with the scope and §2 as amended. The 0.49 mm bound
+  of §5 holds for every network up to 16 km wide: a point is at most
+  8,192 m from the center of the bounds and 512 m from the rounding, and
+  below 16,384 m the `float` spacing is 0.98 mm. No change was needed.
+
+Accepted by the maintainer on 2026-11-23, after the review above.
