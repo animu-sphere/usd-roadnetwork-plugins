@@ -9,8 +9,8 @@ the scaffolded (empty) `roadnetwork-opendrive` bundle.
 
 | Item | Target | Exercised |
 | --- | --- | --- |
-| OpenStrata | 0.23.20 | 0.23.20 locally (scaffold, build, doctor, test L0–L4) |
-| OpenUSD tolerated range | `>=26.08,<27.0` (declared in the bundle manifest) | — |
+| OpenStrata | 0.23.21 | 0.23.21 locally (scaffold, build, doctor, test L0–L4) |
+| OpenUSD tolerated range | `>=25.05,<27.0` (scaffold default in the bundle manifest) | only 26.08; the range is narrowed or confirmed before the first release |
 | OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) |
 | OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd` |
 | Python ABI | CPython 3.13 | CPython 3.13 locally |

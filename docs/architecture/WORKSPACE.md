@@ -1,8 +1,9 @@
 # Workspace contract
 
 - **Status:** Proposed (2026-11-22). The workspace root and the
-  `roadnetwork-opendrive` bundle were scaffolded with `ost` 0.23.20
-  (`usd-plugin-workspace` 1.1.1, `usd-fileformat-cpp` 1.2.1); the paths below
+  `roadnetwork-opendrive` bundle were scaffolded with `ost` 0.23.21
+  (`usd-plugin-workspace` 1.1.1, `usd-fileformat-cpp` 1.3.0, recorded in each
+  `openstrata.scaffold.yaml`); the paths below
   match that output. The libraries are added in SCF-02, after which this
   document becomes binding.
 

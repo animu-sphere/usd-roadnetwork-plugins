@@ -1,10 +1,10 @@
 schema: openstrata.scaffold/v1alpha1
 template:
   id: usd-fileformat-cpp
-  version: 1.2.1
+  version: 1.3.0
 generator:
   name: ost
-  version: 0.23.20
+  version: 0.23.21
 inputs:
   extension: xodr
   name: roadnetwork-opendrive
