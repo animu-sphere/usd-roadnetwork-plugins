@@ -5,8 +5,9 @@ This table describes the current tree. Planned capabilities belong in the
 that lands the implementation and its deterministic tests.
 
 As of 2026-11-22 the repository contains the documentation, the scaffolded
-`roadnetwork-opendrive` bundle, and skeleton `roadnetwork-core` and
-`roadnetwork-usd` libraries. The bundle registers the `.xodr` extension and,
+`roadnetwork-opendrive` bundle, the `roadnetwork-core` model and validation
+(unit-tested, but not yet produced by any decoder), and a skeleton
+`roadnetwork-usd` library. The bundle registers the `.xodr` extension and,
 for any file it can open, authors an empty layer through the shared writer
 without parsing the file. That is a placeholder, not support, so every
 OpenDRIVE row below remains unsupported; in particular the malformed

@@ -1,6 +1,7 @@
 # OpenUSD Road Network Plugins
 
-> **Status: Phase 0 — design and scaffold.** No format is implemented yet.
+> **Status: Phase 1 — OpenDRIVE vertical slice, in progress.** No format is
+> implemented yet.
 > This README describes the intended project; the
 > [capability matrix](docs/reference/CAPABILITY_MATRIX.md) is the only source
 > for what the tree supports.

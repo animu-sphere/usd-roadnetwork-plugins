@@ -4,7 +4,7 @@
 - **Scope:** layer metadata, georeference provenance, and coordinate
   conversion for every format
 - **Phase 1 owner:** USD-01, with ODR-02 for the header decoding
-  ([release plan](../roadmap/release-plan.md#phase-1-workstreams))
+  ([current work](../roadmap/current.md#active-work))
 
 ## Context
 

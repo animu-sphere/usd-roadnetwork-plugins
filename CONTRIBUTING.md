@@ -1,7 +1,8 @@
 # Contributing
 
-The project is in Phase 0: the workspace and an empty `roadnetwork-opendrive`
-bundle are scaffolded, and the initial ADRs are being drafted.
+The project is in Phase 1, the OpenDRIVE vertical slice: the workspace and
+the `roadnetwork-opendrive` bundle are scaffolded, the shared road-network
+model is being implemented, and ADRs 0001–0005 are in review.
 
 Participation follows the [Code of Conduct](.github/CODE_OF_CONDUCT.md).
 Report suspected vulnerabilities privately as described in the

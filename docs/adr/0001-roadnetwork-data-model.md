@@ -3,7 +3,7 @@
 - **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
 - **Scope:** the shared intermediate representation in `roadnetwork-core`
   that every format decoder produces and the shared USD writer consumes
-- **Phase 1 owner:** IR-01 ([release plan](../roadmap/release-plan.md#phase-1-workstreams))
+- **Phase 1 owner:** IR-01 ([current work](../roadmap/current.md#active-work))
 
 ## Context
 
@@ -168,9 +168,12 @@ error ([ADR 0006 §3](0006-fileformat-contract.md#3-errors)).
 4. **Numeric:**
    - every value is finite;
    - road and segment lengths are positive;
-   - segment and lane-section `s` values ascend strictly from `0`;
+   - a road has at least one plan-view segment and one lane section, and
+     segment and lane-section `s` values ascend strictly from `0` (within
+     the 1e-6 m station tolerance of ADR 0004 §6);
    - the plan view is continuous within the tolerances of ADR 0004;
-   - cubic records ascend in `s0`.
+   - cubic records ascend strictly in `s0`, so that the record in force at
+     any `s` is unambiguous.
 
 A condition that can be stated on the IR gets an `RN-` code
 ([ADR 0006 §6](0006-fileformat-contract.md#6-diagnostic-numbering)). The
@@ -284,10 +287,24 @@ Gathered in the [ADR probes](../reports/adr-probes-2026-11-22.md):
 - Both files number their lanes without gaps, which the §6 lane-structure
   invariant requires (§5 of the probes).
 
+- Neither file has two elevation, lane-offset, or width records with the
+  same `s0`, nor a first lane section that starts anywhere but `s = 0`, so
+  the strict ordering in §6 rejects neither (checked during IR-01).
+
+Gathered in IR-01:
+
+- `RoadNetworkData.h` implements the §7 sketch without a change of shape.
+  It adds default member initializers, the lane-end order, and
+  `CanonicalizeLaneLinks()`, which produces the canonical lane graph of §3.
+- `Validate()` checks §6 and assigns `RN-E101`–`RN-E122` and
+  `RN-E301`–`RN-E307` ([diagnostics](../reference/DIAGNOSTICS.md#rn--shared-validation)).
+  The `roadnetworkCore_validation` unit test fails each invariant with its
+  code, checks the order of the categories, and checks canonicalization of
+  reversed, one-sided, and duplicate links.
+
 Needed before acceptance:
 
 - A paper mapping of one redistributable Lanelet2 example onto the common
   layer, showing where its lanelets and regulatory elements would attach.
-- Review of the header sketch (§7) and of the derived identities, together
-  with ADR 0005.
-- IR-01 unit tests that fail each invariant in §6 with its code.
+- Review of the header (§7, as implemented) and of the derived identities,
+  together with ADR 0005.

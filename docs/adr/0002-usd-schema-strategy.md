@@ -3,7 +3,7 @@
 - **Status:** Proposed (2026-11-22). The proposed decision is ready for review.
 - **Scope:** how the semantic layer under `/Asset/Network` is typed in USD,
   and which properties the shared writer authors in Phase 1
-- **Phase 1 owner:** USD-01 ([release plan](../roadmap/release-plan.md#phase-1-workstreams))
+- **Phase 1 owner:** USD-01 ([current work](../roadmap/current.md#active-work))
 
 ## Context
 
