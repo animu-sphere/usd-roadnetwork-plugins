@@ -28,7 +28,9 @@ if(NOT DEFINED ROADNETWORKCORE_BUILD_TESTS)
 endif()
 
 add_library(roadnetworkCore STATIC
+    src/Geometry.cpp
     src/RoadNetworkData.cpp
+    src/Tessellation.cpp
     src/Validation.cpp
     src/Version.cpp)
 add_library(openstrata::roadnetworkCore ALIAS roadnetworkCore)

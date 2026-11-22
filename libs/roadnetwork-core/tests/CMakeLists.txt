@@ -8,3 +8,11 @@ add_test(NAME roadnetworkCore_unit COMMAND roadnetworkCore_tests)
 add_executable(roadnetworkCore_validation_tests test_validation.cpp)
 target_link_libraries(roadnetworkCore_validation_tests PRIVATE openstrata::roadnetworkCore)
 add_test(NAME roadnetworkCore_validation COMMAND roadnetworkCore_validation_tests)
+
+add_executable(roadnetworkCore_geometry_tests test_geometry.cpp)
+target_link_libraries(roadnetworkCore_geometry_tests PRIVATE openstrata::roadnetworkCore)
+add_test(NAME roadnetworkCore_geometry COMMAND roadnetworkCore_geometry_tests)
+
+add_executable(roadnetworkCore_tessellation_tests test_tessellation.cpp)
+target_link_libraries(roadnetworkCore_tessellation_tests PRIVATE openstrata::roadnetworkCore)
+add_test(NAME roadnetworkCore_tessellation COMMAND roadnetworkCore_tessellation_tests)

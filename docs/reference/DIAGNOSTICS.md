@@ -90,6 +90,7 @@ No bundle calls it yet.
 | `RN-E305` | A plan-view segment starts more than 0.01 m from the end of the previous one. |
 | `RN-E306` | A plan-view segment's start heading differs from the previous end heading by more than 0.001 rad. |
 | `RN-E307` | Elevation, lane-offset, or lane-width records do not ascend strictly in `s0`. |
+| `RN-E308` | A lane border, or the center border, on the inside of an arc reaches its center of curvature: `t · κ ≥ 1` ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
 
 ## Rules
 

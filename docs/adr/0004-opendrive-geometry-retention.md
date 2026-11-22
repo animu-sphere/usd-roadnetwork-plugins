@@ -89,8 +89,9 @@ visualization data.
   `(sin(h0 + κu) − sin h0) / κ` as `κ` tends to 0. `sinc` uses its Taylor
   series for `|z| < 1e-4`.
 - **Piecewise cubic.** The value at `s` uses the last record with
-  `s0 ≤ s`, as `a + b·d + c·d² + d·d³` with `d = s − s0`. Lane widths use
-  `s` relative to the section start.
+  `s0 ≤ s`, as `a + b·d + c·d² + d·d³` with `d = s − s0`. Before the first
+  record, the first record extends, and an empty profile is 0. Lane widths
+  use `s` relative to the section start.
 - **Lane borders.** The lateral position of a border is the lane offset plus
   the widths of the lanes between it and the center lane. Widths are added
   for left lanes and subtracted for right lanes. A border point is the
@@ -98,8 +99,9 @@ visualization data.
   cos hdg)`, with `z` set to the elevation at `s`. A lane centerline is the
   midpoint of the lane's two borders at each `s`.
 - A border on the inside of an arc at or beyond the center of curvature
-  (`t · κ ≥ 1`) is an `RN-` geometry error. The offset curve folds back on
-  itself there.
+  (`t · κ ≥ 1`) is `RN-E308`, which validation raises. The offset curve
+  folds back on itself there. Between two stations (§3) a border is one
+  cubic in `s`, so the check uses its exact extremum.
 
 ### 3. Tessellation
 
@@ -164,6 +166,13 @@ the stored geometry would otherwise contradict itself.
 Phase 1 checks neither width continuity across lane sections nor geometric
 continuity between linked roads. Both questions stay open for Phase 2.
 
+Phase 1 also does not check that an elevation, lane-offset, or width record
+starts at the value where the previous one ends. The §3 bound assumes it
+does: at a jump, the interval before the station is sampled across the
+step, and its chord error is about half the jump. CARLA `Town01` and
+`Town02` have no jump at any of their 968 record boundaries (measured during
+GEO-01), so the question stays open for Phase 2 with the other two.
+
 ## Consequences
 
 - GEO-01 adds the evaluator, the border computation, and the tessellator to
@@ -182,14 +191,30 @@ Gathered in the [ADR probes](../reports/adr-probes-2026-11-22.md):
   or more (§5 of the probes);
 - the interval counts at 1 cm and 1 mm (§7).
 
+Gathered in GEO-01, in `roadnetwork-core`
+([`Geometry.h`](../../libs/roadnetwork-core/include/openstrata/rn/Geometry.h),
+[`Tessellation.h`](../../libs/roadnetwork-core/include/openstrata/rn/Tessellation.h)):
+
+- `roadnetworkCore_geometry` checks line and arc position and heading at
+  known `s` against closed-form values to 1e-9 m: a left arc that turns by
+  5 rad, a right arc that turns by more than 2π, `|κ| < 1e-8` (against the
+  series in `κ`, to 1e-12 m), and both sides of the `sinc` branch point.
+- `roadnetworkCore_tessellation` samples a hand-authored 120 m road at
+  UTM-scale coordinates (512 km, 4,100 km), with a line and two arcs, three lane sections, and
+  non-zero `b`, `c`, `d` terms in the lane offset, the elevation, and the
+  widths. Every border and centerline stays within `ε` of the analytic
+  curve at the midpoint of every interval: the largest error is 8.98 mm at
+  `ε = 1 cm` (95 stations) and 0.923 mm at `ε = 1 mm` (284 stations). A
+  constant-width arc needs exactly the number of parts the §3 bound gives,
+  and a line with constant or linear widths needs one.
+- `roadnetworkCore_validation` raises `RN-E308` for an inner border beyond
+  the center of curvature, including one that reaches it only between two
+  stations, and for a lane offset at the center. A border 0.05 m short of
+  the center and a wide border on the outside pass.
+
 Needed before acceptance:
 
-- GEO-01 tests of line and arc position and heading at known `s` against
-  closed-form values. They include `|κ| < 1e-8` and an arc that turns by
-  more than π.
-- A test that a hand-authored fixture with non-zero `<laneOffset>`,
-  `<elevation>`, and width `b`, `c`, `d` terms stays within `ε` of the
-  analytic border at the midpoint of every tessellation interval.
-- Negative fixtures for a non-zero `<superelevation>`, a `<spiral>`, a
-  position gap of 0.02 m, and an inner border beyond the center of
-  curvature.
+- ODR-02 negative fixtures for a non-zero `<superelevation>` and a
+  `<spiral>`. The 0.02 m position gap (`RN-E305`) and the inner border
+  (`RN-E308`) are unit-tested on the IR; ODR-02 adds them as `.xodr`
+  fixtures.
