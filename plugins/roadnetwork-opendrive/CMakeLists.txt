@@ -1,16 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.23)
 
 project(RoadnetworkOpendrivePlugin
     VERSION 0.1.0
     DESCRIPTION "OpenUSD xodr file-format plugin"
     LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/RoadnetworkBuild.cmake")
+roadnetwork_cxx_defaults()
+roadnetwork_tests_option(ROADNETWORKOPENDRIVE_BUILD_TESTS "Build roadnetwork-opendrive tests")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenStrataPlugin.cmake")
 openstrata_default_build_type()
@@ -57,11 +55,7 @@ target_include_directories(roadnetworkOpendriveIo
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
     PRIVATE "${PUGIXML_ROOT}")
 target_link_libraries(roadnetworkOpendriveIo PUBLIC openstrata::roadnetworkCore)
-# /Brepro: see roadnetworkCore. lib.exe needs it separately from cl.exe.
-if(MSVC)
-    target_compile_options(roadnetworkOpendriveIo PRIVATE /utf-8 /Brepro)
-    set_target_properties(roadnetworkOpendriveIo PROPERTIES STATIC_LIBRARY_OPTIONS /Brepro)
-endif()
+roadnetwork_target_defaults(roadnetworkOpendriveIo REPRODUCIBLE)
 
 set(PLUGIN_NAME RoadnetworkOpendriveFileFormat)
 
@@ -80,13 +74,10 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     roadnetworkOpendriveIo
     openstrata::roadnetworkCore
     openstrata::roadnetworkUsd)
-# /Brepro on the link as well: without it link.exe stamps the build time into
-# the PE header and the debug directory, so the DLL, and with it the package
-# digest, changes on every clean build (release gate, item 4).
-if(MSVC)
-    target_compile_options(${PLUGIN_NAME} PRIVATE /Brepro)
-    target_link_options(${PLUGIN_NAME} PRIVATE /Brepro)
-endif()
+# REPRODUCIBLE covers the link too: without /Brepro link.exe stamps the build
+# time into the PE header and the debug directory, so the DLL, and with it the
+# package digest, changes on every clean build.
+roadnetwork_target_defaults(${PLUGIN_NAME} REPRODUCIBLE)
 
 # `ost plugin build` writes this fragment when the bundle co-hosts a compiled
 # schema (`schema.usda` + `provides: usd-schema:*`). It adds the generated typed
@@ -131,12 +122,10 @@ openstrata_install_plugin_bundle(
         "${CMAKE_CURRENT_SOURCE_DIR}/openstrata.scaffold.yaml"
     FIXTURE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 
-# Reader unit tests, and the file-format contract and catalog tests (ADR 0006). They run from the
-# composed root build (`ost test`) and from a standalone configure.
-if(NOT DEFINED ROADNETWORK_BUILD_TESTS)
-    option(ROADNETWORK_BUILD_TESTS "Build roadnetwork-opendrive tests" ${PROJECT_IS_TOP_LEVEL})
-endif()
-if(ROADNETWORK_BUILD_TESTS)
+# Reader and decoder unit tests, and the file-format contract and catalog
+# tests (ADR 0006). They run from the composed root build (`ost test`) and
+# from a standalone configure.
+if(ROADNETWORKOPENDRIVE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()

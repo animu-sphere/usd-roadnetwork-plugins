@@ -100,6 +100,7 @@ usd-roadnetwork-plugins/
 ├── openstrata.scaffold.yaml        # scaffold template provenance
 ├── CMakeLists.txt                  # dual-mode root: plain CMake builds every bundle
 ├── CMakePresets.json
+├── cmake/RoadnetworkBuild.cmake    # build conventions every library and bundle includes
 ├── .gitattributes                  # LF for sources, docs, and XML fixtures
 ├── plugins/
 │   ├── roadnetwork-opendrive/

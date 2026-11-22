@@ -3,9 +3,7 @@
 # OpenUSD nor Python.
 add_executable(roadnetworkOpendrive_reader_tests test_reader.cpp)
 target_link_libraries(roadnetworkOpendrive_reader_tests PRIVATE roadnetworkOpendriveIo)
-if(MSVC)
-    target_compile_options(roadnetworkOpendrive_reader_tests PRIVATE /utf-8)
-endif()
+roadnetwork_target_defaults(roadnetworkOpendrive_reader_tests)
 add_test(NAME roadnetworkOpendrive_reader COMMAND roadnetworkOpendrive_reader_tests)
 
 # The decoder test reads the fixtures from the source tree and runs
@@ -14,9 +12,7 @@ add_executable(roadnetworkOpendrive_decoder_tests test_decoder.cpp)
 target_link_libraries(roadnetworkOpendrive_decoder_tests PRIVATE roadnetworkOpendriveIo)
 target_compile_definitions(roadnetworkOpendrive_decoder_tests PRIVATE
     ROADNETWORK_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
-if(MSVC)
-    target_compile_options(roadnetworkOpendrive_decoder_tests PRIVATE /utf-8)
-endif()
+roadnetwork_target_defaults(roadnetworkOpendrive_decoder_tests)
 add_test(NAME roadnetworkOpendrive_decoder COMMAND roadnetworkOpendrive_decoder_tests)
 
 find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -37,21 +33,10 @@ add_test(
 
 # The contract test loads this bundle from its source tree: the library built
 # into lib/ and the plugInfo.json beside it.
-set(_env
+roadnetwork_openusd_test_environment(_env)
+list(APPEND _env
     "PATH=path_list_prepend:${_bundle_root}/lib"
     "PXR_PLUGINPATH_NAME=path_list_prepend:${_bundle_root}/plugin/resources/roadnetwork-opendrive")
-if(pxr_DIR)
-    # OpenStrata puts pxrConfig.cmake at the runtime root; an SDK may put it
-    # under lib/cmake/pxr instead.
-    set(_usd_root "${pxr_DIR}")
-    if(NOT EXISTS "${pxr_DIR}/bin")
-        get_filename_component(_usd_root "${pxr_DIR}/../../.." ABSOLUTE)
-    endif()
-    list(APPEND _env
-        "PATH=path_list_prepend:${_usd_root}/bin"
-        "PATH=path_list_prepend:${_usd_root}/lib"
-        "PYTHONPATH=path_list_prepend:${_usd_root}/lib/python")
-endif()
 
 add_test(
     NAME roadnetworkOpendrive_file_format_contract

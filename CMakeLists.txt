@@ -17,13 +17,11 @@
 cmake_minimum_required(VERSION 3.23)
 project(usd-roadnetwork-plugins LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RoadnetworkBuild.cmake")
+roadnetwork_cxx_defaults()
 
-option(ROADNETWORK_BUILD_TESTS "Build the workspace library tests" ON)
+# The default for every member's own <MEMBER>_BUILD_TESTS option.
+option(ROADNETWORK_BUILD_TESTS "Build the library and bundle tests" ON)
 if(ROADNETWORK_BUILD_TESTS)
     enable_testing()
 endif()
@@ -33,9 +31,7 @@ endif()
 # on its own. roadnetwork-core has no OpenUSD dependency, so it comes first.
 add_subdirectory("libs/roadnetwork-core")
 
-if(NOT pxr_FOUND)
-    find_package(pxr CONFIG REQUIRED)
-endif()
+find_package(pxr CONFIG REQUIRED)
 
 add_subdirectory("libs/roadnetwork-usd")
 
