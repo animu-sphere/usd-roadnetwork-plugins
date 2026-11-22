@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/roadnetworkCoreTargets.cmake")
+
+# The RN- diagnostic catalog that every bundle ships beside its own catalog.
+set(roadnetworkCore_DIAGNOSTICS_CATALOG
+    "@PACKAGE_ROADNETWORK_CORE_CATALOG_INSTALL_DIR@/diagnostics.json")
+
+check_required_components(roadnetworkCore)

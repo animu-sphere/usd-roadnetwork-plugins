@@ -1,11 +1,12 @@
 # Workspace contract
 
-- **Status:** Proposed (2026-11-22). The workspace root and the
+- **Status:** Binding for §1–§4 and §6 (2026-11-22, SCF-02); §5 stays
+  proposed until its ADRs are accepted. The workspace root and the
   `roadnetwork-opendrive` bundle were scaffolded with `ost` 0.23.21
   (`usd-plugin-workspace` 1.1.1, `usd-fileformat-cpp` 1.3.0, recorded in each
-  `openstrata.scaffold.yaml`); the paths below
-  match that output. The libraries are added in SCF-02, after which this
-  document becomes binding.
+  `openstrata.scaffold.yaml`). `roadnetwork-core` and `roadnetwork-usd` are
+  hand-written after the `usd-3dgs-plugins` libraries and declared as
+  workspace members in `openstrata.toml`.
 
 This is the structural contract for `usd-roadnetwork-plugins`. It fixes
 component identities, dependency directions, root responsibilities, and the
@@ -19,11 +20,11 @@ components support.
 
 | Identity | Kind | Responsibility | State |
 | --- | --- | --- | --- |
-| `roadnetwork-opendrive` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and parse ASAM OpenDRIVE `.xodr`; decode it into `RoadNetworkData`. | scaffolded: registers `.xodr` and authors an empty layer |
+| `roadnetwork-opendrive` | OpenStrata plugin bundle (`usd-fileformat`) | Detect and parse ASAM OpenDRIVE `.xodr`; decode it into `RoadNetworkData`. | scaffolded: registers `.xodr` and authors an empty layer through `roadnetwork-usd` |
 | `roadnetwork-lanelet2` | plugin bundle | Lanelet2 `.osm`. | future (Phase 4 candidate) |
 | `roadnetwork-sumo` | plugin bundle | SUMO `.net.xml`. | future (Phase 4 candidate) |
-| `roadnetwork-core` | plain CMake/OpenStrata static library | `RoadNetworkData`, validation, shared geometry math, diagnostics helpers, and a decoder test kit. No OpenUSD types. | planned |
-| `roadnetwork-usd` | plain CMake/OpenStrata static library | Author `RoadNetworkData` into the stage contract (§5). Diagnostic codes stay owned by the calling bundle. | planned |
+| `roadnetwork-core` | plain CMake/OpenStrata static library | `RoadNetworkData`, validation, shared geometry math, diagnostics helpers, and a decoder test kit. No OpenUSD types. | skeleton: an empty `RoadNetworkData` (members wait for ADR 0001) and the library version |
+| `roadnetwork-usd` | plain CMake/OpenStrata static library | Author `RoadNetworkData` into the stage contract (§5). Diagnostic codes stay owned by the calling bundle. | skeleton: `WriteLayer()` authors an empty layer until §5 is accepted |
 
 `roadnetwork-core` is not a plugin: it has no `plugInfo.json`, performs no
 plugin registration, and exposes no OpenUSD types in its public API.
@@ -52,8 +53,15 @@ roadnetwork-usd  -> any format parser
 any dependency cycle
 ```
 
-Libraries declare an OpenStrata descriptor so that bundles can name them in
-`requires.libraries` and `ost plugin build/test/package` can resolve them.
+Libraries declare an OpenStrata descriptor (`openstrata.library.yaml`) so
+that bundles can name them in `requires.libraries` and `ost plugin
+build/test/package` can resolve them. `ost plugin test --workspace
+--graph-only` checks these edges without a build.
+
+| Library id | CMake package | CMake target | Requires |
+| --- | --- | --- | --- |
+| `roadnetwork-core` | `roadnetworkCore` | `openstrata::roadnetworkCore` | — |
+| `roadnetwork-usd` | `roadnetworkUsd` | `openstrata::roadnetworkUsd` | `roadnetwork-core`, OpenUSD (`arch tf vt sdf`) |
 
 ## 3. Source boundaries (proposed)
 
@@ -84,7 +92,7 @@ usd-roadnetwork-plugins/
 ├── THIRD_PARTY_NOTICES.md
 ├── CHANGELOG.md
 ├── CONTRIBUTING.md
-├── openstrata.toml                 # project manifest (platform cy2026, profile usd)
+├── openstrata.toml                 # project manifest (platform cy2026, profile usd, workspace members)
 ├── openstrata.scaffold.yaml        # scaffold template provenance
 ├── CMakeLists.txt                  # dual-mode root: plain CMake builds every bundle
 ├── CMakePresets.json
@@ -96,11 +104,11 @@ usd-roadnetwork-plugins/
 │   │   ├── cmake/OpenStrataPlugin.cmake
 │   │   ├── src/
 │   │   ├── plugin/resources/roadnetwork-opendrive/plugInfo.json
-│   │   └── tests/fixtures/
+│   │   └── tests/fixtures/         # minimal OpenDRIVE XML and the L5 golden
 │   ├── roadnetwork-lanelet2/       # future
 │   └── roadnetwork-sumo/           # future
-├── libs/                           # SCF-02
-│   ├── roadnetwork-core/
+├── libs/
+│   ├── roadnetwork-core/           # openstrata.library.yaml, include/, src/, tests/
 │   └── roadnetwork-usd/
 ├── tests/                          # cross-format and aggregate package tests, when needed
 ├── docs/

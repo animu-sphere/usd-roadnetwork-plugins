@@ -1,0 +1,11 @@
+schema: openstrata.library/v1alpha1
+library:
+  id: roadnetwork-usd
+  version: 0.1.0
+cmake:
+  package: roadnetworkUsd
+  target: openstrata::roadnetworkUsd
+requires:
+  libraries:
+    - id: roadnetwork-core
+      version: ">=0.1,<0.2"

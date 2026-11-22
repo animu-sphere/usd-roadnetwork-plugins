@@ -17,9 +17,27 @@
 cmake_minimum_required(VERSION 3.23)
 project(usd-roadnetwork-plugins LANGUAGES CXX)
 
+if(NOT CMAKE_CXX_STANDARD)
+    set(CMAKE_CXX_STANDARD 17)
+endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+option(ROADNETWORK_BUILD_TESTS "Build the workspace library tests" ON)
+if(ROADNETWORK_BUILD_TESTS)
+    enable_testing()
+endif()
+
+# Workspace libraries are built before the plugin bundles. OpenStrata follows
+# the same edges from each bundle's requires.libraries when it builds a bundle
+# on its own. roadnetwork-core has no OpenUSD dependency, so it comes first.
+add_subdirectory("libs/roadnetwork-core")
+
 if(NOT pxr_FOUND)
     find_package(pxr CONFIG REQUIRED)
 endif()
+
+add_subdirectory("libs/roadnetwork-usd")
 
 # `CONFIGURE_DEPENDS` makes the build re-glob and reconfigure when a bundle is
 # added or removed, so a later `cmake --build` picks up new `ost plugin new`

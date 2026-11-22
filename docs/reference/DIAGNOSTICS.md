@@ -1,13 +1,18 @@
 # Import diagnostics
 
-- **Status:** Proposed numbering scheme (2026-11-22). The scheme is ratified
-  by [ADR 0006](../adr/0006-fileformat-contract.md) **before** the first code
-  is assigned; after that, codes are never renumbered or reused.
+- **Status:** Normative. The numbering scheme was ratified by
+  [ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)
+  on 2026-11-22, before the first code was assigned. Codes are never
+  renumbered or reused. No code is assigned yet; both catalogs are empty.
 
-Each import error and warning carries a bracketed stable code. Automation
-matches the code, so message wording can evolve. Each bundle ships a
-machine-readable catalog (severity, summary, action) in its plugin resources,
-and a test cross-checks the catalog against the codes used in source.
+Each import error and warning carries a bracketed stable code at the start
+of its message (`[ODR-E001] ...`). Automation matches the code, so message
+wording can evolve. Each owner keeps a machine-readable catalog (severity,
+summary, action) in the
+[`roadnetwork.diagnostics/v1` format](../adr/0006-fileformat-contract.md#6-diagnostic-numbering),
+every bundle ships its own catalog and a copy of the `RN-` catalog in its
+plugin resources, and the `roadnetworkOpendrive_diagnostics_catalog` test
+cross-checks the catalogs against the codes used in source.
 
 ## Code format
 
@@ -25,21 +30,23 @@ and a test cross-checks the catalog against the codes used in source.
 
 | Prefix | Owner | Catalog |
 | --- | --- | --- |
-| `ODR-` | `roadnetwork-opendrive` bundle: reader and decoder failures | planned: `plugins/roadnetwork-opendrive/plugin/resources/roadnetwork-opendrive/diagnostics.json` |
-| `RN-` | Shared `roadnetwork-core` validation and `roadnetwork-usd` authoring, independent of the source format | planned: shipped with every bundle |
+| `ODR-` | `roadnetwork-opendrive` bundle: reader and decoder failures | [`plugins/roadnetwork-opendrive/plugin/resources/roadnetwork-opendrive/diagnostics.json`](../../plugins/roadnetwork-opendrive/plugin/resources/roadnetwork-opendrive/diagnostics.json) |
+| `RN-` | Shared `roadnetwork-core` validation and `roadnetwork-usd` authoring, independent of the source format; raised only by shared library code | [`libs/roadnetwork-core/resources/diagnostics.json`](../../libs/roadnetwork-core/resources/diagnostics.json), shipped in every bundle as `rn-diagnostics.json` |
 
 Future bundles take their own prefix (for example `LL2-` for Lanelet2 and
 `SUMO-` for SUMO); ADR 0008 confirms them.
 
-*Open (ADR 0006):* `usd-3dgs-plugins` lets each bundle own every code,
-including writer failures. This proposal instead gives shared,
-format-independent conditions such as lossy mapping one `RN-` code across
-formats, which suits the cross-format contract tests. The ADR decides between
-the two.
+Unlike `usd-3dgs-plugins`, where each bundle owns every code including
+writer failures, a shared, format-independent condition such as a lossy
+mapping has one `RN-` code across formats, which suits the cross-format
+contract tests.
 
 ## Categories
 
-| Range | Category | Examples (provisional) |
+The examples are illustrative; a code is assigned only in the PR that first
+raises it.
+
+| Range | Category | Examples (illustrative) |
 | --- | --- | --- |
 | `0xx` | Input and container: unreadable file, malformed XML, wrong root element, unsupported version | `ODR-E001` XML parse error |
 | `1xx` | Identity and references: missing, duplicated, or unresolved IDs; inconsistent links | `ODR-E101` unknown reference |
@@ -53,7 +60,9 @@ the two.
 
 - A warning is allowed only when the loss is explicit and bounded; a broken
   road, lane, or junction relationship is always an error.
-- Warnings that affect many elements are aggregated into one message with a
-  count.
+- Each warning code is posted at most once per read, with the number of
+  affected elements and the IDs of at most the first five.
+- A failed read posts exactly one error and leaves the target layer
+  unchanged.
 - File-open failures identify the source asset; reference failures identify
   the source element and ID.

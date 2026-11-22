@@ -5,3 +5,10 @@ version = "0.1.0"
 [requires]
 platform = "cy2026"
 profile = "usd"
+
+[workspace]
+members = [
+  "plugins/*",
+  "libs/roadnetwork-core",
+  "libs/roadnetwork-usd",
+]

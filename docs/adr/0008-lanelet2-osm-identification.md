@@ -10,7 +10,10 @@ Lanelet2 maps are stored as OpenStreetMap XML with Lanelet2-specific tags, so
 Lanelet2 and general OSM share the `.osm` extension. The design policy
 ([§4.2](../design/DESIGN_POLICY.md#42-shared-extensions)) forbids treating them
 as the same format by extension. OpenUSD registers file formats by extension,
-so two bundles cannot both own `.osm` without a routing decision.
+so two bundles cannot both own `.osm` without a routing decision. Sdf
+selects the format by extension and never calls `CanRead()` when it opens a
+layer ([ADR 0006](0006-fileformat-contract.md#context)), so a `CanRead()`
+signature alone cannot route between two bundles registered for `.osm`.
 
 Regulatory information differs by format: Lanelet2 regulatory elements,
 OpenDRIVE signals and their references, and SUMO traffic-light programs and

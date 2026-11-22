@@ -1,3 +1,9 @@
-not-a-xodr-file
-this fixture is intentionally malformed; the negative test asserts the plugin
-rejects it cleanly rather than crashing.
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored negative fixture: the document is not well-formed XML (the
+  header tag and the OpenDRIVE root element are never closed). A reader must
+  reject it with a stable diagnostic rather than crash.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="invalid"

@@ -3,13 +3,13 @@
 This document separates what has been exercised from what is only declared or
 targeted. Targets are taken from the sibling `usd-3dgs-plugins` workspace.
 As of 2026-11-22 the only exercised configuration is a local Windows build of
-the scaffolded (empty) `roadnetwork-opendrive` bundle.
+the scaffolded (empty) `roadnetwork-opendrive` bundle and its two libraries.
 
 ## OpenUSD and OpenStrata
 
 | Item | Target | Exercised |
 | --- | --- | --- |
-| OpenStrata | 0.23.21 | 0.23.21 locally (scaffold, build, doctor, test L0–L4) |
+| OpenStrata | 0.23.21 | 0.23.21 locally (scaffold; library build and test; bundle build, test L0–L5, package, and package-origin test L0–L5) |
 | OpenUSD tolerated range | `>=25.05,<27.0` (scaffold default in the bundle manifest) | only 26.08; the range is narrowed or confirmed before the first release |
 | OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) |
 | OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd` |
@@ -32,7 +32,7 @@ the declared range.
 
 | OS / architecture | CI contract | Observed |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | to be declared in Phase 0 | local Windows 11 build; scaffold bundle passes `ost plugin test --up-to 5` at L0–L4 |
+| Windows 2022 / x86_64 / MSVC 143 | to be declared in Phase 0 | local Windows 11 build; the empty bundle passes `ost plugin test --workspace --up-to 5` and `--from-package --up-to 5` at L0–L5 |
 | macOS 15 / arm64 / libc++ | to be declared in Phase 0 | — |
 | Ubuntu 24.04 / x86_64 | to be declared in Phase 0 | — |
 
