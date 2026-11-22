@@ -57,8 +57,10 @@ target_include_directories(roadnetworkOpendriveIo
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
     PRIVATE "${PUGIXML_ROOT}")
 target_link_libraries(roadnetworkOpendriveIo PUBLIC openstrata::roadnetworkCore)
+# /Brepro: see roadnetworkCore. lib.exe needs it separately from cl.exe.
 if(MSVC)
-    target_compile_options(roadnetworkOpendriveIo PRIVATE /utf-8)
+    target_compile_options(roadnetworkOpendriveIo PRIVATE /utf-8 /Brepro)
+    set_target_properties(roadnetworkOpendriveIo PROPERTIES STATIC_LIBRARY_OPTIONS /Brepro)
 endif()
 
 set(PLUGIN_NAME RoadnetworkOpendriveFileFormat)
@@ -78,6 +80,13 @@ target_link_libraries(${PLUGIN_NAME} PRIVATE
     roadnetworkOpendriveIo
     openstrata::roadnetworkCore
     openstrata::roadnetworkUsd)
+# /Brepro on the link as well: without it link.exe stamps the build time into
+# the PE header and the debug directory, so the DLL, and with it the package
+# digest, changes on every clean build (release gate, item 4).
+if(MSVC)
+    target_compile_options(${PLUGIN_NAME} PRIVATE /Brepro)
+    target_link_options(${PLUGIN_NAME} PRIVATE /Brepro)
+endif()
 
 # `ost plugin build` writes this fragment when the bundle co-hosts a compiled
 # schema (`schema.usda` + `provides: usd-schema:*`). It adds the generated typed

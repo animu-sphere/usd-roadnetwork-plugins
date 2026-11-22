@@ -9,6 +9,7 @@ they are not current-state contracts.
 | [format-spike-opendrive-2026-11-22.md](format-spike-opendrive-2026-11-22.md) | FMT-01: OpenDRIVE versions 1.4–1.9 and their recognition, specification licensing, coordinates and georeference, the elements Phase 1 needs, XML parsers, existing libraries, and fixtures. |
 | [adr-probes-2026-11-22.md](adr-probes-2026-11-22.md) | ADR-01..05: prim-name validity, single-precision error, and composition on OpenUSD 26.08; plan-view continuity, link reciprocity, and tessellation size in CARLA `Town01` and `Town02`. |
 | [adr-0001-lanelet2-mapping-2026-11-23.md](adr-0001-lanelet2-mapping-2026-11-23.md) | ADR 0001 acceptance evidence: the Lanelet2 `mapping_example.osm` mapped on paper onto the common layer — identity, derived lane-end edges, boundaries, coordinates, regulatory elements, and the USD layout. |
+| [rel-01-inspection-2026-11-23.md](rel-01-inspection-2026-11-23.md) | REL-01: the `usdview` launch (L6) on the `lookdev` runtime; Storm drawings of the fixtures and CARLA, and single-precision steps far from the origin; and the Windows DLL timestamps that broke the reproducible package digest, fixed with `/Brepro`. |
 
 Name format spikes `format-spike-<format>-<yyyy-mm-dd>.md`. A spike covers the
 items in [design policy §4.1](../design/DESIGN_POLICY.md#41-format-acceptance-prerequisites).
