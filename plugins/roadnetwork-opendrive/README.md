@@ -10,8 +10,40 @@ CMakeLists.txt                  builds libRoadnetworkOpendriveFileFormat.so into
 cmake/OpenStrataPlugin.cmake    pinned, self-contained build/install mechanics
 src/RoadnetworkOpendriveFileFormat.{h,cpp}  the SdfFileFormat implementation
 plugin/resources/roadnetwork-opendrive/plugInfo.json   USD plugin registration
-tests/fixtures/                 basic (valid) + invalid (negative) fixtures
+tests/fixtures/                 basic (valid) + invalid (negative) fixtures, basic golden
 ```
+
+## Workspace libraries
+
+The bundle declares `roadnetwork-core` and `roadnetwork-usd` in
+`requires.libraries`; `ost plugin build` builds and installs them first, and
+`CMakeLists.txt` finds them with `find_package` unless the composed root build
+already defines the targets. `Read()` passes an empty `RoadNetworkData` to
+`openstrata::rn::usd::WriteLayer()`, which is the only author of the layer.
+OpenDRIVE is not parsed yet.
+
+## Fixtures
+
+Both fixtures are hand-authored for this project and carry no third-party
+content. Their header revision (1.8) is illustrative until the FMT-01 spike
+fixes the versions in scope; they are not validated against the ASAM schema.
+
+| Fixture | Role | Content |
+| --- | --- | --- |
+| `basic.xodr` | smoke, roundtrip (L3–L5) | one straight 10 m road with one right-hand driving lane |
+| `basic.xodr.golden.usda` | L5 oracle | the flattened stage of `basic.xodr` (currently empty) |
+| `invalid.xodr` | negative | XML that is not well-formed; not yet rejected, because nothing parses it |
+
+Regenerate the golden after an intended output change:
+
+```sh
+ost plugin run plugins/roadnetwork-opendrive -- usdcat --flatten \
+  plugins/roadnetwork-opendrive/tests/fixtures/basic.xodr \
+  --out plugins/roadnetwork-opendrive/tests/fixtures/basic.xodr.golden.usda
+```
+
+`ost plugin test` drops the absolute path that `usdcat` writes into the
+golden's `doc` before comparing.
 
 The copied CMake helper is versioned with this scaffold and requires neither an
 OpenStrata checkout nor `ost` at build time. Keep bundle-specific targets,

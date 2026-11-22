@@ -22,6 +22,16 @@ if(NOT pxr_FOUND)
     find_package(pxr REQUIRED CONFIG)
 endif()
 
+# OpenStrata builds and installs the libraries named in the manifest's
+# requires.libraries before configuring this bundle. A composed root build
+# already defines the targets.
+if(NOT TARGET openstrata::roadnetworkCore)
+    find_package(roadnetworkCore CONFIG REQUIRED)
+endif()
+if(NOT TARGET openstrata::roadnetworkUsd)
+    find_package(roadnetworkUsd CONFIG REQUIRED)
+endif()
+
 set(PLUGIN_NAME RoadnetworkOpendriveFileFormat)
 
 add_library(${PLUGIN_NAME} SHARED
@@ -31,6 +41,9 @@ target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 target_include_directories(${PLUGIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     ${PXR_INCLUDE_DIRS})
+target_link_libraries(${PLUGIN_NAME} PRIVATE
+    openstrata::roadnetworkCore
+    openstrata::roadnetworkUsd)
 
 # `ost plugin build` writes this fragment when the bundle co-hosts a compiled
 # schema (`schema.usda` + `provides: usd-schema:*`). It adds the generated typed

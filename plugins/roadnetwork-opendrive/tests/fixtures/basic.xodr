@@ -1,4 +1,31 @@
-roadnetwork-opendrive 1.0
-# A minimal, valid fixture for the xodr format.
-# `ost plugin test` opens this with the built plugin (smoke + roundtrip).
-node root
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  One straight 10 m road with a single right-hand driving lane. The header
+  revision is illustrative: the OpenDRIVE versions in scope are fixed by the
+  FMT-01 spike, and this file is not validated against the ASAM schema.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="basic" version="1.0" date="2026-11-22T00:00:00" north="0.0" south="0.0" east="0.0" west="0.0"/>
+  <road name="basic" length="10.0" id="1" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
+        <line/>
+      </geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none" level="false"/>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>

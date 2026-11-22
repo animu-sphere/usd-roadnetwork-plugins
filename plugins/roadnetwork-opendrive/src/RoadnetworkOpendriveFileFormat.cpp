@@ -1,11 +1,15 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "RoadnetworkOpendriveFileFormat.h"
 
+#include "openstrata/rn/RoadNetworkData.h"
+#include "openstrata/rn/usd/LayerWriter.h"
+
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
 #include "pxr/usd/sdf/layer.h"
 
 #include <fstream>
+#include <string>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -42,16 +46,14 @@ bool RoadnetworkOpendriveFileFormat::Read(
     return false;
   }
 
-  // TODO: parse `in` and author USD. As a starting point we emit an empty
-  // USDA layer so a `.xodr` file opens as a valid (if empty) stage.
-  SdfFileFormatConstPtr usda = SdfFileFormat::FindByExtension("usda");
-  SdfLayerRefPtr generated = SdfLayer::CreateAnonymous("roadnetwork-opendrive.generated.usda", usda);
-  if (!generated || !generated->ImportFromString("#usda 1.0\n")) {
-    TF_RUNTIME_ERROR("Could not synthesize a USD layer for '%s'", resolvedPath.c_str());
+  // OpenDRIVE is not decoded yet (Phase 1). The empty RoadNetworkData still
+  // goes through the shared writer, which is the only author of the layer.
+  const openstrata::rn::RoadNetworkData data;
+  std::string error;
+  if (!openstrata::rn::usd::WriteLayer(data, *layer, &error)) {
+    TF_RUNTIME_ERROR("Could not author a USD layer for '%s': %s", resolvedPath.c_str(), error.c_str());
     return false;
   }
-
-  layer->TransferContent(generated);
   return true;
 }
 

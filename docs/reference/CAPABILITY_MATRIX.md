@@ -4,10 +4,13 @@ This table describes the current tree. Planned capabilities belong in the
 [roadmap](../roadmap/), not here. A row moves to **supported** only in the PR
 that lands the implementation and its deterministic tests.
 
-As of 2026-11-22 the repository contains the documentation and the scaffolded
-`roadnetwork-opendrive` bundle. The scaffold registers the `.xodr` extension
-and authors an empty layer for any file; that is a placeholder, not support,
-so every OpenDRIVE row below remains unsupported.
+As of 2026-11-22 the repository contains the documentation, the scaffolded
+`roadnetwork-opendrive` bundle, and skeleton `roadnetwork-core` and
+`roadnetwork-usd` libraries. The bundle registers the `.xodr` extension and,
+for any file it can open, authors an empty layer through the shared writer
+without parsing the file. That is a placeholder, not support, so every
+OpenDRIVE row below remains unsupported; in particular the malformed
+`invalid.xodr` fixture still opens as an empty stage.
 
 ## Status vocabulary
 

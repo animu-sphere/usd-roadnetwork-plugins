@@ -17,3 +17,9 @@ semantic versioning for tagged releases.
   OpenDRIVE yet.
 - `.gitattributes` fixing LF line endings for sources, docs, and XML
   fixtures.
+- Skeleton `roadnetwork-core` and `roadnetwork-usd` static libraries with
+  OpenStrata library descriptors, declared as workspace members. The bundle
+  now authors its (still empty) layer through the shared `roadnetwork-usd`
+  writer.
+- Minimal hand-authored OpenDRIVE XML fixtures replace the scaffold
+  placeholders, with an L5 golden for `basic.xodr`.

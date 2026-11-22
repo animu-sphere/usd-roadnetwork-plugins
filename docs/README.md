@@ -1,7 +1,8 @@
 # USD Road Network Plugins documentation
 
-The project is in **Phase 0 (scaffold and ADRs)**. The workspace and an
-empty OpenDRIVE bundle are scaffolded, but no format is implemented yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
+The project is in **Phase 0 (scaffold and ADRs)**. The workspace, an
+empty OpenDRIVE bundle, and skeleton core and USD libraries are in place, but
+no format is implemented yet; documents marked *Proposal* or *Proposed* describe intent, not behavior.
 
 Use the document that owns the question you are answering. Summaries should
 link to the source; once code exists, implementation and tests are the
@@ -50,5 +51,5 @@ documentation in the same PR.
 | Component | Kind | Documentation |
 | --- | --- | --- |
 | `roadnetwork-opendrive` | plugin bundle | [Plugin README](../plugins/roadnetwork-opendrive/README.md) (scaffold) |
-| `roadnetwork-core` | library | planned: `libs/roadnetwork-core/README.md` |
-| `roadnetwork-usd` | library | planned: `libs/roadnetwork-usd/README.md` |
+| `roadnetwork-core` | library | [Library README](../libs/roadnetwork-core/README.md) (skeleton) |
+| `roadnetwork-usd` | library | [Library README](../libs/roadnetwork-usd/README.md) (skeleton) |

@@ -1,6 +1,8 @@
 # OpenStrata plugin bundle manifest.
 # A plugin is a self-describing bundle, not a bare shared library: this file is
 # the contract `ost plugin inspect|build|doctor|test` resolve against.
+manifest:
+  schema: openstrata.plugin/v1alpha1
 plugin:
   name: roadnetwork-opendrive
   version: 0.1.0
@@ -21,6 +23,11 @@ provides:
   - usd-fileformat:xodr
 requires:
   capabilities: [usd-stage-read]
+  libraries:
+    - id: roadnetwork-core
+      version: ">=0.1,<0.2"
+    - id: roadnetwork-usd
+      version: ">=0.1,<0.2"
 usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/roadnetwork-opendrive/plugInfo.json
