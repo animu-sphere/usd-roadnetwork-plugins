@@ -49,6 +49,16 @@ validation are unit-tested but produced by no decoder yet.
 | Metadata-only read | F-10 | unsupported | — |
 | Stable diagnostics | F-11 | unsupported | numbering ratified ([ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)); both catalogs ship in the bundle resources and are cross-checked against source by `roadnetworkOpendrive_diagnostics_catalog`; the `RN-` validation codes are assigned and unit-tested, but no read raises a code yet and the `ODR-` catalog is empty |
 
+## File-format arguments
+
+Phase 1 exposes none ([ADR 0006 §7](../adr/0006-fileformat-contract.md#7-file-format-arguments)).
+Planned arguments are defined in [ADR 0009](../adr/0009-file-format-arguments-up-axis.md).
+
+| Capability | Feature | Status | Evidence / behavior |
+| --- | --- | --- | --- |
+| `upAxis=Y` in the asset path or `FindOrOpen` arguments | F-27 | unsupported | — |
+| `upAxis` from payload prim metadata (dynamic payload) | F-28 | unsupported | — |
+
 ## USD authoring
 
 | Capability | Feature | Status | Evidence / behavior |

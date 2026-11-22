@@ -42,6 +42,7 @@ page owns only the trigger to schedule it.
 
 | Work | Owner | Revisit or close when | Reference |
 | --- | --- | --- | --- |
+| ADR 0009 probe: format arguments through sublayers, references, and payloads; dynamic payload metadata and precedence | `usd-roadnetwork-plugins` | Before F-27 is scheduled, or when a `Y`-up consumer needs it. | [ADR 0009](../adr/0009-file-format-arguments-up-axis.md#evidence-needed-before-acceptance) |
 | Codeless or typed USD schema | `usd-roadnetwork-plugins` | The shared vocabulary is stable across two formats. | [ADR 0002](../adr/0002-usd-schema-strategy.md) |
 | Export to OpenDRIVE or another format | `usd-roadnetwork-plugins` | A concrete workflow needs export and a separate ADR defines losslessness and version targeting. | [Design policy §12](../design/DESIGN_POLICY.md#12-write-support) |
 | Contributor guide for adding a format | `usd-roadnetwork-plugins` | The OpenDRIVE bundle is implemented, so the guide can generalize a working path. | [Workspace contract](../architecture/WORKSPACE.md) |

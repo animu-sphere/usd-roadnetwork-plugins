@@ -14,8 +14,8 @@ Phase 1.
 | --- | --- | --- | --- | --- |
 | **0 — Scaffold / ADR** | OpenStrata workspace, basic CI, initial decisions | — | An empty `.xodr` bundle and the core and USD libraries pass the package test; ADR 0006 numbering is accepted. | untagged (met 2026-11-22) |
 | **1 — OpenDRIVE vertical slice** | Simple roads, lanes, and junctions into USD | F-01 to F-11 | [Phase 1 exit](#phase-1-exit) | v0.1.0 (planned) |
-| **2 — OpenDRIVE fidelity** | Wider coverage of curves, cross-sections, rules, and objects | F-12 to F-16 | Capability matrix, diagnostics, golden semantics, and compatibility tests are complete for the declared scope. | unassigned |
-| **3 — Geometry / scale** | Surfaces, LOD, tiling, and loading measured and designed | F-17 to F-21 | Measured performance and quality metrics can be published; ADR 0007 is accepted. | unassigned |
+| **2 — OpenDRIVE fidelity** | Wider coverage of curves, cross-sections, rules, and objects | F-12 to F-16, F-27 | Capability matrix, diagnostics, golden semantics, and compatibility tests are complete for the declared scope. | unassigned |
+| **3 — Geometry / scale** | Surfaces, LOD, tiling, and loading measured and designed | F-17 to F-21, F-28 | Measured performance and quality metrics can be published; ADR 0007 is accepted. | unassigned |
 | **4 — Multi-format** | Add Lanelet2 or SUMO | F-22 to F-24 | The same IR and USD writer are reused and the differences are explained; ADR 0008 is accepted for Lanelet2. | unassigned |
 | **5 — Runtime integration** | Composition with the runtime projects | F-25, F-26 | Deployable and tested independently of other USD assets and runtimes. | unassigned |
 
@@ -74,6 +74,7 @@ Explicit limits of Phase 1:
 | F-14 | Traffic semantics | Signs, signals, speeds, priorities, and other rules, represented so that they can be extended. |
 | F-15 | Road objects | Semantics, reference position, and orientation of barriers, guardrails, and similar; mesh generation stays separate. |
 | F-16 | Real-world compatibility | Regression tests across versions and producers on a corpus whose redistribution terms are met, such as CARLA. |
+| F-27 | `upAxis` file-format argument | `upAxis=Y` in the asset path or `FindOrOpen` arguments presents the asset `Y`-up through a rotation on `/Asset`; no authored value changes ([ADR 0009 §1–§3](../adr/0009-file-format-arguments-up-axis.md#1-the-upaxis-argument)). |
 
 ## Phase 3 — Geometry and scale
 
@@ -84,6 +85,7 @@ Explicit limits of Phase 1:
 | F-19 | Tiling and spatial partitioning | Geometry load units separate from stable IDs; relationships across tiles keep working. |
 | F-20 | Lazy loading and payloads | Adopted only after measuring USD composition and `SdfFileFormat` constraints. |
 | F-21 | Large-scale performance tests | Parse, authoring, reload, peak RSS, layer size, and time to display, compared across changes. |
+| F-28 | Dynamic payload arguments | Prim metadata on a payload sets `upAxis` through `SdfDynamicFileFormatInterface`, reusing F-27 ([ADR 0009 §4](../adr/0009-file-format-arguments-up-axis.md#4-dynamic-payload-f-28)). |
 
 The constraints that Phase 1 must already respect are listed in
 [ADR 0007](../adr/0007-geometry-lod-payload-boundary.md#constraints-for-earlier-phases).
