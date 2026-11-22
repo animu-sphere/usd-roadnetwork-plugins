@@ -1,30 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.23)
 
 project(roadnetworkUsd
     VERSION 0.1.0
     DESCRIPTION "Shared RoadNetworkData to OpenUSD layer authoring"
     LANGUAGES CXX)
 
-if(NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif()
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Same precedence as roadnetworkCore: explicit option, composed root,
-# `ost library build`'s BUILD_TESTING, then top-level.
-if(NOT DEFINED ROADNETWORKUSD_BUILD_TESTS)
-    if(DEFINED ROADNETWORK_BUILD_TESTS)
-        set(_rn_usd_tests_default "${ROADNETWORK_BUILD_TESTS}")
-    elseif(DEFINED BUILD_TESTING)
-        set(_rn_usd_tests_default "${BUILD_TESTING}")
-    else()
-        set(_rn_usd_tests_default "${PROJECT_IS_TOP_LEVEL}")
-    endif()
-    option(ROADNETWORKUSD_BUILD_TESTS "Build roadnetworkUsd tests"
-           ${_rn_usd_tests_default})
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/RoadnetworkBuild.cmake")
+roadnetwork_cxx_defaults()
+roadnetwork_tests_option(ROADNETWORKUSD_BUILD_TESTS "Build roadnetworkUsd tests")
 
 # Resolved once by a composed root build; found here when this library is
 # configured standalone.
@@ -50,33 +34,11 @@ target_include_directories(roadnetworkUsd
         "$<INSTALL_INTERFACE:include>")
 target_link_libraries(roadnetworkUsd PUBLIC openstrata::roadnetworkCore)
 
-# OpenUSD exports either a monolithic usd_ms target or one target per
-# component, with or without a pxr:: namespace. This mirrors the bundle's
-# openstrata_link_openusd() without depending on a bundle's cmake/ directory.
-#
 # The component list deliberately stops at sdf (ADR 0006): the writer authors
 # Sdf specs only. Authoring through a UsdStage fails inside the SdfChangeBlock
 # that SdfLayer::Reload opens around Read() on OpenUSD 26.08, which is the
 # problem the usd-3dgs-plugins worker thread works around.
-set(_rn_usd_pxr_targets)
-foreach(_candidate usd_ms pxr::usd_ms)
-    if(TARGET ${_candidate})
-        set(_rn_usd_pxr_targets ${_candidate})
-        break()
-    endif()
-endforeach()
-if(NOT _rn_usd_pxr_targets)
-    foreach(_component arch tf vt sdf)
-        if(TARGET ${_component})
-            list(APPEND _rn_usd_pxr_targets ${_component})
-        elseif(TARGET pxr::${_component})
-            list(APPEND _rn_usd_pxr_targets pxr::${_component})
-        endif()
-    endforeach()
-endif()
-if(NOT _rn_usd_pxr_targets)
-    message(FATAL_ERROR "roadnetworkUsd: could not locate OpenUSD CMake targets.")
-endif()
+roadnetwork_openusd_targets(_rn_usd_pxr_targets COMPONENTS arch tf vt sdf)
 target_link_libraries(roadnetworkUsd PUBLIC ${_rn_usd_pxr_targets})
 # Build-tree only. An installed consumer gets OpenUSD's headers from the pxr
 # targets linked above and from its own find_package(pxr), so the export must
@@ -84,13 +46,7 @@ target_link_libraries(roadnetworkUsd PUBLIC ${_rn_usd_pxr_targets})
 target_include_directories(roadnetworkUsd PUBLIC
     "$<BUILD_INTERFACE:${PXR_INCLUDE_DIRS}>")
 
-# /Brepro: see roadnetworkCore. NOMINMAX keeps <windows.h>, pulled in by
-# OpenUSD headers, from defining min/max macros.
-if(MSVC)
-    target_compile_definitions(roadnetworkUsd PRIVATE NOMINMAX)
-    target_compile_options(roadnetworkUsd PRIVATE /utf-8 /Brepro)
-    set_target_properties(roadnetworkUsd PROPERTIES STATIC_LIBRARY_OPTIONS /Brepro)
-endif()
+roadnetwork_target_defaults(roadnetworkUsd REPRODUCIBLE)
 
 include(GNUInstallDirs)
 install(TARGETS roadnetworkUsd

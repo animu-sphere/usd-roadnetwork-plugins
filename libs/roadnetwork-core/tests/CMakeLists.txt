@@ -1,18 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
-add_executable(roadnetworkCore_tests test_core.cpp)
-target_link_libraries(roadnetworkCore_tests PRIVATE openstrata::roadnetworkCore)
-target_compile_definitions(roadnetworkCore_tests PRIVATE
+# roadnetwork_add_core_test(<name> <source>): one executable and one CTest
+# entry, named roadnetworkCore_<name>_tests and roadnetworkCore_<name>.
+function(roadnetwork_add_core_test name source)
+    set(_exe roadnetworkCore_${name}_tests)
+    add_executable(${_exe} ${source})
+    target_link_libraries(${_exe} PRIVATE openstrata::roadnetworkCore)
+    roadnetwork_target_defaults(${_exe})
+    add_test(NAME roadnetworkCore_${name} COMMAND ${_exe})
+endfunction()
+
+roadnetwork_add_core_test(unit test_core.cpp)
+target_compile_definitions(roadnetworkCore_unit_tests PRIVATE
     EXPECTED_CORE_VERSION="${PROJECT_VERSION}")
-add_test(NAME roadnetworkCore_unit COMMAND roadnetworkCore_tests)
-
-add_executable(roadnetworkCore_validation_tests test_validation.cpp)
-target_link_libraries(roadnetworkCore_validation_tests PRIVATE openstrata::roadnetworkCore)
-add_test(NAME roadnetworkCore_validation COMMAND roadnetworkCore_validation_tests)
-
-add_executable(roadnetworkCore_geometry_tests test_geometry.cpp)
-target_link_libraries(roadnetworkCore_geometry_tests PRIVATE openstrata::roadnetworkCore)
-add_test(NAME roadnetworkCore_geometry COMMAND roadnetworkCore_geometry_tests)
-
-add_executable(roadnetworkCore_tessellation_tests test_tessellation.cpp)
-target_link_libraries(roadnetworkCore_tessellation_tests PRIVATE openstrata::roadnetworkCore)
-add_test(NAME roadnetworkCore_tessellation COMMAND roadnetworkCore_tessellation_tests)
+roadnetwork_add_core_test(validation test_validation.cpp)
+roadnetwork_add_core_test(geometry test_geometry.cpp)
+roadnetwork_add_core_test(tessellation test_tessellation.cpp)

@@ -104,8 +104,9 @@ golden's `doc` before comparing.
 
 The file-format contract is fixed by
 [ADR 0006](../../docs/adr/0006-fileformat-contract.md). Three CTest tests,
-built when `ROADNETWORK_BUILD_TESTS` is on (the default for the composed root
-and a standalone configure), check it; run them with `ost test` from the
+built when `ROADNETWORKOPENDRIVE_BUILD_TESTS` is on (it follows the composed
+root's `ROADNETWORK_BUILD_TESTS`, then `BUILD_TESTING`, then whether this is the
+top-level project), check it; run them with `ost test` from the
 repository root:
 
 | Test | Checks |

@@ -99,8 +99,18 @@ semantic versioning for tagged releases.
   `roadnetwork:successor`: they name the lane's own ends, not a direction of
   travel. Road links keep `roadnetwork:predecessor` and
   `roadnetwork:successor` (ADR 0002 §3, ADR 0005 §4).
+- Build: every library and bundle requires CMake 3.23, like the root, and
+  shares its build conventions through `cmake/RoadnetworkBuild.cmake`. The
+  bundle's test switch is `ROADNETWORKOPENDRIVE_BUILD_TESTS`; like the
+  libraries' switches it defaults to the root's `ROADNETWORK_BUILD_TESTS`.
+- The root `CMakePresets.json` has a `default` test preset, and
+  CONTRIBUTING.md documents the plain CMake build and test without `ost`.
 
 ### Fixed
+
+- Plain CMake: `ctest` without `ost` runs the `roadnetworkUsd_layer_writer`
+  test on Windows. Before, the test executable could not find the OpenUSD
+  DLLs outside an activated runtime.
 
 - Windows: the `roadnetwork-opendrive` plugin DLL is now built and linked
   with `/Brepro`, so a clean rebuild of unchanged sources gives the same

@@ -26,24 +26,56 @@ ost plugin test plugins/roadnetwork-opendrive --from-package --up-to 5   # from 
 python tools/check_docs.py                                         # documentation drift check
 ```
 
-Without `ost`, the dual-mode root builds every bundle with plain CMake:
-
-```sh
-cmake -S . -B build -DCMAKE_PREFIX_PATH=<your-openusd-install>
-cmake --build build
-```
-
 Confirm the commands against the `ost` version recorded in
 [supported configurations](docs/reference/SUPPORTED_CONFIGURATIONS.md); the
 kinds of test each phase requires are in the
 [design policy §15](docs/design/DESIGN_POLICY.md#15-test-strategy).
+
+### Without `ost`
+
+Plain CMake 3.23 or newer and an OpenUSD install are enough. The dual-mode
+root builds both libraries and every bundle, and CTest runs the same suite
+as `ost test`; on Windows, run these from a Visual Studio developer prompt so
+Ninja finds the compiler:
+
+```sh
+cmake --preset default -DCMAKE_PREFIX_PATH=<your-openusd-install>
+cmake --build --preset default
+ctest --preset default
+```
+
+The tests put the OpenUSD that `find_package(pxr)` found on `PATH` and
+`PYTHONPATH` themselves. The contract tests need a Python whose version
+matches the one OpenUSD was built against; pass `-DPython3_EXECUTABLE=<path>`
+if CMake finds another.
+
+Each library and bundle also configures on its own. Install the libraries
+first, in dependency order, and add their prefix to `CMAKE_PREFIX_PATH`:
+
+```sh
+cmake -S libs/roadnetwork-core -B build/core -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/core && cmake --install build/core --prefix <prefix>
+cmake -S libs/roadnetwork-usd -B build/usd -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH=<your-openusd-install>;<prefix>"
+cmake --build build/usd && cmake --install build/usd --prefix <prefix>
+cmake -S plugins/roadnetwork-opendrive -B build/opendrive -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_PREFIX_PATH=<your-openusd-install>;<prefix>"
+cmake --build build/opendrive && ctest --test-dir build/opendrive
+```
+
+`ROADNETWORK_BUILD_TESTS=OFF` turns every member's tests off; each member's
+own `<MEMBER>_BUILD_TESTS` option overrides it for that member. The shared
+build conventions (C++ standard, MSVC flags, OpenUSD target discovery, the
+test environment) are in [`cmake/RoadnetworkBuild.cmake`](cmake/RoadnetworkBuild.cmake),
+which every member includes; the bundle's `cmake/OpenStrataPlugin.cmake` is
+the pinned scaffold helper and is not edited.
+
+### CI
+
 Pull requests run the same lifecycle on hosted Windows, Ubuntu, and macOS
 runners. The CI contract is [`openstrata.ci.yaml`](openstrata.ci.yaml); after
 editing it, regenerate the workflow with
 `ost ci generate github --reusable-source --out .github/workflows/ost-source-ci.yml --force`
 and commit both files. The documentation check runs separately, on every
-change, from [`docs.yml`](.github/workflows/docs.yml). A plain CMake/CTest
-path for local unit tests will be documented alongside.
+change, from [`docs.yml`](.github/workflows/docs.yml).
 
 ## Where things go
 
