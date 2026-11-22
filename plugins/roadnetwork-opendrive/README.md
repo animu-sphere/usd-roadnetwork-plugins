@@ -9,11 +9,15 @@ openstrata.plugin.yaml          bundle contract (identity, runtime range, provid
 CMakeLists.txt                  builds libRoadnetworkOpendriveFileFormat.so into lib/
 cmake/OpenStrataPlugin.cmake    pinned, self-contained build/install mechanics
 src/RoadnetworkOpendriveFileFormat.{h,cpp}  the SdfFileFormat implementation
+src/io/Reader.{h,cpp}           USD-free reader: CanRead() sniff, container, root, header, and version checks
+src/io/Diagnostics.h            the ODR- codes, one constant each
 plugin/resources/roadnetwork-opendrive/plugInfo.json   USD plugin registration (supportsWriting: false)
 plugin/resources/roadnetwork-opendrive/diagnostics.json  ODR- diagnostic catalog (rn-diagnostics.json is installed beside it)
 tests/fixtures/                 basic (valid) + invalid (negative) fixtures, basic golden
+tests/fixtures/reader/          prologue and negative fixtures for the reader
 tests/fixtures/carla/           third-party CARLA networks (MIT, see its README and LICENSE)
 THIRD_PARTY_NOTICES.md          notices shipped in every package (manifest `notices`)
+tests/test_reader.cpp           reader unit test, without OpenUSD (CTest)
 tests/test_*.py                 file-format contract and catalog tests (CTest)
 ```
 
@@ -22,9 +26,18 @@ tests/test_*.py                 file-format contract and catalog tests (CTest)
 The bundle declares `roadnetwork-core` and `roadnetwork-usd` in
 `requires.libraries`; `ost plugin build` builds and installs them first, and
 `CMakeLists.txt` finds them with `find_package` unless the composed root build
-already defines the targets. `Read()` passes an empty `RoadNetworkData` to
-`openstrata::rn::usd::WriteLayer()`, which is the only author of the layer.
-OpenDRIVE is not parsed yet.
+already defines the targets. `Read()` checks the document with the reader
+in `src/io/`, then passes a `RoadNetworkData` holding only the header
+provenance to `openstrata::rn::usd::WriteLayer()`, which is the only author of
+the layer and still authors it empty. Roads, lanes, and junctions are not
+decoded yet (ODR-02).
+
+The reader parses XML with [pugixml](https://github.com/zeux/pugixml) 1.16
+(MIT), vendored at the repository root in
+[`third_party/pugixml`](../../third_party/pugixml/VENDORING.md) and compiled
+into the static `roadnetworkOpendriveIo` library with hidden symbols, so
+neither the plugin's exports nor any header expose it. Its licence text is in
+the bundle's [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Fixtures
 
@@ -38,7 +51,19 @@ they are not validated against the ASAM schema.
 | --- | --- | --- |
 | `basic.xodr` | smoke, roundtrip (L3–L5) | one straight 10 m road with one right-hand driving lane |
 | `basic.xodr.golden.usda` | L5 oracle | the flattened stage of `basic.xodr` (currently empty) |
-| `invalid.xodr` | negative | XML that is not well-formed; not yet rejected, because nothing parses it |
+| `invalid.xodr` | negative | XML that is not well-formed (`ODR-E002`) |
+| `reader/prologue-bom.xodr` | reader | a UTF-8 byte-order mark before the XML declaration |
+| `reader/prologue-doctype.xodr` | reader | comments, a processing instruction, and a DOCTYPE with an internal subset before the root |
+| `reader/not-utf8.xodr` | negative | an XML declaration naming ISO-8859-1 (`ODR-E003`) |
+| `reader/wrong-root.xodr` | negative | an `<OpenSCENARIO>` root (`ODR-E004`) |
+| `reader/namespaced-root.xodr` | negative | a default namespace on `<OpenDRIVE>` (`ODR-E004`) |
+| `reader/missing-header.xodr` | negative | a `<road>` where the `<header>` must be (`ODR-E005`) |
+| `reader/version-malformed.xodr` | negative | `revMinor="8.0"` (`ODR-E006`) |
+| `reader/version-unsupported.xodr` | negative | OpenDRIVE 1.10 (`ODR-E007`) |
+
+The contract test generates the remaining cases in a temporary directory: a
+root beyond the 64 KiB sniff window, UTF-16, a directory named `.xodr`
+(`ODR-E001`), and every `revMinor` from 0 to 11.
 
 `carla/` holds two **third-party** networks, `Town01.xodr` and `Town02.xodr`,
 from [carla-simulator/opendrive-test-files](https://github.com/carla-simulator/opendrive-test-files).
@@ -66,27 +91,29 @@ golden's `doc` before comparing.
 ## Contract tests
 
 The file-format contract is fixed by
-[ADR 0006](../../docs/adr/0006-fileformat-contract.md). Two CTest tests,
+[ADR 0006](../../docs/adr/0006-fileformat-contract.md). Three CTest tests,
 built when `ROADNETWORK_BUILD_TESTS` is on (the default for the composed root
 and a standalone configure), check it; run them with `ost test` from the
 repository root:
 
 | Test | Checks |
 | --- | --- |
-| `roadnetworkOpendrive_file_format_contract` | registration, read-only export, open, sublayer and reference composition, metadata-only read, determinism, and reload (also under an outer `SdfChangeBlock`) |
+| `roadnetworkOpendrive_reader` | the `CanRead()` sniff, each reader failure and its code, the version range, and the header scan, without OpenUSD |
+| `roadnetworkOpendrive_file_format_contract` | registration, read-only export, open, sublayer and reference composition, metadata-only read, determinism, reload (also under an outer `SdfChangeBlock`), `CanRead()` and the rejection of every negative fixture through the plugin, and a failed reload that keeps the previous content |
 | `roadnetworkOpendrive_diagnostics_catalog` | both catalogs are well-formed and every bracketed code used in source is catalogued by its owner |
 
 The contract test loads the bundle from this source tree (`lib/` and
-`plugin/resources/`), so build the bundle first.
+`plugin/resources/`), so build the bundle first; the reader test needs only a
+compiler.
 
 ## Diagnostics
 
 `Read()` reports failures as one `TF_RUNTIME_ERROR` whose message starts with
 a bracketed code, and leaves the layer unchanged. Add each new `ODR-` code to
-`diagnostics.json` in the PR that first raises it; format-independent
-conditions use `RN-` codes from `roadnetwork-core`
-([DIAGNOSTICS.md](../../docs/reference/DIAGNOSTICS.md)). No code is assigned
-yet.
+`src/io/Diagnostics.h` and `diagnostics.json` in the PR that first raises
+it, with a negative fixture; format-independent conditions use `RN-` codes
+from `roadnetwork-core`. The assigned codes are listed in
+[DIAGNOSTICS.md](../../docs/reference/DIAGNOSTICS.md#odr--reader).
 
 The copied CMake helper is versioned with this scaffold and requires neither an
 OpenStrata checkout nor `ost` at build time. Keep bundle-specific targets,
@@ -124,9 +151,9 @@ ost plugin doctor roadnetwork-opendrive      # staged diagnostics (L0–L1; L2+ 
 ost plugin test roadnetwork-opendrive        # orchestrate the levels and write a report
 ```
 
-`RoadnetworkOpendriveFileFormat::Read` does not parse OpenDRIVE yet; it authors an empty
-layer through the shared writer so a `.xodr` file opens as a valid (if empty)
-stage.
+`RoadnetworkOpendriveFileFormat::Read` checks the container, root, header, and
+version, and fails with a stable code otherwise. It does not decode roads yet,
+so an accepted `.xodr` file opens as a valid, empty stage.
 
 ## Co-hosting a Typed Schema
 

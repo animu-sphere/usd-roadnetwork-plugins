@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: the first child of OpenDRIVE is not the mandatory header
+  (ODR-E005).
+-->
+<OpenDRIVE>
+  <road name="r" length="10.0" id="1" junction="-1"/>
+</OpenDRIVE>

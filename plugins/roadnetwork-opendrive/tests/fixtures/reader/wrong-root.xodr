@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: the root element is not OpenDRIVE (ODR-E004).
+-->
+<OpenSCENARIO>
+  <FileHeader revMajor="1" revMinor="2"/>
+</OpenSCENARIO>

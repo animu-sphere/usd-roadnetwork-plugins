@@ -175,6 +175,12 @@ with Sdf.ChangeBlock():
     Sdf.PrimSpec(layer, "Asset", Sdf.SpecifierDef, "Xform")   # succeeds
 ```
 
-The checks that need decoded content (a rejected `invalid.xodr`, the
-metadata-only `/Asset`, reload preserving content after a failed read) are
-added with the Phase 1 reader against this decision.
+Phase 1, the ODR-01 reader (same configuration):
+
+| Test | Checks |
+| --- | --- |
+| `roadnetworkOpendrive_reader` ([source](../../plugins/roadnetwork-opendrive/tests/test_reader.cpp)) | The §1 sniff on 24 prologue cases and a root beyond 64 KiB; each `ODR-E002` to `ODR-E007` condition; the version range; the header scan. |
+| `roadnetworkOpendrive_file_format_contract` | `CanRead()` on the prologue and negative fixtures, and quietly false on a missing asset; each negative fixture fails with exactly one error that starts with its code and names the asset, in full and metadata-only reads; a failed forced reload posts one `ODR-E002` and keeps the previous layer content, and the repaired file reloads. |
+
+The metadata-only `/Asset` and its provenance are checked once the stage
+contract (USD-01) authors them.

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: OpenDRIVE 1.10 is after the supported range 1.4 to 1.9, and is
+  rejected rather than guessed (ODR-E007).
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="10" name="reader"/>
+</OpenDRIVE>

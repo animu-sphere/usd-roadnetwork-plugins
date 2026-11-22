@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: the XML declaration names an encoding other than UTF-8
+  (ODR-E003). The bytes are ASCII.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="reader" version="1.0" date="2026-11-22T00:00:00"/>
+</OpenDRIVE>

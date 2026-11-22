@@ -1,4 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
+# The reader is USD-free, so its unit test needs neither OpenUSD nor Python.
+add_executable(roadnetworkOpendrive_reader_tests test_reader.cpp)
+target_link_libraries(roadnetworkOpendrive_reader_tests PRIVATE roadnetworkOpendriveIo)
+if(MSVC)
+    target_compile_options(roadnetworkOpendrive_reader_tests PRIVATE /utf-8)
+endif()
+add_test(NAME roadnetworkOpendrive_reader COMMAND roadnetworkOpendrive_reader_tests)
+
 find_package(Python3 COMPONENTS Interpreter QUIET)
 if(NOT Python3_Interpreter_FOUND)
     message(STATUS "roadnetwork-opendrive: Python3 not found; skipping the contract tests")

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: the root element declares a default namespace, which OpenDRIVE
+  does not define (ODR-E004).
+-->
+<OpenDRIVE xmlns="urn:example:not-opendrive">
+  <header revMajor="1" revMinor="8" name="reader" version="1.0" date="2026-11-22T00:00:00"/>
+</OpenDRIVE>

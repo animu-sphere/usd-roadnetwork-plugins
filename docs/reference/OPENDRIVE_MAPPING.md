@@ -15,10 +15,13 @@ records the differences between versions that touch the Phase 1 elements.
 
 | Item | Decision |
 | --- | --- |
-| Specification versions in scope | `revMajor="1"`, `revMinor` 4–9, per the [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy); not implemented |
-| Version source | `<header revMajor revMinor>` |
-| Unsupported version | error, code assigned under ADR 0006 (feature F-02) |
-| `CanRead()` signature | `.xodr` extension and an `<OpenDRIVE>` root element; no body parsing ([design policy §10.2](../design/DESIGN_POLICY.md#102-canread-is-a-cheap-routing-decision)) |
+| Specification versions in scope | `revMajor="1"`, `revMinor` 4–9, per the [FMT-01 spike §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy), interpreted by the 1.9.0 rules |
+| Version source | `<header revMajor revMinor>`, the mandatory first child of `<OpenDRIVE>`: non-negative decimal integers, surrounding whitespace allowed. A file cannot state its patch level, and none is inferred. |
+| Unsupported version | `ODR-E007`; a missing or non-integer `revMajor` or `revMinor` is `ODR-E006`, and a missing `<header>` is `ODR-E005` |
+| Encoding | UTF-8 only, with or without a byte-order mark; anything else is `ODR-E003` |
+| Root element | `OpenDRIVE` with no prefix and no default namespace; anything else is `ODR-E004` |
+| `CanRead()` signature | `.xodr` extension and an `<OpenDRIVE>` root element within the first 64 KiB, after only a BOM, the XML declaration, comments, processing instructions, a DOCTYPE, and whitespace; no body parsing ([ADR 0006 §1](../adr/0006-fileformat-contract.md#1-canread)) |
+| Header provenance | `name`, `date`, `vendor`, and `version` are read verbatim as opaque strings (`date` is free text in practice); the stage contract (ADR 0002) authors them on `/Asset`, which it does not yet |
 
 A per-version table records, for each element below, whether it is supported,
 ignored with a warning, or rejected.

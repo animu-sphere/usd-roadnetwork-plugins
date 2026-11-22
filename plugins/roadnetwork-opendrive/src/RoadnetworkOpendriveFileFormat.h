@@ -18,8 +18,9 @@ PXR_NAMESPACE_OPEN_SCOPE
 
 TF_DECLARE_PUBLIC_TOKENS(RoadnetworkOpendriveFileFormatTokens, ROADNETWORKOPENDRIVE_FILE_FORMAT_TOKENS);
 
-/// A minimal SdfFileFormat that reads `.xodr` files and translates them
-/// into USD. Replace the body of `Read` with your format's parser.
+/// The read-only SdfFileFormat for ASAM OpenDRIVE `.xodr` files (ADR 0006).
+/// The OpenDRIVE reader lives in `src/io/` without OpenUSD; this class adds
+/// the asset access, the diagnostics, and the shared writer.
 class RoadnetworkOpendriveFileFormat : public SdfFileFormat {
 public:
   bool CanRead(const std::string& file) const override;

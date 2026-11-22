@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  Negative: revMinor is not an integer (ODR-E006).
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8.0" name="reader"/>
+</OpenDRIVE>

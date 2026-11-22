@@ -104,14 +104,15 @@ usd-roadnetwork-plugins/
 │   │   ├── openstrata.plugin.yaml  # bundle contract and declared test fixtures
 │   │   ├── CMakeLists.txt
 │   │   ├── cmake/OpenStrataPlugin.cmake
-│   │   ├── src/
+│   │   ├── src/                    # src/io/: the USD-free reader
 │   │   ├── plugin/resources/roadnetwork-opendrive/plugInfo.json
-│   │   └── tests/fixtures/         # minimal OpenDRIVE XML and the L5 golden
+│   │   └── tests/fixtures/         # minimal OpenDRIVE XML, reader fixtures, and the L5 golden
 │   ├── roadnetwork-lanelet2/       # future
 │   └── roadnetwork-sumo/           # future
 ├── libs/
 │   ├── roadnetwork-core/           # openstrata.library.yaml, include/, src/, tests/
 │   └── roadnetwork-usd/
+├── third_party/                    # vendored sources, each with VENDORING.md (pugixml)
 ├── tests/                          # cross-format and aggregate package tests, when needed
 ├── tools/check_docs.py             # documentation drift check (docs/README.md)
 ├── docs/

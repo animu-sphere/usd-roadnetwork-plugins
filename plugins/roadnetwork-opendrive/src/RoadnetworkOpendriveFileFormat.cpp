@@ -1,15 +1,26 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "RoadnetworkOpendriveFileFormat.h"
 
+#include "io/Diagnostics.h"
+#include "io/Reader.h"
+
 #include "openstrata/rn/RoadNetworkData.h"
 #include "openstrata/rn/usd/LayerWriter.h"
 
+#include "pxr/base/tf/diagnostic.h"
+#include "pxr/base/tf/errorMark.h"
 #include "pxr/base/tf/registryManager.h"
 #include "pxr/base/tf/type.h"
+#include "pxr/usd/ar/asset.h"
+#include "pxr/usd/ar/resolvedPath.h"
+#include "pxr/usd/ar/resolver.h"
 #include "pxr/usd/sdf/layer.h"
 
-#include <fstream>
+#include <algorithm>
+#include <exception>
+#include <memory>
 #include <string>
+#include <string_view>
 
 PXR_NAMESPACE_OPEN_SCOPE
 
@@ -30,31 +41,85 @@ RoadnetworkOpendriveFileFormat::RoadnetworkOpendriveFileFormat()
 
 RoadnetworkOpendriveFileFormat::~RoadnetworkOpendriveFileFormat() = default;
 
+namespace {
+
+namespace odr = openstrata::rn::odr;
+
+/// Posts the one error a failed Read() reports (ADR 0006 section 3): the
+/// bracketed code first, then the asset, then what was found.
+void PostReadError(std::string_view code, const std::string& asset, const std::string& detail) {
+  TF_RUNTIME_ERROR("%.*s %s: %s", static_cast<int>(code.size()), code.data(), asset.c_str(),
+      detail.c_str());
+}
+
+/// Reads up to `limit` bytes of the asset at the start, through the resolver
+/// so that package and resolver-backed assets behave like files.
+bool ReadAssetBytes(const std::string& resolvedPath, std::size_t limit, std::string* bytes) {
+  const std::shared_ptr<ArAsset> asset = ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
+  if (!asset) {
+    return false;
+  }
+  const std::size_t size = std::min(asset->GetSize(), limit);
+  bytes->assign(size, '\0');
+  return size == 0 || asset->Read(bytes->data(), size, 0) == size;
+}
+
+} // namespace
+
 bool RoadnetworkOpendriveFileFormat::CanRead(const std::string& file) const {
-  return SdfFileFormat::GetFileExtension(file) == "xodr";
+  // CanRead() posts no diagnostics (ADR 0006 section 1), including any the
+  // resolver posts while opening the asset.
+  TfErrorMark mark;
+  bool result = false;
+  try {
+    std::string prefix;
+    result = SdfFileFormat::GetFileExtension(file) == RoadnetworkOpendriveFileFormatTokens->Extension &&
+             ReadAssetBytes(file, odr::kSniffBytes, &prefix) && odr::LooksLikeOpenDrive(prefix);
+  } catch (...) {
+    result = false;
+  }
+  mark.Clear();
+  return result;
 }
 
 bool RoadnetworkOpendriveFileFormat::Read(
     SdfLayer* layer,
     const std::string& resolvedPath,
     bool metadataOnly) const {
+  // metadataOnly is a hint (ADR 0006 section 2). Until the decoder (ODR-02)
+  // and the stage contract (USD-01) land, both reads check the container,
+  // root, header, and version, and author the same empty layer.
   (void)metadataOnly;
+  try {
+    std::string bytes;
+    if (!ReadAssetBytes(resolvedPath, std::string::npos, &bytes)) {
+      PostReadError(odr::codes::kAssetUnreadable, resolvedPath, "the asset could not be opened or read");
+      return false;
+    }
 
-  std::ifstream in(resolvedPath, std::ios::binary);
-  if (!in) {
-    TF_RUNTIME_ERROR("Could not open '%s'", resolvedPath.c_str());
-    return false;
-  }
+    odr::Diagnostic diagnostic;
+    const std::unique_ptr<odr::Document> document = odr::Document::Parse(bytes, &diagnostic);
+    if (!document) {
+      PostReadError(diagnostic.code, resolvedPath, diagnostic.detail);
+      return false;
+    }
 
-  // OpenDRIVE is not decoded yet (Phase 1). The empty RoadNetworkData still
-  // goes through the shared writer, which is the only author of the layer.
-  const openstrata::rn::RoadNetworkData data;
-  std::string error;
-  if (!openstrata::rn::usd::WriteLayer(data, *layer, &error)) {
-    TF_RUNTIME_ERROR("Could not author a USD layer for '%s': %s", resolvedPath.c_str(), error.c_str());
-    return false;
+    // Only the header provenance is read so far. The shared writer, the
+    // only author of the layer, does not author it yet.
+    openstrata::rn::RoadNetworkData data;
+    data.source = document->Source();
+    std::string error;
+    if (!openstrata::rn::usd::WriteLayer(data, *layer, &error)) {
+      TF_RUNTIME_ERROR("Could not author a USD layer for '%s': %s", resolvedPath.c_str(), error.c_str());
+      return false;
+    }
+    return true;
+  } catch (const std::exception& e) {
+    PostReadError(odr::codes::kInternal, resolvedPath, std::string("internal failure: ") + e.what());
+  } catch (...) {
+    PostReadError(odr::codes::kInternal, resolvedPath, "internal failure");
   }
-  return true;
+  return false;
 }
 
 bool RoadnetworkOpendriveFileFormat::WriteToString(

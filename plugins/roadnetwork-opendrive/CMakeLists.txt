@@ -32,6 +32,34 @@ if(NOT TARGET openstrata::roadnetworkUsd)
     find_package(roadnetworkUsd CONFIG REQUIRED)
 endif()
 
+# Vendored pugixml 1.16 (third_party/pugixml, see its VENDORING.md).
+set(PUGIXML_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../third_party/pugixml")
+if(NOT EXISTS "${PUGIXML_ROOT}/pugixml.hpp")
+    message(FATAL_ERROR "Vendored pugixml was not found at ${PUGIXML_ROOT}")
+endif()
+
+# The OpenDRIVE reader is USD-free and shared by the plugin and its unit
+# tests. pugixml is compiled into it and kept out of every public header.
+add_library(roadnetworkOpendriveIo STATIC
+    src/io/Reader.cpp
+    "${PUGIXML_ROOT}/pugixml.cpp")
+# Hidden visibility keeps every pugixml symbol inside the plugin library: an
+# OpenUSD host with MaterialX can load another pugixml in the same `pugi`
+# namespace, and ELF or Mach-O interposition must not bind the two (FMT-01 §6).
+set_target_properties(roadnetworkOpendriveIo PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON)
+target_compile_features(roadnetworkOpendriveIo PUBLIC cxx_std_17)
+target_compile_definitions(roadnetworkOpendriveIo PRIVATE PUGIXML_NO_XPATH)
+target_include_directories(roadnetworkOpendriveIo
+    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    PRIVATE "${PUGIXML_ROOT}")
+target_link_libraries(roadnetworkOpendriveIo PUBLIC openstrata::roadnetworkCore)
+if(MSVC)
+    target_compile_options(roadnetworkOpendriveIo PRIVATE /utf-8)
+endif()
+
 set(PLUGIN_NAME RoadnetworkOpendriveFileFormat)
 
 add_library(${PLUGIN_NAME} SHARED
@@ -42,6 +70,7 @@ target_include_directories(${PLUGIN_NAME} PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
     ${PXR_INCLUDE_DIRS})
 target_link_libraries(${PLUGIN_NAME} PRIVATE
+    roadnetworkOpendriveIo
     openstrata::roadnetworkCore
     openstrata::roadnetworkUsd)
 
@@ -56,7 +85,7 @@ endif()
 
 openstrata_link_openusd(
     TARGET ${PLUGIN_NAME}
-    COMPONENTS arch tf gf vt sdf usd)
+    COMPONENTS arch tf gf vt ar sdf usd)
 
 # The copied helper keeps output/install mechanics identical in standalone and
 # add_subdirectory workspace builds. This file still owns the target, OpenUSD
@@ -88,7 +117,7 @@ openstrata_install_plugin_bundle(
         "${CMAKE_CURRENT_SOURCE_DIR}/openstrata.scaffold.yaml"
     FIXTURE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
 
-# File-format contract and catalog tests (ADR 0006). They run from the
+# Reader unit tests, and the file-format contract and catalog tests (ADR 0006). They run from the
 # composed root build (`ost test`) and from a standalone configure.
 if(NOT DEFINED ROADNETWORK_BUILD_TESTS)
     option(ROADNETWORK_BUILD_TESTS "Build roadnetwork-opendrive tests" ${PROJECT_IS_TOP_LEVEL})

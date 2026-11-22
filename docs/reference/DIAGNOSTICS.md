@@ -3,8 +3,8 @@
 - **Status:** Normative. The numbering scheme was ratified by
   [ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)
   on 2026-11-22, before the first code was assigned. Codes are never
-  renumbered or reused. The `RN-` validation codes below are assigned; the
-  `ODR-` catalog is empty.
+  renumbered or reused. The `RN-` validation codes and the `ODR-` reader
+  codes below are assigned.
 
 Each import error and warning carries a bracketed stable code at the start
 of its message (`[ODR-E001] ...`). Automation matches the code, so message
@@ -91,6 +91,28 @@ No bundle calls it yet.
 | `RN-E306` | A plan-view segment's start heading differs from the previous end heading by more than 0.001 rad. |
 | `RN-E307` | Elevation, lane-offset, or lane-width records do not ascend strictly in `s0`. |
 | `RN-E308` | A lane border, or the center border, on the inside of an arc reaches its center of curvature: `t · κ ≥ 1` ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
+
+### `ODR-` reader
+
+The `roadnetwork-opendrive` reader reports the first failure, in both full
+and metadata-only reads. It checks the asset, the encoding, the XML, the root
+element, the header, and the version, in that order, so a UTF-16 file reports
+`ODR-E003` rather than a parse error. Each code has a negative fixture in
+[`tests/fixtures/`](../../plugins/roadnetwork-opendrive/tests/fixtures/), named
+in the bundle manifest's `negative` list, except `ODR-E001`, which the
+contract test produces from a directory named `.xodr`, and `ODR-E901`, which
+no input can produce on purpose.
+
+| Code | Condition | Fixture |
+| --- | --- | --- |
+| `ODR-E001` | The resolver cannot open or read the asset. | a directory (generated) |
+| `ODR-E002` | The document is not well-formed XML: a parse error (with line and column), no element, a second top-level element, or text outside the root element. | `invalid.xodr` |
+| `ODR-E003` | The bytes are not UTF-8: a UTF-16 or UTF-32 byte-order mark or content, or an XML declaration naming another encoding. | `reader/not-utf8.xodr`; UTF-16 (generated) |
+| `ODR-E004` | The root element is not `OpenDRIVE`, has a prefix, or declares a default namespace. | `reader/wrong-root.xodr`, `reader/namespaced-root.xodr` |
+| `ODR-E005` | The first child element of `<OpenDRIVE>` is not `<header>`. | `reader/missing-header.xodr` |
+| `ODR-E006` | `revMajor` or `revMinor` is missing or not a non-negative decimal integer. | `reader/version-malformed.xodr` |
+| `ODR-E007` | The version is not `revMajor` 1 with `revMinor` 4 to 9 ([FMT-01 §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)). | `reader/version-unsupported.xodr`; 1.0–1.3, 1.10, 1.11, and 2.0 (generated) |
+| `ODR-E901` | An internal failure, such as running out of memory, escaped the reader. | — |
 
 ## Rules
 
