@@ -39,6 +39,12 @@ semantic versioning for tagged releases.
   `Validate()` checks the model's identity, reference, lane-structure, and
   numeric invariants and reports the first failure with a stable `RN-E1xx`
   or `RN-E3xx` code. No decoder uses it yet, so imports are unchanged.
+- `roadnetwork-core` evaluates line and arc reference lines, elevation, lane
+  offset, and lane widths (ADR 0004), and computes lane borders and
+  centerlines. `TessellateRoad()` samples each lane section into polylines
+  within a 1 cm error bound, with shared vertices between adjacent lanes.
+  `Validate()` now also rejects a lane border that reaches the center of
+  curvature of an arc, with `RN-E308`. No decoder or writer uses them yet.
 
 ### Changed
 

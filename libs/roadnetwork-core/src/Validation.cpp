@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "openstrata/rn/Validation.h"
 
-#include "PlanViewEnd.h"
+#include "SectionIntervals.h"
+#include "openstrata/rn/Geometry.h"
 
 #include <algorithm>
 #include <cmath>
@@ -339,7 +340,8 @@ std::optional<Diagnostic> CheckContinuity(const Road& road) {
   const std::vector<PlanViewSegment>& segments = road.referenceLine.segments;
   constexpr double twoPi = 6.283185307179586476925286766559;
   for (std::size_t i = 1; i < segments.size(); ++i) {
-    const detail::Pose2 end = detail::SegmentEnd(segments[i - 1]);
+    const PlanViewSegment& previous = segments[i - 1];
+    const Pose2 end = EvaluateSegment(previous, previous.s + previous.length);
     const PlanViewSegment& next = segments[i];
     const double gap = std::hypot(next.x - end.x, next.y - end.y);
     if (gap > ValidationTolerances::kPositionMetres) {
@@ -386,12 +388,49 @@ std::optional<Diagnostic> CheckCubics(const Road& road) {
   return std::nullopt;
 }
 
+// ADR 0004 section 2: a border on the inside of an arc may not reach its center
+// of curvature (t * kappa >= 1), where the offset curve folds back. On each
+// interval between stations the border is one cubic, so its extreme is exact.
+std::optional<Diagnostic> CheckFold(const Road& road) {
+  for (std::size_t sectionIndex = 0; sectionIndex < road.sections.size(); ++sectionIndex) {
+    const std::vector<double> stations = detail::SectionStations(road, sectionIndex);
+    for (std::size_t i = 0; i + 1 < stations.size(); ++i) {
+      const detail::Interval interval =
+          detail::MakeInterval(road, sectionIndex, stations[i], stations[i + 1]);
+      const double kappa = Curvature(road.referenceLine.segments[interval.segment]);
+      if (kappa == 0.0) {
+        continue;
+      }
+      const double sign = kappa > 0.0 ? 1.0 : -1.0;
+      const std::vector<Lane>& lanes = road.sections[sectionIndex].lanes;
+      for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+        const detail::Poly3& t = interval.borders[lane];
+        const detail::Poly3 inward{sign * t.c0, sign * t.c1, sign * t.c2, sign * t.c3};
+        const detail::Extremum deepest = detail::Maximum(inward, interval.length);
+        if (deepest.value * std::abs(kappa) >= 1.0) {
+          const std::string border = lanes[lane].number == 0
+                                         ? std::string(" center border")
+                                         : " lane " + std::to_string(lanes[lane].number) + " border";
+          return Fail("[RN-E308]", SectionName(road, sectionIndex) + border + " is " +
+                                       Number(deepest.value) + " m inside plan-view segment " +
+                                       std::to_string(interval.segment) + " at s = " +
+                                       Number(interval.s0 + deepest.x) +
+                                       ", at or beyond its center of curvature (radius " +
+                                       Number(1.0 / std::abs(kappa)) + " m)");
+        }
+      }
+    }
+  }
+  return std::nullopt;
+}
+
 std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data) {
   if (auto failure = CheckSourceFinite(data)) {
     return failure;
   }
   using RoadCheck = std::optional<Diagnostic> (*)(const Road&);
-  const RoadCheck checks[] = {CheckFinite, CheckLengths, CheckStations, CheckContinuity, CheckCubics};
+  const RoadCheck checks[] = {
+      CheckFinite, CheckLengths, CheckStations, CheckContinuity, CheckCubics, CheckFold};
   for (const Road& road : data.roads) {
     for (RoadCheck check : checks) {
       if (auto failure = check(road)) {

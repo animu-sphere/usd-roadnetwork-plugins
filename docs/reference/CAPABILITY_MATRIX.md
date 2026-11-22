@@ -10,8 +10,9 @@ Today the `roadnetwork-opendrive` bundle registers `.xodr` and, for any file
 it can open, authors an empty layer through the shared writer without
 parsing the file. That is a placeholder, not support, so every OpenDRIVE row
 below remains unsupported; in particular the malformed `invalid.xodr`
-fixture still opens as an empty stage. The `roadnetwork-core` model and
-validation are unit-tested but produced by no decoder yet.
+fixture still opens as an empty stage. The `roadnetwork-core` model,
+validation, geometry evaluation, and tessellation are unit-tested, but no
+decoder produces the model yet.
 
 ## Status vocabulary
 
@@ -38,7 +39,7 @@ validation are unit-tested but produced by no decoder yet.
 | --- | --- | --- | --- |
 | Format detection (`CanRead`) | F-01 | unsupported | — |
 | Specification-version recognition | F-02 | unsupported | — |
-| Plan-view geometry: line, arc | F-04 | unsupported | — |
+| Plan-view geometry: line, arc | F-04 | unsupported | no decoder yet; the `roadnetwork-core` evaluator passes the closed-form tests of `roadnetworkCore_geometry` ([ADR 0004 evidence](../adr/0004-opendrive-geometry-retention.md#evidence)) |
 | Plan-view geometry: spiral, poly3, paramPoly3 | F-12 | unsupported | — |
 | Elevation and superelevation profiles | F-05, F-13 | unsupported | — |
 | Lane sections, width, type | F-05 | unsupported | — |
@@ -64,6 +65,6 @@ Planned arguments are defined in [ADR 0009](../adr/0009-file-format-arguments-up
 | Capability | Feature | Status | Evidence / behavior |
 | --- | --- | --- | --- |
 | Semantic layer (`/Asset/Network`) | F-07 | unsupported | contract proposed in [WORKSPACE.md §5](../architecture/WORKSPACE.md#5-authored-stage-contract) |
-| Visualization layer (`/Asset/Visualization`) | F-08 | unsupported | — |
+| Visualization layer (`/Asset/Visualization`) | F-08 | unsupported | not authored yet; the `roadnetwork-core` tessellator keeps borders and centerlines within 1 cm of the analytic curves on a hand-authored road (`roadnetworkCore_tessellation`) |
 | Reference, payload, reload | F-10 | unsupported | on the empty layer, sublayer and reference composition and reload (forced, unforced after a file change, and under an outer `SdfChangeBlock`) pass `roadnetworkOpendrive_file_format_contract`; nothing is claimed until the layer has content |
 | Export (`WriteToFile`) | — | unsupported | out of scope ([design policy §12](../design/DESIGN_POLICY.md#12-write-support)); `plugInfo.json` declares `supportsWriting: false`, so saving or exporting through the format fails with an Sdf error (tested) |

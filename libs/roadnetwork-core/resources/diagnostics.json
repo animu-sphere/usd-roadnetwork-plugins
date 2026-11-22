@@ -99,6 +99,12 @@
             "severity": "error",
             "summary": "The records of an elevation, lane-offset, or lane-width profile do not ascend strictly in their start s.",
             "action": "Order the records by strictly increasing s, and remove records that repeat an s value."
+        },
+        {
+            "code": "RN-E308",
+            "severity": "error",
+            "summary": "A lane border on the inside of an arc reaches or passes the arc's center of curvature, so the border would fold back on itself.",
+            "action": "Reduce the lane offset or lane widths on the inside of the arc, or increase the arc's radius."
         }
     ]
 }

@@ -245,6 +245,42 @@ void TestNumeric() {
       [](RoadNetworkData& d) { d.roads[0].sections[1].lanes[1].width.records[1].s0 = -1.0; });
 }
 
+void TestFold() {
+  // ADR 0004 section 2. Road "1" section 1 lies on the left arc of radius 10 m
+  // (s = 10..20); its lane offset there is 0.001 d^2, at most 0.1 m. A left
+  // lane is on the inside of the arc.
+  const auto addLeftLane = [](RoadNetworkData& d, CubicRecord width) {
+    Lane lane = MakeLane(1);
+    lane.width.records = {width};
+    std::vector<Lane>& lanes = d.roads[0].sections[1].lanes;
+    lanes.insert(lanes.begin(), lane);
+  };
+  RoadNetworkData inside = MakeValid();
+  addLeftLane(inside, CubicRecord{0.0, 9.85, 0.0, 0.0, 0.0});
+  ExpectValid(inside, "an inner border 0.05 m short of the center of curvature");
+
+  ExpectCode("RN-E308", "an inner border beyond the center of curvature",
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 10.5, 0.0, 0.0, 0.0}); });
+  ExpectCode("RN-E308", "an inner border that reaches the center only at the section end",
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 9.0, 0.1, 0.0, 0.0}); });
+  // 5 + 2 d - 0.2 d^2 is 5 at both ends of the section but 10 at d = 5: the
+  // exact maximum of the cubic finds it.
+  ExpectCode("RN-E308", "an inner border that folds between its stations",
+      [&](RoadNetworkData& d) { addLeftLane(d, CubicRecord{0.0, 5.0, 2.0, -0.2, 0.0}); });
+  ExpectCode("RN-E308", "a lane offset at the center of curvature",
+      [](RoadNetworkData& d) { d.roads[0].laneOffset.records[1].a = 10.0; });
+  // A right turn folds on the right.
+  ExpectCode("RN-E308", "a right lane inside a right turn", [](RoadNetworkData& d) {
+    Road& road = d.roads[0];
+    road.referenceLine.segments[1].shape = Arc{-0.1};
+    road.sections[1].lanes[2].width.records = {CubicRecord{0.0, 7.0, 0.0, 0.0, 0.0}};
+  });
+  // The outside of an arc never folds.
+  RoadNetworkData outside = MakeValid();
+  outside.roads[0].sections[1].lanes[2].width.records = {CubicRecord{0.0, 50.0, 0.0, 0.0, 0.0}};
+  ExpectValid(outside, "a wide border on the outside of an arc");
+}
+
 void TestArcEnd() {
   // The arc of road "1" turns by 1 rad over 10 m. The next segment, placed
   // at its closed-form end (x0 + sin(1)/kappa, y0 + (1 - cos(1))/kappa), is
@@ -342,6 +378,7 @@ int main() {
   TestReferences();
   TestLaneStructure();
   TestNumeric();
+  TestFold();
   TestArcEnd();
   TestOrder();
   TestCanonicalLaneLinks();
