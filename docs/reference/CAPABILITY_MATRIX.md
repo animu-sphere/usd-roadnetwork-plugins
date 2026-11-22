@@ -46,7 +46,7 @@ OpenDRIVE row below remains unsupported; in particular the malformed
 | Signals, road marks, objects | unsupported | — |
 | Georeference and offset | unsupported | — |
 | Metadata-only read | unsupported | — |
-| Stable diagnostics | unsupported | numbering proposed in [DIAGNOSTICS.md](DIAGNOSTICS.md) |
+| Stable diagnostics | unsupported | numbering ratified ([ADR 0006](../adr/0006-fileformat-contract.md#6-diagnostic-numbering)); the `ODR-` and `RN-` catalogs ship empty in the bundle resources and are cross-checked against source by `roadnetworkOpendrive_diagnostics_catalog` |
 
 ## USD authoring
 
@@ -54,5 +54,5 @@ OpenDRIVE row below remains unsupported; in particular the malformed
 | --- | --- | --- |
 | Semantic layer (`/Asset/Network`) | unsupported | contract proposed in [WORKSPACE.md §5](../architecture/WORKSPACE.md#5-authored-stage-contract) |
 | Visualization layer (`/Asset/Visualization`) | unsupported | — |
-| Reference, payload, reload | unsupported | — |
-| Export (`WriteToFile`) | unsupported | out of scope ([design policy §12](../design/DESIGN_POLICY.md#12-write-support)) |
+| Reference, payload, reload | unsupported | on the empty layer, sublayer and reference composition and reload (forced, unforced after a file change, and under an outer `SdfChangeBlock`) pass `roadnetworkOpendrive_file_format_contract`; nothing is claimed until the layer has content |
+| Export (`WriteToFile`) | unsupported | out of scope ([design policy §12](../design/DESIGN_POLICY.md#12-write-support)); `plugInfo.json` declares `supportsWriting: false`, so saving or exporting through the format fails with an Sdf error (tested) |

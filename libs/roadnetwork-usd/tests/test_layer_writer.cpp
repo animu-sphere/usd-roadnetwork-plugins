@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 #include "openstrata/rn/usd/LayerWriter.h"
 
+#include "pxr/usd/sdf/changeBlock.h"
 #include "pxr/usd/sdf/layer.h"
 #include "pxr/usd/sdf/path.h"
 #include "pxr/usd/sdf/primSpec.h"
@@ -50,6 +51,23 @@ int main() {
   layer->ExportToString(&first_text);
   second->ExportToString(&second_text);
   Check(first_text == second_text, "two writes of the same data are identical");
+
+  // Reload runs SdfFileFormat::Read inside an SdfChangeBlock (ADR 0006). The
+  // writer authors with Sdf specs only, which do not depend on change
+  // processing, so it must behave identically inside a block.
+  {
+    SdfLayerRefPtr blocked = SdfLayer::CreateAnonymous("blocked.usda");
+    SdfPrimSpec::New(blocked->GetPseudoRoot(), "Stale", SdfSpecifierDef);
+    std::string blocked_text;
+    {
+      SdfChangeBlock block;
+      Check(openstrata::rn::usd::WriteLayer(openstrata::rn::RoadNetworkData{}, *blocked, nullptr),
+          "WriteLayer succeeds inside an SdfChangeBlock");
+      Check(blocked->GetRootPrims().empty(), "content is replaced inside an SdfChangeBlock");
+    }
+    blocked->ExportToString(&blocked_text);
+    Check(blocked_text == first_text, "a write inside an SdfChangeBlock matches one outside");
+  }
 
   if (failures == 0) {
     std::printf("roadnetworkUsd: all checks passed\n");

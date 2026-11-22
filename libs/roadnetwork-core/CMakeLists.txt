@@ -58,11 +58,22 @@ install(TARGETS roadnetworkCore
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 install(DIRECTORY include/ DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
+# The RN- diagnostic catalog (ADR 0006). Every bundle ships a copy beside its
+# own catalog. A composed root build reads it from the source tree; an
+# installed consumer gets the same variable from roadnetworkCoreConfig.cmake.
+set(ROADNETWORK_CORE_CATALOG_INSTALL_DIR "${CMAKE_INSTALL_DATADIR}/roadnetworkCore")
+install(FILES resources/diagnostics.json
+    DESTINATION "${ROADNETWORK_CORE_CATALOG_INSTALL_DIR}")
+set(roadnetworkCore_DIAGNOSTICS_CATALOG
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources/diagnostics.json"
+    CACHE INTERNAL "RN- diagnostic catalog shipped with every bundle")
+
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/roadnetworkCoreConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/roadnetworkCoreConfig.cmake"
-    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/roadnetworkCore")
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/roadnetworkCore"
+    PATH_VARS ROADNETWORK_CORE_CATALOG_INSTALL_DIR)
 write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/roadnetworkCoreConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}

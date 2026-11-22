@@ -15,6 +15,7 @@ arrive with Phase 1.
 | CMake | `find_package(roadnetworkCore CONFIG REQUIRED)`, target `openstrata::roadnetworkCore` |
 | Kind | static library, C++17 |
 | Headers | `openstrata/rn/RoadNetworkData.h`, `openstrata/rn/Version.h` |
+| Resources | `resources/diagnostics.json`: the `RN-` diagnostic catalog, installed to `share/roadnetworkCore/` and exposed as `roadnetworkCore_DIAGNOSTICS_CATALOG`; every bundle ships a copy as `rn-diagnostics.json` |
 | API tier | Contributor ([API boundary](../../docs/architecture/API_BOUNDARY.md#tiers)): no external API or ABI guarantee |
 
 ## Build and test

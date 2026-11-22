@@ -52,6 +52,11 @@ target_link_libraries(roadnetworkUsd PUBLIC openstrata::roadnetworkCore)
 # OpenUSD exports either a monolithic usd_ms target or one target per
 # component, with or without a pxr:: namespace. This mirrors the bundle's
 # openstrata_link_openusd() without depending on a bundle's cmake/ directory.
+#
+# The component list deliberately stops at sdf (ADR 0006): the writer authors
+# Sdf specs only. Authoring through a UsdStage fails inside the SdfChangeBlock
+# that SdfLayer::Reload opens around Read() on OpenUSD 26.08, which is the
+# problem the usd-3dgs-plugins worker thread works around.
 set(_rn_usd_pxr_targets)
 foreach(_candidate usd_ms pxr::usd_ms)
     if(TARGET ${_candidate})

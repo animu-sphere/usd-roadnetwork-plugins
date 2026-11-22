@@ -1,0 +1,7 @@
+{
+    "schema": "roadnetwork.diagnostics/v1",
+    "prefix": "RN",
+    "owner": "roadnetwork-core and roadnetwork-usd",
+    "description": "Stable format-independent diagnostics raised by shared validation and USD authoring. Codes are <PREFIX>-<E|W><NNN>, never renumbered or reused; messages may be reworded. Every message starts with its bracketed code, e.g. \"[RN-W201] ...\". See docs/reference/DIAGNOSTICS.md.",
+    "diagnostics": []
+}

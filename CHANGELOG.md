@@ -23,3 +23,14 @@ semantic versioning for tagged releases.
   writer.
 - Minimal hand-authored OpenDRIVE XML fixtures replace the scaffold
   placeholders, with an L5 golden for `basic.xodr`.
+- ADR 0006 accepted: the file-format contract and diagnostic numbering.
+  The bundle ships empty `ODR-` and `RN-` diagnostic catalogs
+  (`diagnostics.json`, `rn-diagnostics.json`) in its plugin resources.
+- File-format contract, writer change-block, and catalog cross-check tests,
+  run by the composed root's CTest suite.
+
+### Changed
+
+- `roadnetwork-opendrive` declares `supportsWriting: false`: saving or
+  exporting a layer through the `.xodr` format now fails with an explicit
+  Sdf error instead of returning false silently.

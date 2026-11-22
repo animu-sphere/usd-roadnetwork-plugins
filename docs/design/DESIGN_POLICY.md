@@ -316,6 +316,9 @@ It checks the extension and the minimal structural signature (for example the
 XML root element) and reads no more than needed. Full validation belongs to
 `Read()`. **`CanRead()` returning `true` does not mean the asset is valid.**
 Any failure inside `CanRead()` returns `false` rather than propagating.
+OpenUSD selects a layer's format by extension and does not call `CanRead()`
+when it opens a layer, so the routing decision serves tools; `Read()` repeats
+the structural check ([ADR 0006](../adr/0006-fileformat-contract.md#1-canread)).
 
 ### 10.3 Respect `metadataOnly`
 
@@ -337,7 +340,9 @@ attributes.
 Verify OpenUSD's `Sdf` change handling and `TransferContent` behavior on the
 supported runtime. **Do not copy the `usd-3dgs-plugins` worker-thread
 workaround unconditionally;** adopt it only if a test reproduces the problem
-it solves here.
+it solves here. ADR 0006 avoids the problem instead: the shared writer
+authors Sdf specs only, which work inside the reload's `SdfChangeBlock`
+([§5 of the ADR](../adr/0006-fileformat-contract.md#5-reload-and-authoring-thread)).
 
 ## 11. Diagnostics
 

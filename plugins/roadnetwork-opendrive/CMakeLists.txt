@@ -66,11 +66,34 @@ openstrata_configure_plugin(
     PLUG_INFO_INPUT "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/roadnetwork-opendrive/plugInfo.json.in"
     PLUG_INFO_OUTPUT "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/roadnetwork-opendrive/plugInfo.json")
 
+# Diagnostic catalogs (ADR 0006): this bundle's ODR- codes and a copy of the
+# shared RN- codes from roadnetwork-core, installed side by side.
+if(NOT roadnetworkCore_DIAGNOSTICS_CATALOG OR NOT EXISTS "${roadnetworkCore_DIAGNOSTICS_CATALOG}")
+    message(FATAL_ERROR
+        "roadnetwork-core did not provide its RN- diagnostic catalog "
+        "(roadnetworkCore_DIAGNOSTICS_CATALOG='${roadnetworkCore_DIAGNOSTICS_CATALOG}').")
+endif()
+set(_rn_catalog "${CMAKE_CURRENT_BINARY_DIR}/openstrata/resources/rn-diagnostics.json")
+configure_file("${roadnetworkCore_DIAGNOSTICS_CATALOG}" "${_rn_catalog}" COPYONLY)
+
 openstrata_install_plugin_bundle(
     TARGET ${PLUGIN_NAME}
-    RESOURCES "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/roadnetwork-opendrive/plugInfo.json"
+    RESOURCES
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/roadnetwork-opendrive/plugInfo.json"
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugin/resources/roadnetwork-opendrive/diagnostics.json"
+        "${_rn_catalog}"
     RESOURCE_DESTINATION "plugin/resources/roadnetwork-opendrive"
     MANIFESTS
         "${CMAKE_CURRENT_SOURCE_DIR}/openstrata.plugin.yaml"
         "${CMAKE_CURRENT_SOURCE_DIR}/openstrata.scaffold.yaml"
     FIXTURE_SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures")
+
+# File-format contract and catalog tests (ADR 0006). They run from the
+# composed root build (`ost test`) and from a standalone configure.
+if(NOT DEFINED ROADNETWORK_BUILD_TESTS)
+    option(ROADNETWORK_BUILD_TESTS "Build roadnetwork-opendrive tests" ${PROJECT_IS_TOP_LEVEL})
+endif()
+if(ROADNETWORK_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
