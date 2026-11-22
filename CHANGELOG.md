@@ -99,3 +99,9 @@ semantic versioning for tagged releases.
   `roadnetwork:successor`: they name the lane's own ends, not a direction of
   travel. Road links keep `roadnetwork:predecessor` and
   `roadnetwork:successor` (ADR 0002 §3, ADR 0005 §4).
+
+### Fixed
+
+- Windows: the `roadnetwork-opendrive` plugin DLL is now built and linked
+  with `/Brepro`, so a clean rebuild of unchanged sources gives the same
+  package digest. Before, the link time was stamped into the DLL.

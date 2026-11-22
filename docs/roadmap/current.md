@@ -41,12 +41,31 @@ work starts.
 | 3 | ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | F-01, F-02, F-10 | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. | merged ([#9](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/9)) |
 | 4 | ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | F-05, F-06, F-09, F-11 | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The minimal fixture set and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | merged ([#10](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/10)) |
 | 5 | USD-01 | Stage contract and the shared writer | F-07, F-08, F-09 | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | merged ([#11](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/11)) |
-| 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | — |
+| 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | in progress: `usdview` inspection and a reproducible Windows digest ([report](../reports/rel-01-inspection-2026-11-23.md)) |
 
 ## Next actions
 
-1. **Inspect the fixtures in `usdview`**, as the
-   [Phase 1 exit](release-plan.md#phase-1-exit) requires, and record it for
-   REL-01 (`ost plugin test --up-to 6` adds the `usdview` level).
-2. Update the capability matrix in the same pull request as each
-   implementation; a row without test evidence stays unsupported.
+The `usdview` inspection is recorded in the
+[REL-01 report](../reports/rel-01-inspection-2026-11-23.md). L6 needs the
+`lookdev` runtime: `ost plugin build` and `ost plugin test --up-to 6`, both
+with `--profile lookdev`. What remains for REL-01, against the
+[release gate](../releases/README.md#release-gate):
+
+1. **Narrow or confirm the OpenUSD range** in the bundle manifest
+   (`>=25.05,<27.0`, only 26.08 exercised), as
+   [supported configurations](../reference/SUPPORTED_CONFIGURATIONS.md#openusd-and-openstrata)
+   requires before the first release.
+2. **Package-origin and digest evidence on every platform.** The hosted cells
+   do not run `--from-package`, and digests were compared only on Windows
+   (gate items 3 and 4).
+3. **Notices, SBOM, and provenance** checked in the packaged artifact (gate
+   item 5).
+4. **A release workflow** that assembles a draft release from the hosted
+   cells' packages for human review (gate item 6), documented in the
+   release gate.
+5. **Format acceptance gate review** for OpenDRIVE, then the format row of
+   the capability matrix, the `[0.1.0]` changelog heading, the release
+   record, and the tag in one release PR (gate items 1 and 2).
+
+Update the capability matrix in the same pull request as each
+implementation; a row without test evidence stays unsupported.

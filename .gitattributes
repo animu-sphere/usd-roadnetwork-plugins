@@ -31,3 +31,4 @@ LICENSE text eol=lf
 *.zip -text
 *.usdc -text
 *.usdz -text
+*.png -text

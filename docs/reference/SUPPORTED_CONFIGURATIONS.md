@@ -12,8 +12,8 @@ the [capability matrix](CAPABILITY_MATRIX.md).
 | --- | --- | --- |
 | OpenStrata | 0.23.21 | 0.23.21 locally (scaffold; library build and test; bundle build, test L0–L5, package, and package-origin test L0–L5) and on the hosted `pr` and `main` cells (bootstrapped from the pinned release) |
 | OpenUSD tolerated range | `>=25.05,<27.0` (scaffold default in the bundle manifest) | only 26.08; the range is narrowed or confirmed before the first release |
-| OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`) and on the hosted `pr` and `main` cells (the Windows, Linux, and macOS runtimes pinned in `openstrata.ci.yaml`) |
-| OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd` |
+| OpenUSD runtime | 26.08 | 26.08 locally (`openstrata-cy2026-windows-x86_64-py313-usd`; the `-lookdev` runtime for the L6 `usdview` level, [REL-01 report](../reports/rel-01-inspection-2026-11-23.md#2-usdview-launch-l6)) and on the hosted `pr` and `main` cells (the Windows, Linux, and macOS runtimes pinned in `openstrata.ci.yaml`) |
+| OpenStrata platform/profile | `cy2026` / `usd` | `cy2026` / `usd`; `cy2026` / `lookdev` locally for L6 only |
 | Python ABI | CPython 3.13 | CPython 3.13 locally |
 
 OpenUSD does not promise C++ ABI compatibility across versions. Rebuild the
