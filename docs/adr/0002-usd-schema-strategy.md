@@ -205,11 +205,35 @@ Gathered in the [ADR probes §4](../reports/adr-probes-2026-11-22.md#4-sample-st
   `Flatten()`, and `uniform` variability survives too.
 - `/Asset` attributes reach a referencing stage. Layer metadata does not.
 
+Gathered in USD-01, in the shared writer
+([`libs/roadnetwork-usd`](../../libs/roadnetwork-usd/README.md)):
+
+- `WriteLayer()` authors §1–§3 from `RoadNetworkData` with Sdf specs only.
+  `roadnetworkUsd_layer_writer` checks each §3 property group on a
+  hand-built network with two lane sections, an escaped road ID, and a
+  junction. It also checks that every property under `/Asset/Network` is
+  custom, `uniform`, without time samples, and not single precision.
+- `usdchecker` passes on the generated layers of `basic.xodr`,
+  `decoder/network.xodr`, `writer/projected.xodr`, and CARLA `Town01` and
+  `Town02` (`roadnetworkOpendrive_file_format_contract`).
+- Each OpenDRIVE value in Phase 1 scope is mapped to its property in
+  [OpenDRIVE mapping §9](../reference/OPENDRIVE_MAPPING.md#9-usd-authoring).
+- Choices the text above leaves open, made in USD-01 and open to review:
+  - `roadnetwork:` properties are authored `custom`, and the standard
+    properties of `Xform` and `BasisCurves` are not.
+  - `roadnetwork:import:warningCodes` and `:warningCounts` are authored
+    also when they are empty, so that a layer states that nothing was lost.
+    They are importer records, not optional source values.
+  - Each curve prim also authors the standard `extent`, computed from its
+    `float` points.
+  - A lane with no lane-graph edge at one end has no relationship for that
+    end, and an absent junction or road link authors no relationship.
+  - A writer failure, which validation should make impossible, is the new
+    `RN-E901`, so that the one error of a failed read still starts with a
+    code ([ADR 0006 §3](0006-fileformat-contract.md#3-errors)).
+
 Needed before acceptance:
 
-- USD-01 authors the sample's content from `RoadNetworkData`, and
-  `usdchecker` passes on the generated layers of the hand-authored fixtures
-  and of CARLA `Town01` and `Town02`.
-- Review of the property list against the
-  [OpenDRIVE mapping](../reference/OPENDRIVE_MAPPING.md) rows in Phase 1
-  scope.
+- Review of the property list, the choices above, and the
+  [OpenDRIVE mapping §9](../reference/OPENDRIVE_MAPPING.md#9-usd-authoring)
+  together with ADR 0001 (current work, next action 1).

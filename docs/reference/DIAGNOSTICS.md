@@ -97,6 +97,20 @@ and `roadnetworkCore_validation` fails every code on the model.
 | `RN-E308` | On the inside of an arc, a border that is the inner border of a lane reaches the center of curvature (`t · κ ≥ 1`): the center border, or the outer border of a lane with another lane outside it ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
 | `RN-W301` | Warning. On the inside of an arc, the outer border of the outermost lane on its side reaches the center of curvature. The semantics are kept and only that border's sampled outline loops. CARLA `Town01` has one such border and `Town02` two, all sidewalks. |
 
+### `RN-` shared authoring
+
+`openstrata::rn::usd::WriteLayer()` in `roadnetwork-usd` authors data that
+has passed validation, so no input file is expected to reach its code. It
+fails rather than author a stage that contradicts the model, and the layer
+is left unchanged, as for any failed read
+([ADR 0006 §3](../adr/0006-fileformat-contract.md#3-errors)).
+`roadnetworkUsd_layer_writer` raises it with a lane edge to a missing lane
+and with an empty connection ID.
+
+| Code | Condition |
+| --- | --- |
+| `RN-E901` | The writer met data that validation guarantees cannot occur, such as an unresolved reference, a repeated ID, or an empty ID, or Sdf refused a spec. This is an importer bug. |
+
 ### `ODR-` reader
 
 The `roadnetwork-opendrive` reader reports the first failure, in both full

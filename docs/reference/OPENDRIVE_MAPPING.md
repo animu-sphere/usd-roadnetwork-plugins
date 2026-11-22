@@ -1,11 +1,12 @@
 # OpenDRIVE mapping contract
 
-- **Status:** Draft (2026-11-22). Sections 1 to 8 give the decoder's
-  mapping from OpenDRIVE to `RoadNetworkData`. The USD column stays open
-  until the stage contract (USD-01) authors the model. Each row is
-  completed in the PR that implements it, with the fixtures that prove it,
-  and the matching [capability matrix](CAPABILITY_MATRIX.md) row is updated
-  in the same PR.
+- **Status:** Draft (2026-11-23). Sections 1 to 8 give the decoder's
+  mapping from OpenDRIVE to `RoadNetworkData`, and section 9 what the shared
+  writer authors from it (USD-01). A row's status is *authored* when the
+  value reaches the stage. The USD rules follow ADRs 0002, 0003, and 0005,
+  which are still Proposed. Each row is completed in the PR that implements
+  it, with the fixtures that prove it, and the matching
+  [capability matrix](CAPABILITY_MATRIX.md) row is updated in the same PR.
 
 This page is the normative mapping for the `roadnetwork-opendrive` bundle:
 how each ASAM OpenDRIVE element becomes `RoadNetworkData`, and which USD
@@ -31,9 +32,9 @@ in [DIAGNOSTICS.md](DIAGNOSTICS.md).
 | Encoding | UTF-8 only, with or without a byte-order mark; anything else is `ODR-E003` |
 | Root element | `OpenDRIVE` with no prefix and no default namespace; anything else is `ODR-E004` |
 | `CanRead()` signature | `.xodr` extension and an `<OpenDRIVE>` root element within the first 64 KiB, after only a BOM, the XML declaration, comments, processing instructions, a DOCTYPE, and whitespace; no body parsing ([ADR 0006 §1](../adr/0006-fileformat-contract.md#1-canread)) |
-| Header provenance | `name`, `date`, `vendor`, and `version` are read verbatim as opaque strings (`date` is free text in practice). The stage contract (ADR 0002) authors them on `/Asset`, which it does not yet do. |
+| Header provenance | `name`, `date`, `vendor`, and `version` are read verbatim as opaque strings (`date` is free text in practice), and authored on `/Asset` when present (§9). |
 | Header bounding box | `north`, `south`, `east`, and `west` are not kept and raise no warning, because they are derived from the geometry. |
-| Metadata-only read | Decodes the header only: provenance, `<geoReference>`, and `<offset>`, plus the reader's element counts ([ADR 0006 §2](../adr/0006-fileformat-contract.md#2-metadataonly)). It does not decode or validate roads, lanes, or junctions, so a fixture that fails a full read can still pass a metadata-only one. |
+| Metadata-only read | Decodes the header only: provenance, `<geoReference>`, and `<offset>`, plus the reader's element counts ([ADR 0006 §2](../adr/0006-fileformat-contract.md#2-metadataonly)), and authors `/Asset` and an empty `/Asset/Network` (§9). It does not decode or validate roads, lanes, or junctions, so a fixture that fails a full read can still pass a metadata-only one. |
 
 ### Value syntax
 
@@ -58,23 +59,24 @@ coordinate is kept in the file's inertial frame, as written
 
 | Source | IR | Status |
 | --- | --- | --- |
-| `<header>/<geoReference>` | `SourceInfo::geoReference`: the text and CDATA content, with the surrounding XML whitespace trimmed; absent or empty leaves it unset. Never parsed. | decoded |
-| `<header>/<offset x y z hdg>` | `SourceInfo::offset`, exactly as read; not applied to any coordinate | decoded |
+| The inertial frame: `z` up, metres | Layer metadata `upAxis = "Z"` and `metersPerUnit = 1`, **source facts** for OpenDRIVE, not importer defaults ([ADR 0003 §1](../adr/0003-crs-axes-units.md#1-axes-and-units)). No axis conversion: source `x`, `y`, `z` are USD `x`, `y`, `z`. | authored |
+| `<header>/<geoReference>` | `SourceInfo::geoReference`: the text and CDATA content, with the surrounding XML whitespace trimmed; absent or empty leaves it unset. Never parsed. | authored |
+| `<header>/<offset x y z hdg>` | `SourceInfo::offset`, exactly as read; not applied to any coordinate | authored |
 | A second `<geoReference>` or `<offset>` | — | `ODR-E010` |
 
 ## 3. Roads and reference line
 
 | Source | IR | Status |
 | --- | --- | --- |
-| `<road id name length junction>` | `Road`: `id` and `name` verbatim, `length` in metres. `junction="-1"` means no junction; any other value is the junction ID. | decoded; a missing `id`, `length`, or `junction` is `ODR-E008` |
+| `<road id name length junction>` | `Road`: `id` and `name` verbatim, `length` in metres. `junction="-1"` means no junction; any other value is the junction ID. | authored; a missing `id`, `length`, or `junction` is `ODR-E008` |
 | `<road rule>` | — | `ODR-W207` (the driving side is not in the Phase 1 model) |
-| `<road>/<link>/<predecessor>`, `<successor>` | `RoadLink`: `elementType` `road` or `junction`, `elementId`, and for a road `contactPoint` `start` or `end` (required) | decoded; `elementS` or `elementDir` is `ODR-E204`; an unresolved target is `RN-E111` |
+| `<road>/<link>/<predecessor>`, `<successor>` | `RoadLink`: `elementType` `road` or `junction`, `elementId`, and for a road `contactPoint` `start` or `end` (required) | authored; `elementS` or `elementDir` is `ODR-E204`; an unresolved target is `RN-E111` |
 | `<road>/<link>/<neighbor>` (1.4) | — | `ODR-W206` |
-| `<road>/<type s>/<speed max unit>` | `SpeedRecord { s, max }`, converted to metres per second from `m/s` (also when `unit` is absent), `km/h`, or `mph` (0.44704 m/s) | decoded; `max="no limit"` or `"undefined"` is `ODR-W205` and not kept |
+| `<road>/<type s>/<speed max unit>` | `SpeedRecord { s, max }`, converted to metres per second from `m/s` (also when `unit` is absent), `km/h`, or `mph` (0.44704 m/s) | authored; `max="no limit"` or `"undefined"` is `ODR-W205` and not kept |
 | `<road>/<type type country>` | — | `ODR-W207` |
-| `<planView>/<geometry s x y hdg length>` | `PlanViewSegment`, in source order | decoded; chaining and continuity are validated (`RN-E303`, `RN-E305`, `RN-E306`) |
-| `<line>` | `Line` | decoded |
-| `<arc curvature>` | `Arc`, curvature in 1/m, positive to the left | decoded |
+| `<planView>/<geometry s x y hdg length>` | `PlanViewSegment`, in source order | authored; chaining and continuity are validated (`RN-E303`, `RN-E305`, `RN-E306`) |
+| `<line>` | `Line` | authored |
+| `<arc curvature>` | `Arc`, curvature in 1/m, positive to the left | authored |
 | `<spiral>`, `<poly3>`, `<paramPoly3>` | — | `ODR-E201` (Phase 2, F-12) |
 | A `<geometry>` with no shape, or with two | — | `ODR-E008`, `ODR-E010` |
 | `<road>/<objects>/*` | — | `ODR-W203`, one count per object |
@@ -90,7 +92,7 @@ no segments (`RN-E303`), and a road without `<lanes>` has no lane sections
 
 | Source | IR | Status |
 | --- | --- | --- |
-| `<elevationProfile>/<elevation s a b c d>` | `Road::elevation`, cubic records with `s0 = s` | decoded |
+| `<elevationProfile>/<elevation s a b c d>` | `Road::elevation`, cubic records with `s0 = s` | authored |
 | `<lateralProfile>/<superelevation s a b c d>` | — | accepted when `a`, `b`, `c`, and `d` are all zero; otherwise `ODR-E202` ([ADR 0004 §4](../adr/0004-opendrive-geometry-retention.md#4-profiles-in-phase-1)) |
 | `<lateralProfile>/<crossfall side s a b c d>` (1.4) | — | as for `<superelevation>` |
 | `<lateralProfile>/<shape s t a b c d>` | — | as for `<superelevation>` |
@@ -100,14 +102,14 @@ no segments (`RN-E303`), and a road without `<lanes>` has no lane sections
 
 | Source | IR | Status |
 | --- | --- | --- |
-| `<lanes layer>` (1.9) | The permanent layer: `layer` absent or `permanent` | decoded; `temporary` is `ODR-E205`, and a second permanent `<lanes>` is `ODR-E010` |
-| `<lanes>/<laneOffset s a b c d>` | `Road::laneOffset`, cubic records with `s0 = s` | decoded |
-| `<laneSection s singleSide>` | `LaneSection`, in source order; `singleSide` is not kept, because the lanes show it | decoded |
-| `<left>`, `<center>`, `<right>` | The lanes of a section: left, then center, then right, each group in descending lane number. A repeated group is `ODR-E010`. | decoded |
-| `<lane id type level>` | `Lane`: `id` is positive in `<left>`, `0` in `<center>`, and negative in `<right>` (otherwise `ODR-E101`). `type` is kept verbatim and must be one of the 31 lane types of OpenDRIVE 1.4–1.9, deprecated ones included (otherwise `ODR-E009`). | decoded; numbering gaps are `RN-E122` |
-| `<lane>/<width sOffset a b c d>` | `Lane::width`, cubic records with `s0 = sOffset`, relative to the section start | decoded; required on every non-center lane (`ODR-E008`); a `<width>` on the center lane is `ODR-E010` |
+| `<lanes layer>` (1.9) | The permanent layer: `layer` absent or `permanent` | authored; `temporary` is `ODR-E205`, and a second permanent `<lanes>` is `ODR-E010` |
+| `<lanes>/<laneOffset s a b c d>` | `Road::laneOffset`, cubic records with `s0 = s` | authored |
+| `<laneSection s singleSide>` | `LaneSection`, in source order; `singleSide` is not kept, because the lanes show it | authored |
+| `<left>`, `<center>`, `<right>` | The lanes of a section: left, then center, then right, each group in descending lane number. A repeated group is `ODR-E010`. | authored |
+| `<lane id type level>` | `Lane`: `id` is positive in `<left>`, `0` in `<center>`, and negative in `<right>` (otherwise `ODR-E101`). `type` is kept verbatim and must be one of the 31 lane types of OpenDRIVE 1.4–1.9, deprecated ones included (otherwise `ODR-E009`). | authored; numbering gaps are `RN-E122` |
+| `<lane>/<width sOffset a b c d>` | `Lane::width`, cubic records with `s0 = sOffset`, relative to the section start | authored; required on every non-center lane (`ODR-E008`); a `<width>` on the center lane is `ODR-E010` |
 | `<lane>/<border>` | — | `ODR-E203` |
-| `<lane>/<link>/<predecessor id>`, `<successor id>` | Lane-graph edges (§5.1); several are allowed | decoded; `layer="temporary"` is `ODR-E205` |
+| `<lane>/<link>/<predecessor id>`, `<successor id>` | Lane-graph edges (§5.1); several are allowed | authored; `layer="temporary"` is `ODR-E205` |
 | `<lane>/<roadMark>` | — | `ODR-W201` |
 | `<lane>/<speed>`, `<access>`, `<height>`, `<material>`, `<rule>`, `<visibility>` | — | `ODR-W206` |
 
@@ -135,9 +137,9 @@ reports them (`RN-E115`).
 
 | Source | IR | Status |
 | --- | --- | --- |
-| `<junction id name type>` | `Junction`; `type` absent or `default` | decoded; `direct`, `virtual`, and `crossing` are `ODR-E204` |
-| `<connection id incomingRoad connectingRoad contactPoint>` | `Connection`, all four attributes required | decoded; unresolved roads are `RN-E113`, and a connecting road outside the junction is `RN-E114` |
-| `<laneLink from to>` | `Connection::laneLinks` as stated, and one lane-graph edge each | decoded |
+| `<junction id name type>` | `Junction`; `type` absent or `default` | authored; `direct`, `virtual`, and `crossing` are `ODR-E204` |
+| `<connection id incomingRoad connectingRoad contactPoint>` | `Connection`, all four attributes required | authored; unresolved roads are `RN-E113`, and a connecting road outside the junction is `RN-E114` |
+| `<laneLink from to>` | `Connection::laneLinks` as stated, and one lane-graph edge each | authored |
 | `<priority>`, `<controller>`, `<surface>`, `<boundary>`, `<elevationGrid>`, `<crossPath>` | — | `ODR-W206` |
 | `<connection>/<predecessor>`, `<successor>` (virtual junctions) | — | `ODR-W206` |
 
@@ -168,3 +170,35 @@ wherever they appear, and are not authored
 Elements of the root element other than `<header>`, `<road>`, and
 `<junction>` are `ODR-W202` (`<controller>`), `ODR-W206` (`<junctionGroup>`,
 `<station>`), or `ODR-W208`.
+
+The codes and their affected-element counts are authored on `/Asset` as
+`roadnetwork:import:warningCodes` and `roadnetwork:import:warningCounts`, in
+ascending code order. A read without warnings authors two empty arrays.
+
+## 9. USD authoring
+
+The shared writer in
+[`libs/roadnetwork-usd`](../../libs/roadnetwork-usd/README.md) authors the
+model into the [stage contract](../architecture/WORKSPACE.md#5-authored-stage-contract).
+The prim tree is [ADR 0005 §3](../adr/0005-prim-path-and-id-stability.md#3-hierarchy),
+and the property list is [ADR 0002 §3](../adr/0002-usd-schema-strategy.md#3-phase-1-property-list);
+neither is copied here. This section gives only what is specific to
+OpenDRIVE.
+
+| Model value | USD | Notes |
+| --- | --- | --- |
+| `revMajor`, `revMinor` | `/Asset` `roadnetwork:source:formatVersion`, e.g. `"1.7"` | `roadnetwork:source:format` is `"opendrive"` |
+| Header `name`, `date`, `vendor`, `version` | `roadnetwork:source:name`, `:date`, `:vendor`, `:version` | not authored when absent or empty |
+| `<geoReference>`, `<offset>` | `roadnetwork:source:geoReference`, `:offset`, `:offsetHeading` | verbatim (§2) |
+| The importer | `roadnetwork:import:importer` `"roadnetwork-opendrive"` and `:importerVersion`, the bundle version | |
+| Element counts | `roadnetwork:import:roadCount`, `:junctionCount`, `:laneCount` | the reader's scan of `<road>`, `<junction>`, and `<lane>` elements, center lanes included, in full and metadata-only reads alike |
+| Road, junction, and connection IDs | prim names `road_`, `junction_`, and `connection_` followed by the escaped ID, and the verbatim ID as `roadnetwork:id` | [ADR 0005 §1](../adr/0005-prim-path-and-id-stability.md#1-encoding-source-ids); `junction="-1"` authors no `roadnetwork:junction` |
+| Lane section, lane | `section_<n>`; `left_<n>`, `center`, `right_<n>` | [ADR 0005 §2](../adr/0005-prim-path-and-id-stability.md#2-derived-names) |
+| `<line>`, `<arc>` | `roadnetwork:referenceLine:kind` `line` or `arc`; `:curvature` is 0 for a line | |
+| `<elevation>`, `<laneOffset>`, `<width>` | five `double[]` each: `:s` (`:sOffset` for a width), `:a`, `:b`, `:c`, `:d` | an absent profile is not authored; the center lane has no width |
+| Lane `type` | `roadnetwork:laneType`, a `token` with the source spelling | |
+| Road `<type>/<speed>` | `roadnetwork:speed:s` and `:max`, in metres per second | `"no limit"` and `"undefined"` are not authored (`ODR-W205`) |
+| Road link `contactPoint` | `roadnetwork:predecessorContact`, `:successorContact` | only for a road target |
+| Lane links and junction `<laneLink>` | `roadnetwork:predecessor` and `:successor` on both lanes of each lane-graph edge (§5.1) | they name the lane's own start and end, not a direction of travel |
+| Junction `<laneLink from to>` | `roadnetwork:laneLink:from` and `:to` on the connection | source lane numbers in source order, beside the lane relationships |
+| Lane borders and centerlines | `/Asset/Visualization/Boundaries` and `/Centerlines`, one linear `BasisCurves` per road | derived; sampled within 1 cm ([ADR 0004 §3](../adr/0004-opendrive-geometry-retention.md#3-tessellation)) and shifted by the origin of [ADR 0003 §5](../adr/0003-crs-axes-units.md#5-precision) |

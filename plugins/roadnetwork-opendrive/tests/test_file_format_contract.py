@@ -9,9 +9,11 @@ one coded error, the accepted version range, and a failed reload that keeps
 the previous content. The decoder (ODR-02) adds the decoder and validation
 fixtures, which fail a full read but pass a metadata-only one, and the
 warnings: each code posted once per successful read, and none by a failed
-one. The shared writer still authors an empty layer, so the checks that
-depend on authored content (/Asset, provenance) arrive with the stage
-contract (USD-01).
+one. The stage contract (USD-01) adds the authored content: /Asset and its
+provenance, a metadata-only /Asset that agrees with a full one, two
+references of one network that keep their own relationship targets, reload
+with unchanged paths and targets, and usdchecker on the generated layers.
+The writer's own unit test covers the property groups one by one.
 """
 
 import os
@@ -23,13 +25,15 @@ import sys
 import tempfile
 import time
 
-from pxr import Sdf, Tf, Usd
+from pxr import Gf, Sdf, Tf, Usd, UsdGeom
 
-FIXTURES = pathlib.Path(__file__).resolve().parent / "fixtures"
+BUNDLE = pathlib.Path(__file__).resolve().parents[1]
+FIXTURES = BUNDLE / "tests" / "fixtures"
 BASIC = FIXTURES / "basic.xodr"
 READER = FIXTURES / "reader"
 DECODER = FIXTURES / "decoder"
 NETWORK = DECODER / "network.xodr"
+PROJECTED = FIXTURES / "writer" / "projected.xodr"
 
 # The fixtures each code is proven by (DIAGNOSTICS.md), and whether CanRead()
 # accepts them: it looks only at the prologue, so a malformed body or an
@@ -68,7 +72,7 @@ CONTENT_REJECTED = [(DECODER / f"{name}.xodr", code) for name, code in [
     ("plan-view-gap", "RN-E305"),
     ("inner-border", "RN-E308"),
 ]]
-ACCEPTED = [BASIC, NETWORK, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
+ACCEPTED = [BASIC, NETWORK, PROJECTED, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
             FIXTURES / "carla" / "Town01.xodr", FIXTURES / "carla" / "Town02.xodr"]
 SNIFF_BYTES = 64 * 1024
 
@@ -182,8 +186,7 @@ def check_failed_reload_keeps_content(tmp):
     check(layer is not None, "the failed-reload fixture did not open")
     if layer is None:
         return
-    # The read authored an empty layer. Give it content that only a
-    # successful read replaces.
+    # Give the layer content that only a successful read replaces.
     Sdf.CreatePrimInLayer(layer, "/Marker")
     check(bool(layer.GetPrimAtPath("/Marker")), "the marker prim was not authored")
 
@@ -271,7 +274,11 @@ def check_open_and_read_only(tmp):
     # WriteToString exposes the layer as USDA for inspection; that is not export.
     text = layer.ExportToString()
     check(text.startswith("#usda 1.0"), "ExportToString does not produce USDA")
-    check(not layer.rootPrims, "the layer is not empty before the stage contract")
+    check([prim.name for prim in layer.rootPrims] == ["Asset"], "the only root prim is not /Asset")
+    check(layer.defaultPrim == "Asset", f"defaultPrim is {layer.defaultPrim!r}")
+    # No environment-dependent value is authored (WORKSPACE.md section 5).
+    check(str(BASIC.parent) not in text and BASIC.name not in text,
+          "the layer records the source path")
     # Exporting through the xodr format is refused explicitly.
     target = tmp / "export.xodr"
     check(expect_tf_error(lambda: layer.Export(str(target))),
@@ -293,11 +300,10 @@ def check_composition(tmp):
     if stage:
         formats = {layer.GetFileFormat().formatId for layer in stage.GetUsedLayers()}
         check("xodr" in formats, "the sublayered xodr layer is not used by the stage")
+        check(bool(stage.GetPrimAtPath("/Asset/Network/Roads/road_1/section_0/right_1")),
+              "the sublayered lane is missing")
 
-    # Reference: Pcp resolves and opens the xodr asset. Until the stage
-    # contract lands the layer has no defaultPrim, so the arc targets nothing yet; the check is that the
-    # asset is reached through the plugin. Prim contents are checked once the
-    # writer authors /Asset (WORKSPACE.md §5).
+    # Reference: the arc targets the defaultPrim, /Asset.
     write_usda(tmp / "reference.usda",
                'def "Road" (\n    prepend references = @./net.xodr@\n)\n{\n}\n')
     stage = Usd.Stage.Open(str(tmp / "reference.usda"))
@@ -305,22 +311,201 @@ def check_composition(tmp):
     if stage:
         formats = {layer.GetFileFormat().formatId for layer in stage.GetUsedLayers()}
         check("xodr" in formats, "the referenced xodr layer is not used by the stage")
-        check(bool(stage.GetPrimAtPath("/Road")), "the referencing prim is missing")
+        road = stage.GetPrimAtPath("/Road")
+        check(road.GetTypeName() == "Xform", "the referencing prim did not take /Asset's type")
+        check(bool(stage.GetPrimAtPath("/Road/Network/Roads/road_1")), "the referenced road is missing")
+
+    # Payload: unloaded, the arc contributes nothing; loaded, it composes like
+    # a reference.
+    write_usda(tmp / "payload.usda",
+               'def "Lazy" (\n    prepend payload = @./net.xodr@\n)\n{\n}\n')
+    stage = Usd.Stage.Open(str(tmp / "payload.usda"), Usd.Stage.LoadNone)
+    check(bool(stage), "a stage with a net.xodr payload did not open")
+    if stage:
+        lane = "/Lazy/Network/Roads/road_1/section_0/right_1"
+        check(not stage.GetPrimAtPath(lane), "an unloaded payload composed its content")
+        stage.Load("/Lazy")
+        check(bool(stage.GetPrimAtPath(lane)), "a loaded payload did not compose the lane")
+        check(stage.GetPrimAtPath("/Lazy").GetAttribute("roadnetwork:source:format").Get() == "opendrive",
+              "the payload's /Asset provenance did not reach the payload prim")
+        stage.Unload("/Lazy")
+        check(not stage.GetPrimAtPath(lane), "an unloaded payload kept its content")
+
+
+def relationship_targets(stage):
+    """Every authored relationship target of the composed stage, by owning
+    property."""
+    targets = {}
+    for prim in stage.Traverse():
+        for relationship in prim.GetAuthoredRelationships():
+            targets[str(relationship.GetPath())] = [str(t) for t in relationship.GetTargets()]
+    return targets
+
+
+def check_two_references(tmp):
+    """ADR 0005 section 6: one network referenced twice keeps two sets of
+    relationship targets, each inside its own reference, and flattening keeps
+    them. /Asset attributes reach both referencing prims (ADR 0003)."""
+    shutil.copyfile(NETWORK, tmp / "city.xodr")
+    write_usda(tmp / "two.usda", (
+        '(\n    defaultPrim = "World"\n    metersPerUnit = 1\n    upAxis = "Z"\n)\n'
+        'def Xform "World"\n{\n'
+        '    def "CityA" (\n        prepend references = @./city.xodr@\n    )\n    {\n    }\n'
+        '    def "CityB" (\n        prepend references = @./city.xodr@\n    )\n    {\n    }\n'
+        '}\n'))
+    stage = Usd.Stage.Open(str(tmp / "two.usda"))
+    check(bool(stage), "the stage with two references did not open")
+    if not stage:
+        return
+    targets = relationship_targets(stage)
+    check(len(targets) > 0, "the referenced networks have no relationships")
+    for owner, paths in targets.items():
+        city = owner.split("/")[2]
+        check(bool(paths) and all(path.startswith(f"/World/{city}/") for path in paths),
+              f"{owner} targets outside its reference: {paths}")
+    lane = "Network/Roads/road_1/section_0/right_1"
+    for city in ("CityA", "CityB"):
+        successor = stage.GetPrimAtPath(f"/World/{city}/{lane}").GetRelationship("roadnetwork:successor")
+        check([str(t) for t in successor.GetTargets()] ==
+              [f"/World/{city}/Network/Roads/road_1/section_1/right_1"],
+              f"{city}: the lane successor is not remapped into its reference")
+        geo = stage.GetPrimAtPath(f"/World/{city}").GetAttribute("roadnetwork:source:geoReference").Get()
+        check(bool(geo), f"{city}: the georeference does not reach the referencing prim")
+
+    # Flattening keeps the remapped targets.
+    flat = Usd.Stage.Open(stage.Flatten())
+    check(relationship_targets(flat) == targets, "flattening changed relationship targets")
+
+
+def check_usdchecker():
+    """The Phase 1 exit: generated layers pass usdchecker."""
+    tool = shutil.which("usdchecker")
+    for path in (BASIC, NETWORK, PROJECTED, FIXTURES / "carla" / "Town01.xodr",
+                 FIXTURES / "carla" / "Town02.xodr"):
+        if tool:
+            run = subprocess.run([tool, str(path)], capture_output=True, text=True,
+                                 encoding="utf-8", errors="replace")
+            check(run.returncode == 0 and "Success!" in run.stdout,
+                  f"usdchecker fails {path.name}: {run.stdout[-2000:]}{run.stderr[-2000:]}")
+        else:
+            from pxr import UsdUtils
+            checker = UsdUtils.ComplianceChecker()
+            checker.CheckCompliance(str(path))
+            problems = checker.GetErrors() + checker.GetFailedChecks()
+            check(not problems, f"the compliance checker fails {path.name}: {problems}")
+
+
+def check_import_record():
+    """roadnetwork:import:importerVersion is the bundle version (ADR 0002)."""
+    manifest = (BUNDLE / "openstrata.plugin.yaml").read_text(encoding="utf-8")
+    match = re.search(r"^plugin:\n(?:[ \t]+.*\n)*?[ \t]+version:[ \t]*([0-9][^\s#]*)", manifest, re.M)
+    check(match is not None, "the manifest has no plugin version")
+    layer = Sdf.Layer.OpenAsAnonymous(str(BASIC))
+    if match is None or layer is None:
+        return
+    asset = "/Asset.roadnetwork:import:"
+    check(layer.GetAttributeAtPath(asset + "importer").default == "roadnetwork-opendrive",
+          "the importer is not roadnetwork-opendrive")
+    check(layer.GetAttributeAtPath(asset + "importerVersion").default == match.group(1),
+          "the importer version differs from the manifest")
+
+
+def check_projected(tmp):
+    """ADR 0003 sections 3-5 on writer/projected.xodr: the georeference and
+    offset reach /Asset unchanged, and through a reference every
+    visualization point lies within 0.5 mm of its closed-form source curve,
+    although the points are single precision at 5,400 km."""
+    x0, y0, z = 500737.123456, 5427713.654321, 12.5
+    line_end, radius = x0 + 60.0, 100.0
+    # Lateral offsets in curve order (ADR 0005 section 5): the centerlines of
+    # left_1 and right_1; the center border, then the outer borders.
+    offsets = {"Centerlines": [1.5, -1.75], "Boundaries": [0.0, 3.0, -3.5]}
+
+    shutil.copyfile(PROJECTED, tmp / "projected.xodr")
+    write_usda(tmp / "projected.usda",
+               'def "Site" (\n    prepend references = @./projected.xodr@\n)\n{\n}\n')
+    stage = Usd.Stage.Open(str(tmp / "projected.usda"))
+    check(bool(stage), "the stage referencing projected.xodr did not open")
+    if not stage:
+        return
+    site = stage.GetPrimAtPath("/Site")
+    check(site.GetAttribute("roadnetwork:source:geoReference").Get() ==
+          "+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs",
+          "the georeference is not verbatim")
+    check(site.GetAttribute("roadnetwork:source:offset").Get() == Gf.Vec3d(-500000.0, -5400000.0, 0.0),
+          "the offset is not verbatim")
+    check(site.GetAttribute("roadnetwork:source:offsetHeading").Get() == 0.0, "the offset heading")
+    # The semantic layer keeps the source coordinates in double.
+    road = stage.GetPrimAtPath("/Site/Network/Roads/road_1")
+    check(list(road.GetAttribute("roadnetwork:referenceLine:x").Get()) == [x0, line_end],
+          "the reference line x values are not exact")
+
+    origin = stage.GetPrimAtPath("/Site/Visualization").GetAttribute("xformOp:translate").Get()
+    check(origin is not None and all(value % 1024.0 == 0.0 for value in origin),
+          f"the origin {origin} is not a multiple of 1,024 m")
+    worst = 0.0
+    for container, laterals in offsets.items():
+        prim = stage.GetPrimAtPath(f"/Site/Visualization/{container}/road_1")
+        matrix = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+        counts = prim.GetAttribute("curveVertexCounts").Get()
+        points = prim.GetAttribute("points").Get()
+        check(list(counts) and len(counts) == len(laterals), f"{container}: {len(counts)} curves")
+        start = 0
+        for count, t in zip(counts, laterals):
+            for point in points[start:start + count]:
+                world = matrix.Transform(Gf.Vec3d(point))
+                if world[0] <= line_end:
+                    error = abs(world[1] - (y0 + t))
+                else:
+                    center = Gf.Vec2d(line_end, y0 + radius)
+                    error = abs((Gf.Vec2d(world[0], world[1]) - center).GetLength() - (radius - t))
+                worst = max(worst, error, abs(world[2] - z))
+            start += count
+    check(worst <= 0.0005, f"a visualization point is {worst * 1000:.3f} mm from its source curve")
+
+
+def asset_properties(layer, prefix):
+    asset = layer.GetPrimAtPath("/Asset")
+    return {name: asset.properties[name].default for name in asset.properties.keys()
+            if name.startswith(prefix)}
 
 
 def check_metadata_only():
-    full = Sdf.Layer.OpenAsAnonymous(str(BASIC), metadataOnly=False)
-    meta = Sdf.Layer.OpenAsAnonymous(str(BASIC), metadataOnly=True)
-    check(full is not None, "a full anonymous read failed")
-    check(meta is not None, "a metadata-only anonymous read failed")
-    if full is None or meta is None:
-        return
-    # ADR 0006: a metadata-only read authors the header-derived root and no
-    # per-element content. Until the decoder and the stage contract land,
-    # both reads are empty and must agree.
-    check(not meta.rootPrims, "the metadata-only layer is not empty")
-    check(meta.ExportToString() == full.ExportToString(),
-          "metadata-only and full reads differ")
+    """ADR 0006 section 2: a metadata-only read authors the layer metadata,
+    /Asset with the provenance and counts of a full read, and an empty
+    /Asset/Network; its warnings are those of the header scan."""
+    for path in (BASIC, NETWORK, FIXTURES / "carla" / "Town01.xodr"):
+        full = Sdf.Layer.OpenAsAnonymous(str(path), metadataOnly=False)
+        meta = Sdf.Layer.OpenAsAnonymous(str(path), metadataOnly=True)
+        check(full is not None, f"a full read of {path.name} failed")
+        check(meta is not None, f"a metadata-only read of {path.name} failed")
+        if full is None or meta is None:
+            continue
+        what = f"metadata-only {path.name}"
+        check(meta.defaultPrim == "Asset", f"{what}: defaultPrim is {meta.defaultPrim!r}")
+        for key in ("upAxis", "metersPerUnit"):
+            check(meta.pseudoRoot.GetInfo(key) == full.pseudoRoot.GetInfo(key), f"{what}: {key} differs")
+        check([prim.name for prim in meta.rootPrims] == ["Asset"], f"{what}: root prims")
+        check([prim.name for prim in meta.GetPrimAtPath("/Asset").nameChildren] == ["Network"],
+              f"{what}: /Asset holds more than an empty Network")
+        check(not meta.GetPrimAtPath("/Asset/Network").nameChildren, f"{what}: /Asset/Network is not empty")
+        check(asset_properties(meta, "roadnetwork:source:") == asset_properties(full, "roadnetwork:source:"),
+              f"{what}: the source provenance differs from a full read")
+        meta_import = asset_properties(meta, "roadnetwork:import:")
+        full_import = asset_properties(full, "roadnetwork:import:")
+        for key in ("importer", "importerVersion", "roadCount", "junctionCount", "laneCount"):
+            name = "roadnetwork:import:" + key
+            check(meta_import.get(name) == full_import.get(name), f"{what}: {name} differs from a full read")
+        codes = list(meta_import.get("roadnetwork:import:warningCodes", []))
+        check(codes == posted_warnings(path, metadata_only=True),
+              f"{what}: the recorded warnings {codes} are not the posted ones")
+    full = Sdf.Layer.OpenAsAnonymous(str(NETWORK))
+    counts = asset_properties(full, "roadnetwork:import:")
+    check((counts["roadnetwork:import:roadCount"], counts["roadnetwork:import:junctionCount"],
+           counts["roadnetwork:import:laneCount"]) == (3, 1, 13),
+          f"network.xodr counts: {counts}")
+    codes = list(counts["roadnetwork:import:warningCodes"])
+    check(codes == posted_warnings(NETWORK), f"network.xodr records {codes}, not the posted warnings")
 
 
 def check_determinism():
@@ -331,17 +516,19 @@ def check_determinism():
 
 def check_reload(tmp):
     path = tmp / "reload.xodr"
-    shutil.copyfile(BASIC, path)
+    shutil.copyfile(NETWORK, path)
     stage = Usd.Stage.Open(str(path))
     check(bool(stage), "the reload fixture did not open")
     if not stage:
         return
     layer = stage.GetRootLayer()
     before = layer.ExportToString()
+    paths_before = [str(prim.GetPath()) for prim in stage.Traverse()]
+    targets_before = relationship_targets(stage)
+    check(len(paths_before) > 1 and bool(targets_before), "the reload fixture has no content")
 
     # Sdf sends LayerDidReloadContent once per successful reload, after the
-    # outermost change block closes. Pcp resyncs only specs that differ, so
-    # identical (here empty) content produces no Usd.Notice.ObjectsChanged.
+    # outermost change block closes.
     reloads = []
     listener = Tf.Notice.Register(
         Sdf.Notice.LayerDidReloadContent, lambda notice, sender: reloads.append(sender), layer)
@@ -369,6 +556,10 @@ def check_reload(tmp):
 
     check(len(reloads) == 4, "the on-disk change was not re-read")
     check(layer.ExportToString() == before, "reloaded content differs from the first read")
+    # ADR 0005 section 7: an unchanged network keeps its paths and targets.
+    check([str(prim.GetPath()) for prim in stage.Traverse()] == paths_before,
+          "prim paths changed across reload")
+    check(relationship_targets(stage) == targets_before, "relationship targets changed across reload")
     check(not layer.dirty, "the layer is dirty after reload")
     check(bool(stage.GetPseudoRoot()), "the stage is unusable after reload")
     del listener
@@ -380,7 +571,11 @@ def main():
         for test in (check_registration,
                      lambda: check_open_and_read_only(tmp),
                      lambda: check_composition(tmp),
+                     lambda: check_two_references(tmp),
                      check_metadata_only,
+                     check_import_record,
+                     lambda: check_projected(tmp),
+                     check_usdchecker,
                      check_determinism,
                      lambda: check_reload(tmp),
                      lambda: check_reader_fixtures(tmp),

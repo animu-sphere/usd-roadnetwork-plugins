@@ -46,6 +46,10 @@ namespace {
 
 namespace odr = openstrata::rn::odr;
 
+/// The bundle identity recorded as roadnetwork:import:importer (ADR 0002
+/// section 3); the version comes from the CMake project.
+constexpr const char* kImporter = "roadnetwork-opendrive";
+
 /// Posts the one error a failed Read() reports (ADR 0006 section 3): the
 /// bracketed code first, then the asset, then what was found.
 void PostReadError(std::string_view code, const std::string& asset, const std::string& detail) {
@@ -104,12 +108,25 @@ bool RoadnetworkOpendriveFileFormat::Read(
       return false;
     }
 
-    // The shared writer is the only author of the layer. Until the stage
-    // contract (USD-01) it authors an empty layer, so a failure there leaves
-    // the warnings unposted.
-    std::string error;
-    if (!openstrata::rn::usd::WriteLayer(import.data, *layer, &error)) {
-      TF_RUNTIME_ERROR("Could not author a USD layer for '%s': %s", resolvedPath.c_str(), error.c_str());
+    // The shared writer is the only author of the layer (WORKSPACE.md
+    // section 5). Both reads take the counts from the reader's scan, so a
+    // metadata-only /Asset agrees with a full one (ADR 0006 section 2). A
+    // writer failure is relayed with its RN- code, and leaves the warnings
+    // unposted, like any other failed read.
+    openstrata::rn::usd::ImportRecord record;
+    record.importer = kImporter;
+    record.importerVersion = ROADNETWORKOPENDRIVE_VERSION;
+    record.roadCount = import.counts.roads;
+    record.junctionCount = import.counts.junctions;
+    record.laneCount = import.counts.lanes;
+    openstrata::rn::Diagnostic written;
+    if (!openstrata::rn::usd::WriteLayer(import.data, record, *layer, &written)) {
+      const std::string code = "[" + written.code + "]";
+      std::string detail = written.message;
+      if (detail.compare(0, code.size(), code) == 0) {
+        detail.erase(0, std::min(detail.size(), code.size() + 1));
+      }
+      PostReadError(code, resolvedPath, detail);
       return false;
     }
     // Each warning code once per read (ADR 0006 section 4).

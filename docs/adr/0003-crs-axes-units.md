@@ -160,12 +160,27 @@ Gathered in the [ADR probes](../reports/adr-probes-2026-11-22.md):
 - an origin-shifted point at UTM scale is recovered within 4.5e-8 m through
   a reference, and the layer passes `usdchecker` (§8).
 
+Gathered in USD-01:
+
+- `writer/projected.xodr`, a hand-authored road at about 500 km east and
+  5,428 km north with a georeference and an `<offset>`, in the bundle
+  manifest. Its line and arc have closed forms.
+- Through a reference, `roadnetworkOpendrive_file_format_contract` checks
+  that the georeference, the offset, and the offset heading reach the
+  referencing prim unchanged; that the origin on `/Asset/Visualization` is a
+  multiple of 1,024 m; and that every point, mapped to world space by
+  `ComputeLocalToWorldTransform`, lies within 0.5 mm of its closed-form
+  curve. The worst point is 0.024 mm away. Rounded to `float` without the
+  shift, the same points would be up to 246 mm away. The layer passes
+  `usdchecker`.
+- The CARLA `Town01` and `Town02` layers author no `xformOp`, and every
+  layer authors `upAxis = "Z"` and `metersPerUnit = 1`, in full and
+  metadata-only reads alike.
+- `roadnetworkUsd_layer_writer` checks the §5 rule on a UTM-scale road
+  built in code: the origin is the rounded center of the bounds, and every
+  `float` point plus the origin is within 0.5 mm of the tessellator's
+  `double` sample.
+
 Needed before acceptance:
 
-- A hand-authored fixture with large projected coordinates and an
-  `<offset>` ([FMT-01 spike §8](../reports/format-spike-opendrive-2026-11-22.md#8-fixtures)).
-- A USD-01 round-trip test showing that every visualization point of that
-  fixture reconstructs its evaluated source position within 0.5 mm, and that
-  the CARLA fixtures author no `xformOp`.
-- An ODR-02 test showing that the georeference and offset of the fixture
-  reach `/Asset` unchanged.
+- Review (current work, next action 1).

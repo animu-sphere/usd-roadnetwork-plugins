@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  ADR 0003 evidence: one road at UTM-scale projected coordinates, about
+  500 km east and 5,428 km north, with a georeference and a header offset.
+  A 60 m line is followed by a 60 m left arc of radius 100 m. The left lane
+  is 3 m wide and the right lane 3.5 m, and the elevation is a constant
+  12.5 m, so every border and centerline has a closed form. In single
+  precision without the origin shift of ADR 0003 section 5, these points
+  would be rounded by up to 25 cm. The header revision is illustrative; the
+  file is not validated against the ASAM schema.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="6" name="projected" version="1.0" date="2026-11-23T00:00:00" vendor="usd-roadnetwork-plugins" north="5427740.0" south="5427709.0" east="500857.0" west="500737.0">
+    <geoReference><![CDATA[+proj=utm +zone=32 +ellps=WGS84 +datum=WGS84 +units=m +no_defs]]></geoReference>
+    <offset x="-500000.0" y="-5400000.0" z="0.0" hdg="0.0"/>
+  </header>
+  <road name="projected" length="120.0" id="1" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0.0" x="500737.123456" y="5427713.654321" hdg="0.0" length="60.0">
+        <line/>
+      </geometry>
+      <geometry s="60.0" x="500797.123456" y="5427713.654321" hdg="0.0" length="60.0">
+        <arc curvature="0.01"/>
+      </geometry>
+    </planView>
+    <elevationProfile>
+      <elevation s="0.0" a="12.5" b="0.0" c="0.0" d="0.0"/>
+    </elevationProfile>
+    <lanes>
+      <laneSection s="0.0">
+        <left>
+          <lane id="1" type="driving" level="false">
+            <width sOffset="0.0" a="3.0" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </left>
+        <center>
+          <lane id="0" type="none" level="false"/>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>

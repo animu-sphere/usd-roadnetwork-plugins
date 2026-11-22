@@ -83,7 +83,8 @@ libs/roadnetwork-core/include/openstrata/rn/...
     RoadNetworkData, validation, geometry evaluation, diagnostics helpers
 
 libs/roadnetwork-usd/include/openstrata/rn/usd/...
-    shared layer writer
+    shared layer writer (LayerWriter.h) and the ADR 0005 prim names
+    (PrimNames.h)
 ```
 
 ## 4. Repository layout

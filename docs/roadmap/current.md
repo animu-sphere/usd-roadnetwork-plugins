@@ -39,18 +39,22 @@ work starts.
 | 1 | IR-01 | `RoadNetworkData` types and validation | F-03, F-06 | `roadnetwork-core` | [0001](../adr/0001-roadnetwork-data-model.md) | The ADR 0001 types replace the placeholder. Each validation invariant fails a unit test with its `RN-` code. | merged ([#6](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/6)) |
 | 2 | GEO-01 | Line, arc, and cubic evaluation; lane borders; tessellation | F-04, F-05, F-08 | `roadnetwork-core` | [0004](../adr/0004-opendrive-geometry-retention.md) | Closed-form position and heading tests pass, and sampled borders stay within the tolerance on a hand-authored fixture. | merged ([#8](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/8)) |
 | 3 | ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | F-01, F-02, F-10 | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. | merged ([#9](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/9)) |
-| 4 | ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | F-05, F-06, F-09, F-11 | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The minimal fixture set and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | in review ([#10](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/10)) |
-| 5 | USD-01 | Stage contract and the shared writer | F-07, F-08, F-09 | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | — |
+| 4 | ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | F-05, F-06, F-09, F-11 | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The minimal fixture set and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | merged ([#10](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/10)) |
+| 5 | USD-01 | Stage contract and the shared writer | F-07, F-08, F-09 | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | in review ([#11](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/11)) |
 | 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | — |
 
 ## Next actions
 
-1. **Review ADRs 0001 and 0002 together**: the undirected lane-end links and
-   the USD `predecessor`/`successor` relationships must mean the same thing,
-   and both must extend to a second format. Review ADR 0004 §2's
-   `RN-E308`/`RN-W301` split, found while decoding CARLA in ODR-02, at the
-   same time.
-2. **Write IR-to-USD golden semantic assertions** that check paths, types,
-   values, and relationships rather than whole USDA text.
+1. **Review ADRs 0001–0005 for acceptance.** Each ADR's evidence section
+   now lists what IR-01 to USD-01 gathered. Review ADRs 0001 and 0002
+   together: the undirected lane-end links and the USD
+   `predecessor`/`successor` relationships must mean the same thing, and
+   both must extend to a second format. Review at the same time ADR 0004
+   §2's `RN-E308`/`RN-W301` split, found while decoding CARLA in ODR-02,
+   and the choices USD-01 made where ADR 0002 is silent
+   ([ADR 0002 evidence](../adr/0002-usd-schema-strategy.md#evidence)).
+2. **Inspect the fixtures in `usdview`**, as the
+   [Phase 1 exit](release-plan.md#phase-1-exit) requires, and record it for
+   REL-01 (`ost plugin test --up-to 6` adds the `usdview` level).
 3. Update the capability matrix in the same pull request as each
    implementation; a row without test evidence stays unsupported.
