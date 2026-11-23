@@ -27,6 +27,16 @@
 # run `ost plugin build` first, which does. Merge them back into
 # `verify: package` workspace cells once a fixed ost is bootstrapped.
 #
+# PACKAGE CHECKS. The generated bundle job builds, runs the pyramid, and
+# packages, but does not test the package. `source_checks` adds that step to
+# the bundle cells only: it renders after the pyramid, and the workspace cells
+# skip it because they stop at `verify: test`. It packages the bundle, runs
+# the pyramid against the package (`--from-package`), packages again, and
+# checks with tools/check_package.py that both packagings give one digest and
+# that the package carries the notices, SBOM, provenance, and target metadata
+# the release gate requires (docs/releases/README.md#release-gate, items 3 to
+# 5). The release workflow adds a clean rebuild on top.
+#
 # RUNTIME PINS. The three runtimes are the OpenUSD 26.08 imaging leaves of
 # ost's canonical runtime matrix (Python 3.13, `sdk` layout, SBOM and
 # provenance attached). They are adopted unchanged from the sibling
@@ -53,6 +63,16 @@ bootstrap:
   ost:
     version: "0.23.21"
     repository: animu-sphere/open-strata
+
+source_checks:
+  - name: Test the package and check its digest and contents
+    run: |
+      set -euo pipefail
+      mkdir -p .ost-ci
+      ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package.json
+      ost plugin test ${{ matrix.bundle }} --from-package --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json | tee .ost-ci/package-test.json
+      ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+      python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
 
 runners:
   windows:

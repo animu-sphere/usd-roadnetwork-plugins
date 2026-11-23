@@ -39,9 +39,9 @@ the declared range.
 
 | OS / architecture | CI contract | Observed |
 | --- | --- | --- |
-| Windows 2022 / x86_64 / MSVC 143 | `workspace-{pr,main}-windows`, `opendrive-{pr,main}-windows` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged. Local Windows 11 also passes `--from-package --up-to 5` at L0–L5 |
-| macOS 15 / arm64 / libc++ | `workspace-{pr,main}-macos`, `opendrive-{pr,main}-macos` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
-| Ubuntu 24.04 / x86_64 | `workspace-{pr,main}-linux`, `opendrive-{pr,main}-linux` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged |
+| Windows 2022 / x86_64 / MSVC 143 | `workspace-{pr,main}-windows`, `opendrive-{pr,main}-windows` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged; on 2026-11-23 ([run 45125946195](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45125946195)) the `pr` bundle cell also passes the package checks: `--from-package` L0–L5 (15 pass, 1 skip), a repackaging repeats the digest, and `tools/check_package.py` passes |
+| macOS 15 / arm64 / libc++ | `workspace-{pr,main}-macos`, `opendrive-{pr,main}-macos` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged; on 2026-11-23 ([run 45125946195](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45125946195)) the `pr` bundle cell also passes the package checks: `--from-package` L0–L5 (15 pass, 1 skip), a repackaging repeats the digest, and `tools/check_package.py` passes |
+| Ubuntu 24.04 / x86_64 | `workspace-{pr,main}-linux`, `opendrive-{pr,main}-linux` | hosted `pr` and `main` cells pass (2026-11-22, [run 45006974286](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45006974286) and [run 45007612429](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45007612429)): CTest 4 of 4; pyramid L0–L5 (12 pass, 4 skip); bundle packaged; on 2026-11-23 ([run 45125946195](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45125946195)) the `pr` bundle cell also passes the package checks: `--from-package` L0–L5 (15 pass, 1 skip), a repackaging repeats the digest, and `tools/check_package.py` passes |
 
 The CI contract is [`openstrata.ci.yaml`](../../openstrata.ci.yaml). Every
 cell runs on a GitHub-hosted runner, bootstraps the pinned `ost`, and pulls the
@@ -51,12 +51,17 @@ they verify:
 - `workspace-*` checks the dependency graph, builds the composed root with
   `ost build`, and runs its CTest suite with `ost test`.
 - `opendrive-*` builds the `roadnetwork-opendrive` bundle with its required
-  libraries, runs its verification pyramid up to L5, and packages it.
+  libraries, runs its verification pyramid up to L5, and packages it. A
+  `source_checks` step then runs the pyramid against the package
+  (`--from-package`), packages again, and checks with
+  [`tools/check_package.py`](../../tools/check_package.py) that the digest
+  repeats and that the package carries its license, notices, SBOM,
+  provenance, and target metadata.
 
 Both kinds are needed because of an `ost` 0.23.21 generator gap
 ([open-strata#304](https://github.com/animu-sphere/open-strata/issues/304)):
 a workspace cell cannot run the pyramid or packaging on a clean checkout.
-Neither kind runs the package-origin test (`--from-package`).
+The package checks therefore run in the bundle cells only.
 
 Pull requests run the `pr` cells, and pushes to `main` run the `main` cells.
 Both go through the hand-written
@@ -64,6 +69,11 @@ Both go through the hand-written
 `docs/`, or `LICENSE` alone do not build. The jobs in
 [`ost-source-ci.yml`](../../.github/workflows/ost-source-ci.yml) are generated
 from the matrix; do not edit them by hand.
+
+A tag runs the same cells through the hand-written
+[`release.yml`](../../.github/workflows/release.yml), which adds a clean
+rebuild and publishes the packages
+([release gate](../releases/README.md#what-enforces-each-item)).
 
 Hosted support is claimed only after the declared CI jobs complete; a row is
 updated with a run link in the PR that proves it.
