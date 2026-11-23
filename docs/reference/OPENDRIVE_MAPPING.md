@@ -36,6 +36,20 @@ in [DIAGNOSTICS.md](DIAGNOSTICS.md).
 | Header bounding box | `north`, `south`, `east`, and `west` are not kept and raise no warning, because they are derived from the geometry. |
 | Metadata-only read | Decodes the header only: provenance, `<geoReference>`, and `<offset>`, plus the reader's element counts ([ADR 0006 §2](../adr/0006-fileformat-contract.md#2-metadataonly)), and authors `/Asset` and an empty `/Asset/Network` (§9). It does not decode or validate roads, lanes, or junctions, so a fixture that fails a full read can still pass a metadata-only one. |
 
+### Untrusted input
+
+Every asset is treated as untrusted
+([design policy §9](../design/DESIGN_POLICY.md#9-strictness)). The reader
+parses with pugixml 1.16 ([FMT-01 §6](../reports/format-spike-opendrive-2026-11-22.md#6-xml-parser)).
+`roadnetworkOpendrive_file_format_contract` checks each row below.
+
+| Limit | Behavior |
+| --- | --- |
+| Size | An asset larger than 512 MiB fails with `ODR-E501` before any byte is read, in full and metadata-only reads. Below it, the read holds the document in memory, and the parsed document takes a few times its size again. |
+| External references | None are followed. pugixml does not validate and does not process a DOCTYPE: an internal subset is skipped, and its entities, internal or external, are never declared or expanded. Only the five predefined XML entities and character references are expanded. Any other entity reference stays as literal text, such as `&b;` in a header `name`, which is authored verbatim. Nothing is fetched from a file or the network. |
+| Depth | Neither the parser nor the decoder recurses on element depth. The decoder reads elements only at the depths OpenDRIVE defines. It counts an ignored element in a warning and does not visit its children, and an unknown element inside the plan view, a profile, or the lane structure fails with `ODR-E206`. A million nested `<userData>` elements open with one `ODR-W204`. |
+| Time | Parsing and decoding are linear in the size of the document, and the size limit bounds both. |
+
 ### Value syntax
 
 | Kind | Accepted | Otherwise |

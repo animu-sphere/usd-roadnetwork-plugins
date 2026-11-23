@@ -54,7 +54,7 @@ raises it.
 | `2xx` | Semantic mapping: unsupported element, lossy or ignored data | `RN-W201` lossy mapping |
 | `3xx` | Geometry and numeric: non-finite values, invalid curve parameters, discontinuities beyond tolerance | — |
 | `4xx` | Coordinates and georeference: unknown or unparsable CRS, conflicting offsets | — |
-| `5xx` | Import limits: sizes and counts beyond declared bounds | — |
+| `5xx` | Import limits: sizes and counts beyond declared bounds | `ODR-E501` asset too large |
 | `9xx` | Internal: invariant violations that indicate a bug | — |
 
 ## Assigned codes
@@ -119,8 +119,10 @@ element, the header, and the version, in that order, so a UTF-16 file reports
 `ODR-E003` rather than a parse error. Each code has a negative fixture in
 [`tests/fixtures/`](../../plugins/roadnetwork-opendrive/tests/fixtures/), named
 in the bundle manifest's `negative` list, except `ODR-E001`, which the
-contract test produces from a directory named `.xodr`, and `ODR-E901`, which
-no input can produce on purpose.
+contract test produces from a directory named `.xodr`, `ODR-E501`, which it
+produces from a sparse file one byte over the limit, and `ODR-E901`, which no
+input can produce on purpose. The asset size is checked before the
+encoding, so `ODR-E501` comes before every other code but `ODR-E001`.
 
 | Code | Condition | Fixture |
 | --- | --- | --- |
@@ -131,6 +133,7 @@ no input can produce on purpose.
 | `ODR-E005` | The first child element of `<OpenDRIVE>` is not `<header>`. | `reader/missing-header.xodr` |
 | `ODR-E006` | `revMajor` or `revMinor` is missing or not a non-negative decimal integer. | `reader/version-malformed.xodr` |
 | `ODR-E007` | The version is not `revMajor` 1 with `revMinor` 4 to 9 ([FMT-01 §3.3](../reports/format-spike-opendrive-2026-11-22.md#33-proposed-phase-1-version-policy)). | `reader/version-unsupported.xodr`; 1.0–1.3, 1.10, 1.11, and 2.0 (generated) |
+| `ODR-E501` | The asset is larger than 512 MiB, the import limit ([OpenDRIVE mapping §1](OPENDRIVE_MAPPING.md#untrusted-input)). Nothing is read. | one byte over the limit (generated) |
 | `ODR-E901` | An internal failure, such as running out of memory, escaped the reader or the decoder. | — |
 
 ### `ODR-` decoder

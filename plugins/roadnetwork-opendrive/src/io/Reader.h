@@ -27,6 +27,13 @@ inline constexpr std::size_t kSniffBytes = 64 * 1024;
 /// is a no.
 bool LooksLikeOpenDrive(std::string_view prefix) noexcept;
 
+/// The largest asset a read accepts, in bytes (512 MiB). A larger asset fails
+/// with ODR-E501 before any of it is read, in full and metadata-only reads
+/// alike: the whole document is held in memory, and the parsed document
+/// needs a few times its size again (DESIGN_POLICY.md section 9, FMT-01
+/// section 6).
+inline constexpr std::size_t kMaxDocumentBytes = std::size_t{512} * 1024 * 1024;
+
 /// Element counts from the header scan, without decoding geometry, profiles,
 /// or lanes (ADR 0006 section 2).
 struct ElementCounts {
