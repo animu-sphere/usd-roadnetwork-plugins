@@ -66,21 +66,34 @@ Explicit limits of Phase 1:
 
 ## Phase 2 — OpenDRIVE fidelity
 
-| ID | Feature | Direction |
-| --- | --- | --- |
-| F-12 | Spiral, poly3, paramPoly3 | A new ADR fixes the evaluation method, numeric tolerance, and golden tests ([ADR 0004 §5](../adr/0004-opendrive-geometry-retention.md#5-other-plan-view-shapes)). |
-| F-13 | Cross-section extensions | Superelevation, lateral shape, lane `<border>`, and road marks with stated accuracy. |
-| F-14 | Traffic semantics | Signs, signals, speeds, priorities, and other rules, represented so that they can be extended. |
-| F-15 | Road objects | Semantics, reference position, and orientation of barriers, guardrails, and similar; mesh generation stays separate. |
-| F-16 | Real-world compatibility | Regression tests across versions and producers on a corpus whose redistribution terms are met, such as CARLA. |
-| F-27 | `upAxis` file-format argument | `upAxis=Y` in the asset path or `FindOrOpen` arguments presents the asset `Y`-up through a rotation on `/Asset`; no authored value changes ([ADR 0009 §1–§3](../adr/0009-file-format-arguments-up-axis.md#1-the-upaxis-argument)). |
+The scope follows the
+[FMT-02 spike](../reports/format-spike-opendrive-2026-11-23.md#11-proposed-phase-2-scope),
+which counted the Phase 2 elements in 222 networks from 11 producers and
+OpenDRIVE 1.4 to 1.9.
 
-Unlike Phase 1, the Phase 2 features start as directions. The
-[FMT-02 spike](current.md#active-work) measures which of these elements real
-producers write and which fixtures may be committed. Its pull request
-replaces each direction above with a minimum acceptance, as Phase 1 lists
-them, and names each element it defers to the [backlog](backlog.md) with the
-reason. Until then the declared scope is the table above.
+| ID | Feature | Minimum acceptance | Decided by |
+| --- | --- | --- | --- |
+| F-12 | Spiral and paramPoly3 | `<spiral>` and `<paramPoly3>` decode and evaluate in `double` within the ADR 0010 bound against independently computed values. Spirals with `curvStart == curvEnd`, or differing by rounding, evaluate correctly ([FMT-02 §4.2](../reports/format-spike-opendrive-2026-11-23.md#42-starting-at-non-zero-curvature)). Both `pRange` values and an absent `pRange` have a stated meaning. | new ADR 0010, [ADR 0004 §5](../adr/0004-opendrive-geometry-retention.md#5-other-plan-view-shapes) |
+| F-13 | Superelevation and road marks | Non-zero `<superelevation>` places every border at its rolled height within the ADR 0010 bound. `<roadMark>` records, with their attributes and `<type>`/`<line>` definitions, are kept per lane as semantics. | new ADR 0010, new ADR 0011 |
+| F-14 | Traffic semantics | `<signal>` (road or inertial position, `type`, `subtype`, `country`, and `value` kept verbatim, and `<validity>`), `<signalReference>`, `<controller>` with its controls, junction `<priority>`, and lane `<speed>` are kept and validated, and refer to roads, lanes, and junctions by stable paths. | new ADR 0011 |
+| F-15 | Road objects | `<object>` position, orientation, dimensions, verbatim `type`, `<validity>`, outlines with road and local corners, and `<repeat>` as a record are kept; no mesh is generated. | new ADR 0011 |
+| F-16 | Real-world compatibility | The files [FMT-02 §10](../reports/format-spike-opendrive-2026-11-23.md#10-fixtures) selects are committed with their licences, covering at least four producers and OpenDRIVE 1.4, 1.6, 1.7, and 1.8, and the fetched set is checked by pinned checksum; their decode counts and digests run in CI. | — |
+| F-27 | `upAxis` file-format argument | `upAxis=Y` in the asset path or `FindOrOpen` arguments presents the asset `Y`-up through a rotation on `/Asset`; no authored value changes ([ADR 0009 §1–§3](../adr/0009-file-format-arguments-up-axis.md#1-the-upaxis-argument)). | [ADR 0009](../adr/0009-file-format-arguments-up-axis.md) |
+
+Explicit limits of Phase 2, each with its row in the [backlog](backlog.md):
+
+- `<poly3>` stays an `ODR-E201` error: no network in the corpus uses it, and
+  it is deprecated since 1.6.0.
+- A non-zero lateral `<shape>`, a non-zero `<crossfall>`, and
+  `<crossSectionSurface>` stay `ODR-E202` errors, and lane `<border>` stays
+  `ODR-E203`. Only one network (one producer, not redistributable) uses a
+  shape, and none uses the others.
+- Road-mark `<explicit>` and `<sway>`; signal `<dependency>`, `<reference>`,
+  and `<semantics>`; lane `<access>` and `<rule>`; object `<markings>`,
+  `<material>`, `<parkingSpace>`, `<borders>`, and `<skeleton>`; and
+  `<objectReference>`, `<tunnel>`, and `<bridge>` stay counted warnings.
+- `direct` and `virtual` junctions and lane layers stay errors; FMT-02 found
+  no fixture for them that may be committed.
 
 ### Phase 2 exit
 
