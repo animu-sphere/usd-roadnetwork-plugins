@@ -22,6 +22,37 @@ macro(roadnetwork_cxx_defaults)
     set(CMAKE_CXX_EXTENSIONS OFF)
 endmacro()
 
+# roadnetwork_reproducible_archives()
+#
+# The Apple counterpart of /Brepro for static libraries (see
+# roadnetwork_target_defaults). Apple's ar records each member's mtime, and its
+# ranlib records the current time in the table of contents. CMake runs ranlib
+# again on every `cmake --install` of a static library, so each install of an
+# unchanged library hashed differently, and packages that carry the libraries
+# did too (release gate item 4). Both tools write zero dates when ZERO_AR_DATE
+# is set, so this points CMAKE_AR and CMAKE_RANLIB at wrappers that set it.
+# Call it after project(), in the scope that defines the targets or a parent
+# of it. Elsewhere, and when the wrappers are already in place, it does
+# nothing.
+macro(roadnetwork_reproducible_archives)
+    if(APPLE)
+        foreach(_rn_tool IN ITEMS AR RANLIB)
+            if(CMAKE_${_rn_tool} AND NOT CMAKE_${_rn_tool} MATCHES "/roadnetwork-zero-date-")
+                string(TOLOWER "${_rn_tool}" _rn_name)
+                set(_rn_wrapper "${CMAKE_BINARY_DIR}/roadnetwork-zero-date-${_rn_name}")
+                file(CONFIGURE OUTPUT "${_rn_wrapper}" CONTENT
+                    "#!/bin/sh\nZERO_AR_DATE=1\nexport ZERO_AR_DATE\nexec \"${CMAKE_${_rn_tool}}\" \"$@\"\n")
+                file(CHMOD "${_rn_wrapper}" PERMISSIONS
+                    OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+                set(CMAKE_${_rn_tool} "${_rn_wrapper}")
+            endif()
+        endforeach()
+        unset(_rn_tool)
+        unset(_rn_name)
+        unset(_rn_wrapper)
+    endif()
+endmacro()
+
 # roadnetwork_tests_option(<var> <description>)
 #
 # Declares the option that decides whether a member builds its tests. Its

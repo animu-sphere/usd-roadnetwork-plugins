@@ -19,6 +19,7 @@ project(usd-roadnetwork-plugins LANGUAGES CXX)
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/RoadnetworkBuild.cmake")
 roadnetwork_cxx_defaults()
+roadnetwork_reproducible_archives()
 
 # The default for every member's own <MEMBER>_BUILD_TESTS option.
 option(ROADNETWORK_BUILD_TESTS "Build the library and bundle tests" ON)

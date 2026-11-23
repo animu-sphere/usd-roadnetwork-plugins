@@ -8,6 +8,7 @@ project(RoadnetworkOpendrivePlugin
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/RoadnetworkBuild.cmake")
 roadnetwork_cxx_defaults()
+roadnetwork_reproducible_archives()
 roadnetwork_tests_option(ROADNETWORKOPENDRIVE_BUILD_TESTS "Build roadnetwork-opendrive tests")
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/OpenStrataPlugin.cmake")

@@ -13,6 +13,9 @@ semantic versioning for tagged releases.
 - The bundle CI cells test the package (`--from-package`), require two
   packagings to give one digest, and check the package's license, notices,
   SBOM, provenance, and target metadata with `tools/check_package.py`.
+- macOS builds of the static libraries are reproducible: `ar` and `ranlib`
+  run with `ZERO_AR_DATE=1`, so installing an unchanged library no longer
+  changes its bytes or the digest of the package that carries it.
 - A tag-triggered release workflow, `release.yml`. A tag `vX.Y.Z` or
   `vX.Y.Z-suffix` builds and checks the bundle on every main-lane cell,
   requires a clean rebuild to reproduce the package digest, pushes the

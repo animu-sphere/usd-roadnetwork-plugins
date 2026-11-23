@@ -51,12 +51,15 @@ The `usdview` inspection is recorded in the
 with `--profile lookdev`. What remains for REL-01, against the
 [release gate](../releases/README.md#release-gate):
 
-1. **Hosted evidence for gate items 3 to 6.** The bundle cells now test the
-   package, repeat its digest, and check its contents, and `release.yml`
-   adds a clean rebuild, the GHCR push, and the draft
-   ([release gate](../releases/README.md#what-enforces-each-item)). Record the
-   first green `ci` run of each platform in the supported configurations,
-   then run the release dry run from `main`.
+1. **Gate items 3 to 6 are automated and pass a dry run.** The bundle cells
+   test the package, repeat its digest, and check its contents
+   ([run 45125946195](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45125946195)).
+   The release dry run
+   ([run 45128368146](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45128368146))
+   reproduces each package digest from a clean rebuild of the bundle and its
+   libraries on all three platforms, after macOS static-library installs
+   were made reproducible. A tag still has to show the GHCR push and the
+   draft ([release gate](../releases/README.md#what-enforces-each-item)).
 2. **Format acceptance gate review** for OpenDRIVE, then the format row of
    the capability matrix and the `[0.1.0]` changelog heading in one release
    PR, and the tag (gate items 1 and 2). The release record follows the

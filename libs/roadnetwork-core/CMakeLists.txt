@@ -8,6 +8,7 @@ project(roadnetworkCore
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/RoadnetworkBuild.cmake")
 roadnetwork_cxx_defaults()
+roadnetwork_reproducible_archives()
 roadnetwork_tests_option(ROADNETWORKCORE_BUILD_TESTS "Build roadnetworkCore tests")
 
 add_library(roadnetworkCore STATIC

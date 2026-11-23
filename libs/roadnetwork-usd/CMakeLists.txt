@@ -8,6 +8,7 @@ project(roadnetworkUsd
 
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/RoadnetworkBuild.cmake")
 roadnetwork_cxx_defaults()
+roadnetwork_reproducible_archives()
 roadnetwork_tests_option(ROADNETWORKUSD_BUILD_TESTS "Build roadnetworkUsd tests")
 
 # Resolved once by a composed root build; found here when this library is
