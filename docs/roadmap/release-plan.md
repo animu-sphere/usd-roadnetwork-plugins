@@ -13,7 +13,7 @@ Phase 1.
 | Phase | Goal | Features | Exit criteria | Version |
 | --- | --- | --- | --- | --- |
 | **0 — Scaffold / ADR** | OpenStrata workspace, basic CI, initial decisions | — | An empty `.xodr` bundle and the core and USD libraries pass the package test; ADR 0006 numbering is accepted. | untagged (met 2026-11-22) |
-| **1 — OpenDRIVE vertical slice** | Simple roads, lanes, and junctions into USD | F-01 to F-11 | [Phase 1 exit](#phase-1-exit) | v0.1.0 (planned) |
+| **1 — OpenDRIVE vertical slice** | Simple roads, lanes, and junctions into USD | F-01 to F-11 | [Phase 1 exit](#phase-1-exit) | v0.1.0 |
 | **2 — OpenDRIVE fidelity** | Wider coverage of curves, cross-sections, rules, and objects | F-12 to F-16, F-27 | Capability matrix, diagnostics, golden semantics, and compatibility tests are complete for the declared scope. | unassigned |
 | **3 — Geometry / scale** | Surfaces, LOD, tiling, and loading measured and designed | F-17 to F-21, F-28 | Measured performance and quality metrics can be published; ADR 0007 is accepted. | unassigned |
 | **4 — Multi-format** | Add Lanelet2 or SUMO | F-22 to F-24 | The same IR and USD writer are reused and the differences are explained; ADR 0008 is accepted for Lanelet2. | unassigned |

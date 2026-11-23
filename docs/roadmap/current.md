@@ -41,7 +41,7 @@ work starts.
 | 3 | ODR-01 | Reader: pugixml 1.16, the `CanRead()` sniff, version recognition, and the metadata-only header scan | F-01, F-02, F-10 | `roadnetwork-opendrive` | [0006](../adr/0006-fileformat-contract.md) | The prologue, version, and malformed-input fixtures pass with stable `ODR-` codes, and a failed reload keeps the previous content. | merged ([#9](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/9)) |
 | 4 | ODR-02 | Decoder: roads, lane sections, lanes, junctions, and profiles | F-05, F-06, F-09, F-11 | `roadnetwork-opendrive` | [0001](../adr/0001-roadnetwork-data-model.md), [0003](../adr/0003-crs-axes-units.md), [0004](../adr/0004-opendrive-geometry-retention.md) | The minimal fixture set and CARLA `Town01` and `Town02` decode and validate, and each Phase 1 rejection has a negative fixture. | merged ([#10](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/10)) |
 | 5 | USD-01 | Stage contract and the shared writer | F-07, F-08, F-09 | `roadnetwork-usd` | [0002](../adr/0002-usd-schema-strategy.md), [0003](../adr/0003-crs-axes-units.md), [0005](../adr/0005-prim-path-and-id-stability.md) | Generated layers pass `usdchecker` and semantic assertions. Paths are stable across reloads, and two referenced networks keep their own relationships. | merged ([#11](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/11)) |
-| 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | in progress: `usdview` inspection and a reproducible Windows digest ([#14](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/14), [report](../reports/rel-01-inspection-2026-11-23.md)); OpenUSD range narrowed to `>=26.08,<27.0` ([#16](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/16)); package checks in CI and the tag-triggered release workflow ([#17](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/17)) |
+| 6 | REL-01 | First release | F-10, F-11 | all | — | The [Phase 1 exit](release-plan.md#phase-1-exit) is met and v0.1.0 is released. | in progress: `usdview` inspection and a reproducible Windows digest ([#14](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/14), [report](../reports/rel-01-inspection-2026-11-23.md)); OpenUSD range narrowed to `>=26.08,<27.0` ([#16](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/16)); package checks in CI and the tag-triggered release workflow ([#17](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/17), [#18](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/18)); untrusted-input limits ([#19](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/19)); release PR and tag |
 
 ## Next actions
 
@@ -51,19 +51,18 @@ The `usdview` inspection is recorded in the
 with `--profile lookdev`. What remains for REL-01, against the
 [release gate](../releases/README.md#release-gate):
 
-1. **Gate items 3 to 6 are automated and pass a dry run.** The bundle cells
-   test the package, repeat its digest, and check its contents
-   ([run 45125946195](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45125946195)).
-   The release dry run
-   ([run 45128368146](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45128368146))
-   reproduces each package digest from a clean rebuild of the bundle and its
-   libraries on all three platforms, after macOS static-library installs
-   were made reproducible. A tag still has to show the GHCR push and the
-   draft ([release gate](../releases/README.md#what-enforces-each-item)).
-2. **Format acceptance gate review** for OpenDRIVE, then the format row of
-   the capability matrix and the `[0.1.0]` changelog heading in one release
-   PR, and the tag (gate items 1 and 2). The release record follows the
-   draft ([release process](../releases/README.md#release-process)).
+1. **Done.** Gate items 3 to 6 are automated
+   ([release gate](../releases/README.md#what-enforces-each-item)), and the
+   release dry run passes on all three platforms
+   ([run 45128368146](https://github.com/animu-sphere/usd-roadnetwork-plugins/actions/runs/45128368146)).
+   The format acceptance gate review for OpenDRIVE found two gaps, now
+   closed: the import limit and untrusted-input behavior, and the test beside
+   MaterialX's pugixml
+   ([#19](https://github.com/animu-sphere/usd-roadnetwork-plugins/pull/19)).
+2. **Release.** The release PR finalizes the `[0.1.0]` changelog heading and
+   marks OpenDRIVE supported. Then come the `v0.1.0` tag, the review of the
+   draft, the release record, and publishing the draft
+   ([release process](../releases/README.md#release-process)).
 
 Update the capability matrix in the same pull request as each
 implementation; a row without test evidence stays unsupported.
