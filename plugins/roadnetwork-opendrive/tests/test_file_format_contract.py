@@ -240,8 +240,13 @@ def check_materialx_coexistence(tmp):
     OpenUSD can load it into this process (FMT-01 section 6). The bundle's copy
     has hidden symbols; interleaved reads through both prove neither binds to
     the other's."""
+    # CTest hides the output of a passing test, so a silent skip would read as
+    # a pass. A runtime without MaterialX, such as a plain OpenUSD build, opts
+    # out explicitly.
     if Plug.Registry().GetPluginWithName("usdMtlx") is None:
-        print("skipped the MaterialX check: this runtime has no usdMtlx plugin")
+        check(os.environ.get("ROADNETWORK_SKIP_MATERIALX_CHECK") == "1",
+              "this runtime has no usdMtlx plugin; set ROADNETWORK_SKIP_MATERIALX_CHECK=1 "
+              "to run without the MaterialX check")
         return
     for round_ in range(2):
         document = write_variant(tmp / f"material-{round_}.mtlx", (
