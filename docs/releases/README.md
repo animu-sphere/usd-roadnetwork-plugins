@@ -7,7 +7,7 @@ publication.
 
 | Version | Date | Record |
 | --- | --- | --- |
-| — | — | No releases yet. v0.1.0 is planned at the end of Phase 1. |
+| [v0.1.0](https://github.com/animu-sphere/usd-roadnetwork-plugins/releases/tag/v0.1.0) | 2026-11-23 | [v0.1.0 — OpenDRIVE vertical slice](v0.1.0.md) |
 
 ## Release gate
 
