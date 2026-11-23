@@ -27,6 +27,7 @@ beyond status links and errata.
 | [0007](0007-geometry-lod-payload-boundary.md) | Geometry generation, LOD and tiles, payload boundary | Proposed | Phase 3 |
 | [0008](0008-lanelet2-osm-identification.md) | Lanelet2 versus OSM identification; shared regulatory model | Proposed | Phase 4 |
 | [0009](0009-file-format-arguments-up-axis.md) | File-format arguments: up-axis presentation, static and dynamic | Proposed | Phase 2 (F-27), Phase 3 (F-28) |
+| [0010](0010-plan-view-shapes-and-superelevation.md) | Spiral and paramPoly3 evaluation; superelevation | Proposed | Phase 2 (GEO-02, XS-01) |
 
 ## Writing an ADR
 
