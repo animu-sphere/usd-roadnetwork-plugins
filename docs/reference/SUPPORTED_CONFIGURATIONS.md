@@ -51,12 +51,17 @@ they verify:
 - `workspace-*` checks the dependency graph, builds the composed root with
   `ost build`, and runs its CTest suite with `ost test`.
 - `opendrive-*` builds the `roadnetwork-opendrive` bundle with its required
-  libraries, runs its verification pyramid up to L5, and packages it.
+  libraries, runs its verification pyramid up to L5, and packages it. A
+  `source_checks` step then runs the pyramid against the package
+  (`--from-package`), packages again, and checks with
+  [`tools/check_package.py`](../../tools/check_package.py) that the digest
+  repeats and that the package carries its license, notices, SBOM,
+  provenance, and target metadata.
 
 Both kinds are needed because of an `ost` 0.23.21 generator gap
 ([open-strata#304](https://github.com/animu-sphere/open-strata/issues/304)):
 a workspace cell cannot run the pyramid or packaging on a clean checkout.
-Neither kind runs the package-origin test (`--from-package`).
+The package checks therefore run in the bundle cells only.
 
 Pull requests run the `pr` cells, and pushes to `main` run the `main` cells.
 Both go through the hand-written
@@ -64,6 +69,11 @@ Both go through the hand-written
 `docs/`, or `LICENSE` alone do not build. The jobs in
 [`ost-source-ci.yml`](../../.github/workflows/ost-source-ci.yml) are generated
 from the matrix; do not edit them by hand.
+
+A tag runs the same cells through the hand-written
+[`release.yml`](../../.github/workflows/release.yml), which adds a clean
+rebuild and publishes the packages
+([release gate](../releases/README.md#what-enforces-each-item)).
 
 Hosted support is claimed only after the declared CI jobs complete; a row is
 updated with a run link in the PR that proves it.

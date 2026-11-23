@@ -20,6 +20,7 @@ tests/fixtures/reader/          prologue and negative fixtures for the reader
 tests/fixtures/decoder/         the minimal network and a negative fixture per decoder and validation code
 tests/fixtures/writer/          a UTM-scale road for the visualization origin shift (ADR 0003)
 tests/fixtures/carla/           third-party CARLA networks (MIT, see its README and LICENSE)
+LICENSE                         copy of the root Apache-2.0 LICENSE, shipped in every package (manifest `notices`)
 THIRD_PARTY_NOTICES.md          notices shipped in every package (manifest `notices`)
 tests/test_reader.cpp           reader unit test, without OpenUSD (CTest)
 tests/test_decoder.cpp          decoder unit test, without OpenUSD (CTest)

@@ -296,6 +296,15 @@ jobs:
       - name: Run the verification pyramid
         shell: bash
         run: ost plugin test ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: "Test the package and check its digest and contents"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package.json
+          ost plugin test ${{ matrix.bundle }} --from-package --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json | tee .ost-ci/package-test.json
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
       - name: Package the plugin (never published from this workflow)
         shell: bash
         run: ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }}
@@ -594,6 +603,16 @@ jobs:
         if: ${{ matrix.verify == 'pyramid' || matrix.verify == 'package' }}
         shell: bash
         run: ost plugin test --workspace --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: "Test the package and check its digest and contents"
+        if: ${{ matrix.verify == 'pyramid' || matrix.verify == 'package' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package.json
+          ost plugin test ${{ matrix.bundle }} --from-package --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json | tee .ost-ci/package-test.json
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
       - name: Package the workspace and aggregate product (never published from this workflow)
         if: ${{ matrix.verify == 'package' }}
         shell: bash
@@ -886,6 +905,15 @@ jobs:
       - name: Run the verification pyramid
         shell: bash
         run: ost plugin test ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: "Test the package and check its digest and contents"
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package.json
+          ost plugin test ${{ matrix.bundle }} --from-package --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json | tee .ost-ci/package-test.json
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
       - name: Package the plugin (never published from this workflow)
         shell: bash
         run: ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }}
@@ -1184,6 +1212,16 @@ jobs:
         if: ${{ matrix.verify == 'pyramid' || matrix.verify == 'package' }}
         shell: bash
         run: ost plugin test --workspace --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json
+      - name: "Test the package and check its digest and contents"
+        if: ${{ matrix.verify == 'pyramid' || matrix.verify == 'package' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .ost-ci
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package.json
+          ost plugin test ${{ matrix.bundle }} --from-package --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --up-to ${{ matrix.up_to }} --json | tee .ost-ci/package-test.json
+          ost plugin package ${{ matrix.bundle }} --target ${{ matrix.platform }} --profile ${{ matrix.profile }} --json > .ost-ci/package-second.json
+          python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
       - name: Package the workspace and aggregate product (never published from this workflow)
         if: ${{ matrix.verify == 'package' }}
         shell: bash

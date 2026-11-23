@@ -8,6 +8,17 @@ semantic versioning for tagged releases.
 
 ### Added
 
+- Each bundle package carries the project's Apache-2.0 `LICENSE` beside
+  `THIRD_PARTY_NOTICES.md`.
+- The bundle CI cells test the package (`--from-package`), require two
+  packagings to give one digest, and check the package's license, notices,
+  SBOM, provenance, and target metadata with `tools/check_package.py`.
+- A tag-triggered release workflow, `release.yml`. A tag `vX.Y.Z` or
+  `vX.Y.Z-suffix` builds and checks the bundle on every main-lane cell,
+  requires a clean rebuild to reproduce the package digest, pushes the
+  packages to the public GHCR repository
+  `ghcr.io/animu-sphere/usd-roadnetwork-plugins`, and creates a draft release
+  with a pin table. A manual run is a dry run.
 - Initial documentation: design policy, workspace contract, API boundary,
   reference skeletons (capability matrix, OpenDRIVE mapping, diagnostics,
   supported configurations), proposed ADRs 0001–0008, and the phase roadmap.
