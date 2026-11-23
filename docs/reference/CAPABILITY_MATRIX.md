@@ -16,9 +16,10 @@ semantics under `/Asset/Network`, derived centerlines and borders under
 Input that the reader, the decoder, or validation rejects fails with one
 stable `ODR-` or `RN-` error, and data that is read but not represented is
 reported in counted warnings. ADRs 0001–0005, which define the model and the
-stage contract, are accepted, and the rows below follow them. The format row stays
-unsupported until the [Phase 1 exit](../roadmap/release-plan.md#phase-1-exit)
-and the release gate pass.
+stage contract, are accepted, and the rows below follow them. OpenDRIVE is
+supported from v0.1.0, within the rows below, after the
+[format acceptance gate](../roadmap/release-plan.md#format-acceptance-gate)
+and the [release gate](../releases/README.md#release-gate) passed.
 
 ## Status vocabulary
 
@@ -33,7 +34,7 @@ and the release gate pass.
 
 | Format | Bundle | Status |
 | --- | --- | --- |
-| ASAM OpenDRIVE `.xodr` | `roadnetwork-opendrive` | unsupported (Phase 1 target) |
+| ASAM OpenDRIVE `.xodr` | `roadnetwork-opendrive` | supported (v0.1.0): `revMajor` 1 with `revMinor` 4–9, within the [OpenDRIVE rows](#opendrive-input-and-semantic-mapping) below |
 | Lanelet2 `.osm` | `roadnetwork-lanelet2` | unsupported (Phase 4 candidate) |
 | SUMO `.net.xml` | `roadnetwork-sumo` | unsupported (Phase 4 candidate) |
 | OpenStreetMap `.osm` / `.pbf` | — | unsupported (P2 candidate) |

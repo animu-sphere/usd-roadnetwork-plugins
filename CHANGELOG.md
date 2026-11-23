@@ -6,6 +6,12 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-23
+
+First release: the OpenDRIVE vertical slice of Phase 1. The
+`roadnetwork-opendrive` bundle opens ASAM OpenDRIVE 1.4 to 1.9 (`.xodr`) as a
+read-only OpenUSD layer, within the scope of the capability matrix.
+
 ### Added
 
 - An import limit: an `.xodr` asset larger than 512 MiB fails with

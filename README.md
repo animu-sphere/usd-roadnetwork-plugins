@@ -1,7 +1,7 @@
 # OpenUSD Road Network Plugins
 
-> **Status:** under development; this README describes the intended project.
-> The [current work](docs/roadmap/current.md) page names the active phase, and
+> **Status:** pre-1.0. Released versions are listed in the
+> [release records](docs/releases/README.md). The [current work](docs/roadmap/current.md) page names the active phase, and
 > the [capability matrix](docs/reference/CAPABILITY_MATRIX.md) is the only
 > source for what the tree supports.
 
