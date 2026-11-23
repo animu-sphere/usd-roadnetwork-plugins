@@ -8,6 +8,11 @@ semantic versioning for tagged releases.
 
 ### Added
 
+- An import limit: an `.xodr` asset larger than 512 MiB fails with
+  `ODR-E501` before any of it is read. The OpenDRIVE mapping documents how
+  the reader treats untrusted input (size, external entities, depth, and
+  time), and the contract test checks each limit and reads OpenDRIVE with
+  MaterialX's own pugixml loaded.
 - Each bundle package carries the project's Apache-2.0 `LICENSE` beside
   `THIRD_PARTY_NOTICES.md`.
 - The bundle CI cells test the package (`--from-package`), require two

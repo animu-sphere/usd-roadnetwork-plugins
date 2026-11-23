@@ -13,7 +13,9 @@ one. The stage contract (USD-01) adds the authored content: /Asset and its
 provenance, a metadata-only /Asset that agrees with a full one, two
 references of one network that keep their own relationship targets, reload
 with unchanged paths and targets, and usdchecker on the generated layers.
-The writer's own unit test covers the property groups one by one.
+The writer's own unit test covers the property groups one by one. The
+release gate adds the limits on untrusted input (ODR-E501, depth, and
+entities) and reads with MaterialX's own pugixml loaded.
 """
 
 import os
@@ -25,7 +27,7 @@ import sys
 import tempfile
 import time
 
-from pxr import Gf, Sdf, Tf, Usd, UsdGeom
+from pxr import Gf, Plug, Sdf, Tf, Usd, UsdGeom
 
 BUNDLE = pathlib.Path(__file__).resolve().parents[1]
 FIXTURES = BUNDLE / "tests" / "fixtures"
@@ -175,6 +177,91 @@ def check_reader_fixtures(tmp):
     path = write_variant(tmp / "version-2-0.xodr",
                          text.replace('revMajor="1" revMinor="8"', 'revMajor="2" revMinor="0"', 1))
     check_rejected(path, "ODR-E007", "OpenDRIVE 2.0")
+
+
+MAX_DOCUMENT_BYTES = 512 * 1024 * 1024  # odr::kMaxDocumentBytes
+NESTING_DEPTH = 1_000_000
+
+
+def check_untrusted_input(tmp):
+    """The limits of OPENDRIVE_MAPPING.md section 1, "Untrusted input"."""
+    fmt = Sdf.FileFormat.FindByExtension("xodr")
+    text = BASIC.read_text(encoding="utf-8")
+
+    # Size: one byte over the limit fails with ODR-E501 before anything is
+    # read. Extending the file leaves the rest unwritten, so this costs no
+    # 512 MiB of writes, and the prologue still passes the sniff.
+    large = tmp / "too-large.xodr"
+    with large.open("wb") as stream:
+        stream.write(text.encode("utf-8"))
+        stream.truncate(MAX_DOCUMENT_BYTES + 1)
+    try:
+        check(fmt.CanRead(str(large)), "CanRead rejects the prologue of an oversized asset")
+        started = time.monotonic()
+        check_rejected(large, "ODR-E501", "an asset one byte over the limit")
+        check_rejected(large, "ODR-E501", "metadata-only, an asset one byte over the limit", metadataOnly=True)
+        check(time.monotonic() - started < 30, "rejecting an oversized asset took longer than reading it would")
+        _, errors = read_errors(lambda: Sdf.Layer.OpenAsAnonymous(str(large)))
+        check(errors and str(MAX_DOCUMENT_BYTES) in errors[0], f"ODR-E501 does not state the limit: {errors}")
+    finally:
+        large.unlink()
+
+    # Depth: ignored elements are counted, not visited, however deep they nest.
+    nested = "<userData>" * NESTING_DEPTH + "</userData>" * NESTING_DEPTH
+    deep = write_variant(tmp / "deep-user-data.xodr", text.replace("  <road ", nested + "\n  <road ", 1))
+    check_opens(deep, f"{NESTING_DEPTH} nested <userData> elements")
+    check(posted_warnings(deep) == ["ODR-W204"], f"deep <userData> posted {posted_warnings(deep)}")
+    deep.unlink()
+    # An unknown element in the lane structure fails at its first level.
+    nested = "<deep>" * NESTING_DEPTH + "</deep>" * NESTING_DEPTH
+    deep = write_variant(tmp / "deep-lanes.xodr", text.replace("<lanes>", "<lanes>" + nested, 1))
+    check_rejected(deep, "ODR-E206", f"{NESTING_DEPTH} nested unknown elements in <lanes>")
+    deep.unlink()
+
+    # External references: a DOCTYPE's entities, internal or external, are
+    # never declared or expanded, and their references stay literal text.
+    doctype = ('<!DOCTYPE OpenDRIVE [\n'
+               '  <!ENTITY external SYSTEM "file:///etc/passwd">\n'
+               '  <!ENTITY a "aaaaaaaaaa">\n'
+               '  <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">\n'
+               ']>\n')
+    check('name="basic"' in text, "basic.xodr no longer has the header name this check rewrites")
+    entities = write_variant(tmp / "entities.xodr", text.replace("<OpenDRIVE>", doctype + "<OpenDRIVE>", 1)
+                             .replace('name="basic"', 'name="&b;&external;&amp;"', 1))
+    layer, errors = read_errors(lambda: Sdf.Layer.OpenAsAnonymous(str(entities)))
+    check(layer is not None and not errors, f"a DOCTYPE with entities did not open: {errors}")
+    if layer is not None:
+        name = asset_properties(layer, "roadnetwork:source:name").get("roadnetwork:source:name")
+        check(name == "&b;&external;&", f"entity references were expanded or lost: {name!r}")
+
+
+def check_materialx_coexistence(tmp):
+    """MaterialX ships its own pugixml, in the same `pugi` namespace, and
+    OpenUSD can load it into this process (FMT-01 section 6). The bundle's copy
+    has hidden symbols; interleaved reads through both prove neither binds to
+    the other's."""
+    # CTest hides the output of a passing test, so a silent skip would read as
+    # a pass. A runtime without MaterialX, such as a plain OpenUSD build, opts
+    # out explicitly.
+    if Plug.Registry().GetPluginWithName("usdMtlx") is None:
+        check(os.environ.get("ROADNETWORK_SKIP_MATERIALX_CHECK") == "1",
+              "this runtime has no usdMtlx plugin; set ROADNETWORK_SKIP_MATERIALX_CHECK=1 "
+              "to run without the MaterialX check")
+        return
+    for round_ in range(2):
+        document = write_variant(tmp / f"material-{round_}.mtlx", (
+            '<?xml version="1.0"?>\n<materialx version="1.39">\n'
+            f'  <standard_surface name="SR_{round_}" type="surfaceshader"/>\n'
+            f'  <surfacematerial name="M_{round_}" type="material">\n'
+            f'    <input name="surfaceshader" type="surfaceshader" nodename="SR_{round_}"/>\n'
+            '  </surfacematerial>\n</materialx>\n'))
+        stage, errors = read_errors(lambda: Usd.Stage.Open(str(document)))
+        check(stage and stage.GetPrimAtPath(f"/MaterialX/Materials/M_{round_}"),
+              f"MaterialX document {round_} did not open through usdMtlx: {errors}")
+        for path in (NETWORK, FIXTURES / "carla" / "Town01.xodr"):
+            layer, errors = read_errors(lambda: Sdf.Layer.OpenAsAnonymous(str(path)))
+            check(layer is not None and layer.GetPrimAtPath("/Asset/Network"),
+                  f"{path.name} did not open with MaterialX loaded (round {round_}): {errors}")
 
 
 def check_failed_reload_keeps_content(tmp):
@@ -579,6 +666,8 @@ def main():
                      check_determinism,
                      lambda: check_reload(tmp),
                      lambda: check_reader_fixtures(tmp),
+                     lambda: check_untrusted_input(tmp),
+                     lambda: check_materialx_coexistence(tmp),
                      lambda: check_warnings(tmp),
                      lambda: check_failed_reload_keeps_content(tmp)):
             try:

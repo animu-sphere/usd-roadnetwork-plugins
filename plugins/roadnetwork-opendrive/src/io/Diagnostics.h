@@ -47,6 +47,9 @@ inline constexpr std::string_view kElementsIgnored = "[ODR-W206]";
 inline constexpr std::string_view kAttributesIgnored = "[ODR-W207]";
 inline constexpr std::string_view kUnknownElementsIgnored = "[ODR-W208]";
 
+// 5xx: import limits.
+inline constexpr std::string_view kDocumentTooLarge = "[ODR-E501]";
+
 // 9xx: internal.
 inline constexpr std::string_view kInternal = "[ODR-E901]";
 

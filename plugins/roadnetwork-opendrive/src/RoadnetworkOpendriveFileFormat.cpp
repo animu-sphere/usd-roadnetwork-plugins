@@ -57,16 +57,16 @@ void PostReadError(std::string_view code, const std::string& asset, const std::s
       detail.c_str());
 }
 
-/// Reads up to `limit` bytes of the asset at the start, through the resolver
-/// so that package and resolver-backed assets behave like files.
-bool ReadAssetBytes(const std::string& resolvedPath, std::size_t limit, std::string* bytes) {
-  const std::shared_ptr<ArAsset> asset = ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
-  if (!asset) {
-    return false;
-  }
-  const std::size_t size = std::min(asset->GetSize(), limit);
+/// Opens the asset through the resolver, so that package and resolver-backed
+/// assets behave like files. Null when it cannot be opened.
+std::shared_ptr<ArAsset> OpenAsset(const std::string& resolvedPath) {
+  return ArGetResolver().OpenAsset(ArResolvedPath(resolvedPath));
+}
+
+/// Reads the first `size` bytes of `asset`, which has at least that many.
+bool ReadAssetBytes(ArAsset& asset, std::size_t size, std::string* bytes) {
   bytes->assign(size, '\0');
-  return size == 0 || asset->Read(bytes->data(), size, 0) == size;
+  return size == 0 || asset.Read(bytes->data(), size, 0) == size;
 }
 
 } // namespace
@@ -77,9 +77,12 @@ bool RoadnetworkOpendriveFileFormat::CanRead(const std::string& file) const {
   TfErrorMark mark;
   bool result = false;
   try {
-    std::string prefix;
-    result = SdfFileFormat::GetFileExtension(file) == RoadnetworkOpendriveFileFormatTokens->Extension &&
-             ReadAssetBytes(file, odr::kSniffBytes, &prefix) && odr::LooksLikeOpenDrive(prefix);
+    if (SdfFileFormat::GetFileExtension(file) == RoadnetworkOpendriveFileFormatTokens->Extension) {
+      std::string prefix;
+      const std::shared_ptr<ArAsset> asset = OpenAsset(file);
+      result = asset && ReadAssetBytes(*asset, std::min(asset->GetSize(), odr::kSniffBytes), &prefix) &&
+               odr::LooksLikeOpenDrive(prefix);
+    }
   } catch (...) {
     result = false;
   }
@@ -95,8 +98,22 @@ bool RoadnetworkOpendriveFileFormat::Read(
   // and decodes the header only (ADR 0006 section 2); a full read decodes
   // and validates the whole network.
   try {
+    // The import limit is checked on the size, before anything is read
+    // (DESIGN_POLICY.md section 9).
+    const std::shared_ptr<ArAsset> asset = OpenAsset(resolvedPath);
+    if (!asset) {
+      PostReadError(odr::codes::kAssetUnreadable, resolvedPath, "the asset could not be opened or read");
+      return false;
+    }
+    const std::size_t size = asset->GetSize();
+    if (size > odr::kMaxDocumentBytes) {
+      PostReadError(odr::codes::kDocumentTooLarge, resolvedPath,
+          "the asset is " + std::to_string(size) + " bytes, more than the import limit of " +
+              std::to_string(odr::kMaxDocumentBytes) + " bytes (512 MiB)");
+      return false;
+    }
     std::string bytes;
-    if (!ReadAssetBytes(resolvedPath, std::string::npos, &bytes)) {
+    if (!ReadAssetBytes(*asset, size, &bytes)) {
       PostReadError(odr::codes::kAssetUnreadable, resolvedPath, "the asset could not be opened or read");
       return false;
     }

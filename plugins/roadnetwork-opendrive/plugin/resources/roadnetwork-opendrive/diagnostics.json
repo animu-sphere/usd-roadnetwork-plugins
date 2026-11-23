@@ -125,6 +125,12 @@
             "action": "Check the element name against the OpenDRIVE version the header states; remove or correct it."
         },
         {
+            "code": "ODR-E501",
+            "severity": "error",
+            "summary": "The source asset is larger than the 512 MiB import limit, so none of it is read.",
+            "action": "Split the network into smaller files, or check that the path names an OpenDRIVE file and not other data."
+        },
+        {
             "code": "ODR-E901",
             "severity": "error",
             "summary": "An internal failure, such as running out of memory, stopped the read.",

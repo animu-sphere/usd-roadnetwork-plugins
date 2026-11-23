@@ -47,7 +47,9 @@ ctest --preset default
 The tests put the OpenUSD that `find_package(pxr)` found on `PATH` and
 `PYTHONPATH` themselves. The contract tests need a Python whose version
 matches the one OpenUSD was built against; pass `-DPython3_EXECUTABLE=<path>`
-if CMake finds another.
+if CMake finds another. The file-format contract test also reads `.xodr` files
+with MaterialX loaded, and fails if OpenUSD has no `usdMtlx` plugin; for an
+OpenUSD built without MaterialX, set `ROADNETWORK_SKIP_MATERIALX_CHECK=1`.
 
 Each library and bundle also configures on its own. Install the libraries
 first, in dependency order, and add their prefix to `CMAKE_PREFIX_PATH`:
