@@ -221,11 +221,17 @@ jobs:
         run: |
           set -euo pipefail
           target="$(jq -er '.data.target' .ost-ci/package.json)"
+          archive="$(jq -er '.data.archive' .ost-ci/package.json)"
+          if command -v cygpath > /dev/null; then archive="$(cygpath -u "$archive")"; fi
+          # Keep the first package, so that a mismatch names the files that differ and both
+          # archives can be compared from the uploaded evidence.
+          rm -rf .ost-ci/first-package && mkdir -p .ost-ci/first-package
+          cp "$(dirname "$archive")"/* .ost-ci/first-package/
           rm -rf "$BUNDLE/.strata/targets/$target"
           ost plugin build "$BUNDLE" --target "$PLATFORM" --profile "$PROFILE"
           ost plugin package "$BUNDLE" --target "$PLATFORM" --profile "$PROFILE" --json > .ost-ci/package-rebuilt.json
           python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json \
-            --repackaged .ost-ci/package-rebuilt.json
+            --repackaged .ost-ci/package-rebuilt.json --first-manifest .ost-ci/first-package/manifest.json
       - name: Stage the release files
         shell: bash
         env:
@@ -266,6 +272,8 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: report-${{ matrix.name }}
+          # Both paths are hidden directories, which upload-artifact leaves out by default.
+          include-hidden-files: true
           path: |
             ${{ matrix.bundle }}/.strata/reports/
             .ost-ci/

@@ -176,6 +176,14 @@ def check_sbom(sbom, manifest, source, digest):
         fail("the SBOM does not relate every file to the package with CONTAINS")
 
 
+def differing_files(first_manifest, manifest):
+    """The packaged paths whose digest differs between a saved manifest and the current one."""
+    first = json.loads(pathlib.Path(first_manifest).read_text(encoding="utf-8"))
+    before = {entry["path"]: entry["sha256"] for entry in first.get("files", [])}
+    after = {entry["path"]: entry["sha256"] for entry in manifest.get("files", [])}
+    return sorted(name for name in before.keys() | after.keys() if before.get(name) != after.get(name))
+
+
 def load(path):
     report = json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
     if not report.get("ok"):
@@ -188,6 +196,8 @@ def main():
     parser.add_argument("package", help="the JSON `ost plugin package --json` printed")
     parser.add_argument("--repackaged", action="append", default=[], metavar="JSON",
                         help="the JSON of a later packaging, which must give the same archive digest")
+    parser.add_argument("--first-manifest", metavar="MANIFEST",
+                        help="a copy of the first packaging's manifest.json, to name the files a mismatch changed")
     arguments = parser.parse_args()
 
     package = load(arguments.package)
@@ -205,6 +215,9 @@ def main():
         again = load(path)
         if again["archive_digest"] != package["archive_digest"]:
             fail(f"{path} gives {again['archive_digest']}, the first packaging {package['archive_digest']}")
+            if arguments.first_manifest:
+                for name in differing_files(arguments.first_manifest, manifest):
+                    fail(f"  {name} differs from the first packaging")
 
     if failures:
         print(f"{archive.name}: {len(failures)} problem(s)", file=sys.stderr)
