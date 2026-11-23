@@ -11,6 +11,7 @@ they are not current-state contracts.
 | [adr-0001-lanelet2-mapping-2026-11-23.md](adr-0001-lanelet2-mapping-2026-11-23.md) | ADR 0001 acceptance evidence: the Lanelet2 `mapping_example.osm` mapped on paper onto the common layer — identity, derived lane-end edges, boundaries, coordinates, regulatory elements, and the USD layout. |
 | [rel-01-inspection-2026-11-23.md](rel-01-inspection-2026-11-23.md) | REL-01: the `usdview` launch (L6) on the `lookdev` runtime; Storm drawings of the fixtures and CARLA, and single-precision steps far from the origin; and the Windows DLL timestamps that broke the reproducible package digest, fixed with `/Brepro`. |
 | [format-spike-opendrive-2026-11-23.md](format-spike-opendrive-2026-11-23.md) | FMT-02: the Phase 2 elements in 222 OpenDRIVE networks by producer and version; the error of VIRES `odrSpiral` and of starting a spiral at non-zero curvature; `paramPoly3` length mismatches; redistributable fixtures; and the proposed Phase 2 scope. |
+| [adr-0010-probes-2026-11-24.md](adr-0010-probes-2026-11-24.md) | ADR-10: spirals by piecewise Gauss–Legendre quadrature against 40-digit references; the meaning of an absent `pRange` in SUMO output; chord bounds for spiral and `paramPoly3` borders and for superelevation; the specification text; and the ADR 0010 golden values. |
 
 Name format spikes `format-spike-<format>-<yyyy-mm-dd>.md`. A spike covers the
 items in [design policy §4.1](../design/DESIGN_POLICY.md#41-format-acceptance-prerequisites).

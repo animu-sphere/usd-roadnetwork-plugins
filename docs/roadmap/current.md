@@ -47,7 +47,7 @@ diagnostics in the same pull request. Add issue or PR links as work starts.
 | Order | ID | Work | Features | Component | ADRs | Exit criterion | Tracking |
 | ---: | --- | --- | --- | --- | --- | --- | --- |
 | 1 | FMT-02 | Phase 2 corpus and scope spike | F-12 to F-16 | — | — | A [report](../reports/) counts, by producer and version, which Phase 2 elements real files use; lists redistributable fixtures with provenance that carry spirals, `paramPoly3`, signals, objects, and road marks; and measures the error of VIRES `odrSpiral`. The [release plan](release-plan.md#phase-2--opendrive-fidelity) gives each Phase 2 feature a minimum acceptance, and deferred elements move to the [backlog](backlog.md). | [report](../reports/format-spike-opendrive-2026-11-23.md) |
-| 2 | ADR-10 | New ADR: plan-view shape and cross-section evaluation | F-12, F-13 | `roadnetwork-core` | new (0010), [0004](../adr/0004-opendrive-geometry-retention.md) | The ADR fixes the evaluation method, the error bound, and the golden values for `spiral` (including nearly constant curvature, [FMT-02 §4.2–§4.3](../reports/format-spike-opendrive-2026-11-23.md#42-starting-at-non-zero-curvature)) and `paramPoly3` (how `s` maps to `p`, an absent `pRange`, and a length mismatch, [§4.4](../reports/format-spike-opendrive-2026-11-23.md#44-parampoly3)), and how superelevation enters the borders and the tessellation, and is accepted. | — |
+| 2 | ADR-10 | New ADR: plan-view shape and cross-section evaluation | F-12, F-13 | `roadnetwork-core` | new (0010), [0004](../adr/0004-opendrive-geometry-retention.md) | The ADR fixes the evaluation method, the error bound, and the golden values for `spiral` (including nearly constant curvature, [FMT-02 §4.2–§4.3](../reports/format-spike-opendrive-2026-11-23.md#42-starting-at-non-zero-curvature)) and `paramPoly3` (how `s` maps to `p`, an absent `pRange`, and a length mismatch, [§4.4](../reports/format-spike-opendrive-2026-11-23.md#44-parampoly3)), and how superelevation enters the borders and the tessellation, and is accepted. | [ADR 0010](../adr/0010-plan-view-shapes-and-superelevation.md) (Proposed), [probes](../reports/adr-0010-probes-2026-11-24.md) |
 | 3 | GEO-02 | Spiral and `paramPoly3` | F-12 | `roadnetwork-core`, `roadnetwork-opendrive` | new (0010) | Numeric tests pass within the ADR bound, the shapes decode and author, and `ODR-E201` remains only for `poly3`. | — |
 | 4 | XS-01 | Superelevation; the continuity questions left open by [ADR 0004 §6](../adr/0004-opendrive-geometry-retention.md#6-discontinuities) | F-13 | `roadnetwork-core`, `roadnetwork-opendrive`, `roadnetwork-usd` | new (0010) | Hand-authored fixtures with known results pass within the stated accuracy, and `ODR-E202` remains only for lateral shape, crossfall, and `<crossSectionSurface>`. | — |
 | 5 | ADR-11 | New ADR: traffic semantics, road marks, and objects in the model and the stage | F-13, F-14, F-15 | `roadnetwork-core`, `roadnetwork-usd` | new (0011), [0001](../adr/0001-roadnetwork-data-model.md), [0002](../adr/0002-usd-schema-strategy.md), [0005](../adr/0005-prim-path-and-id-stability.md) | The ADR fixes the IR types, prim paths, property vocabulary, and how signals and objects refer to roads and lanes (the part of the [lane-graph question](backlog.md#decisions-to-record-later) that F-14 and F-15 need), and is accepted. | — |
@@ -58,10 +58,11 @@ diagnostics in the same pull request. Add issue or PR links as work starts.
 
 ## Next actions
 
-1. **ADR-10.** Draft ADR 0010 from the
-   [FMT-02 measurements](../reports/format-spike-opendrive-2026-11-23.md#4-plan-view-shapes):
-   the spiral method for nearly constant curvature and its bound, and the
-   `paramPoly3` parameter mapping.
+1. **ADR-10.** Review the proposed
+   [ADR 0010](../adr/0010-plan-view-shapes-and-superelevation.md). GEO-02
+   may start from its §1, §2, §4, and §6; acceptance waits for the
+   [evidence it lists](../adr/0010-plan-view-shapes-and-superelevation.md#evidence-needed-before-acceptance),
+   including the continuity counts of its §7.
 2. **ADR-11.** Draft ADR 0011 for the signal, road-mark, and object
    elements in the [Phase 2 scope](release-plan.md#phase-2--opendrive-fidelity).
 
