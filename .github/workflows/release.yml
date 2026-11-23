@@ -214,9 +214,10 @@ jobs:
           ost plugin test "$BUNDLE" --from-package --target "$PLATFORM" --profile "$PROFILE" --up-to "$UP_TO" --json | tee .ost-ci/package-test.json
           ost plugin package "$BUNDLE" --target "$PLATFORM" --profile "$PROFILE" --json > .ost-ci/package-second.json
           python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json
-      # Gate item 4 for a rebuild: the bundle's build tree is removed and built again at the same
-      # path, as the REL-01 report did on Windows. The libraries' install snapshots are kept.
-      - name: Rebuild the bundle from clean and reproduce the package digest
+      # Gate item 4 for a rebuild: the bundle and its libraries are built again from clean trees at
+      # the same paths. The first dry run (run 45127160659) failed here on macOS, because every
+      # install re-ran ranlib, which stamped the time into the libraries the package carries.
+      - name: Rebuild the bundle and its libraries from clean and reproduce the package digest
         shell: bash
         run: |
           set -euo pipefail
@@ -227,7 +228,10 @@ jobs:
           # archives can be compared from the uploaded evidence.
           rm -rf .ost-ci/first-package && mkdir -p .ost-ci/first-package
           cp "$(dirname "$archive")"/* .ost-ci/first-package/
-          rm -rf "$BUNDLE/.strata/targets/$target"
+          # Remove every tree the bundle build reads or writes: the bundle's, each library's build
+          # tree, and the workspace prefix the libraries install to.
+          rm -rf "$BUNDLE/.strata/targets/$target" "$BUNDLE/build/$target" \
+            libs/*/build/"$target" libs/*/.strata/targets/"$target" ".strata/targets/$target/workspace-prefix"
           ost plugin build "$BUNDLE" --target "$PLATFORM" --profile "$PROFILE"
           ost plugin package "$BUNDLE" --target "$PLATFORM" --profile "$PROFILE" --json > .ost-ci/package-rebuilt.json
           python tools/check_package.py .ost-ci/package.json --repackaged .ost-ci/package-second.json \
