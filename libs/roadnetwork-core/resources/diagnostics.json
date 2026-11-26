@@ -103,8 +103,14 @@
         {
             "code": "RN-E308",
             "severity": "error",
-            "summary": "A lane's inner border, the center border or the outer border of a lane with another lane outside it, reaches the center of curvature on the inside of an arc (t * kappa >= 1), so a lane lies beyond the center.",
-            "action": "Reduce the lane offset or lane widths on the inside of the arc, or increase the arc's radius."
+            "summary": "A lane's inner border, the center border or the outer border of a lane with another lane outside it, reaches the center of curvature on the inside of a curve (t * kappa >= 1), so a lane lies beyond the center.",
+            "action": "Reduce the lane offset or lane widths on the inside of the curve, or increase its radius."
+        },
+        {
+            "code": "RN-E310",
+            "severity": "error",
+            "summary": "The tangent of a parametric cubic plan-view curve vanishes inside its parameter range (it moves less than 1e-6 m per metre of s), so its heading is undefined there.",
+            "action": "Correct the curve's coefficients so that its tangent does not vanish, or split the curve at the cusp."
         },
         {
             "code": "RN-E901",
@@ -115,8 +121,14 @@
         {
             "code": "RN-W301",
             "severity": "warning",
-            "summary": "The outer border of the outermost lane on one side reaches the center of curvature on the inside of an arc (t * kappa >= 1). The semantics are kept; the border's sampled outline loops near the center.",
-            "action": "Narrow the outermost lane on tight arcs, or widen the arc, if the sampled outline must not self-intersect; the import is otherwise complete."
+            "summary": "The outer border of the outermost lane on one side reaches the center of curvature on the inside of a curve (t * kappa >= 1). The semantics are kept; the border's sampled outline loops near the center.",
+            "action": "Narrow the outermost lane on tight curves, or widen the curve, if the sampled outline must not self-intersect; the import is otherwise complete."
+        },
+        {
+            "code": "RN-W302",
+            "severity": "warning",
+            "summary": "The length of a parametric cubic plan-view curve differs from its segment length by more than 1%. The curve is kept and evaluated with s linear in its parameter, so s along it is not close to the distance.",
+            "action": "Correct the segment length or the coefficients if s must measure the distance along the curve; the import is otherwise complete."
         }
     ]
 }

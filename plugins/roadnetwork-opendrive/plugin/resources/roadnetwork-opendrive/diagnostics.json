@@ -91,8 +91,8 @@
         {
             "code": "ODR-E201",
             "severity": "error",
-            "summary": "A plan-view geometry is a <spiral>, <poly3>, or <paramPoly3>, which Phase 1 does not support.",
-            "action": "Convert the geometry to lines and arcs, or wait for Phase 2 support (F-12)."
+            "summary": "A plan-view geometry is a <poly3>, which is deprecated since OpenDRIVE 1.6.0 and not supported.",
+            "action": "Convert the geometry to a <paramPoly3>, a <spiral>, or lines and arcs."
         },
         {
             "code": "ODR-E202",

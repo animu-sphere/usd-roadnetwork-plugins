@@ -6,6 +6,7 @@
 // locale.
 #include "io/Decoder.h"
 #include "io/Diagnostics.h"
+#include "openstrata/rn/Geometry.h"
 
 #include <clocale>
 #include <cmath>
@@ -15,6 +16,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #ifndef ROADNETWORK_FIXTURES
@@ -281,7 +283,7 @@ void TestNegativeFixtures() {
       {"lane-link-without-road-link", "ODR-E102"},
       {"lane-link-into-junction", "ODR-E103"},
       {"connection-unresolved", "ODR-E104"},
-      {"spiral", "ODR-E201"},
+      {"poly3", "ODR-E201"},
       {"superelevation", "ODR-E202"},
       {"lane-border", "ODR-E203"},
       {"direct-junction", "ODR-E204"},
@@ -341,9 +343,7 @@ void TestInline() {
       "ODR-E204", "a link with elementS");
   ExpectFailure(Replace(text, "<line/>", "<line/><arc curvature=\"0.1\"/>"), "ODR-E010", "two shapes");
   ExpectFailure(Replace(text, "<line/>", ""), "ODR-E008", "no shape");
-  ExpectFailure(Replace(text, "<line/>", "<paramPoly3 aU=\"0\" bU=\"1\" cU=\"0\" dU=\"0\" aV=\"0\" "
-                                         "bV=\"0\" cV=\"0\" dV=\"0\"/>"),
-      "ODR-E201", "paramPoly3");
+  ExpectFailure(Replace(text, "<line/>", "<poly3 a=\"0\" b=\"0\" c=\"0\" d=\"0\"/>"), "ODR-E201", "poly3");
   ExpectFailure(Replace(text, "</planView>",
                     "</planView><lateralProfile><crossSectionSurface/></lateralProfile>"),
       "ODR-E202", "crossSectionSurface");
@@ -358,6 +358,69 @@ void TestInline() {
         "a speed without a unit is m/s");
     Check(FindWarning(result, "[ODR-W208]") && FindWarning(result, "[ODR-W208]")->count == 1,
         "an unknown road child is ODR-W208");
+  }
+}
+
+void TestPlanViewCurves() {
+  // ADR 0010: <spiral> and <paramPoly3> decode, and their end poses are the
+  // golden values of ADR 0010 section 6.
+  const std::string text = Fixture("decoder/plan-view-curves.xodr");
+  ImportResult result;
+  if (!Import(text, false, &result, "plan-view-curves.xodr")) {
+    return;
+  }
+  Check(result.warnings.empty(), "plan-view-curves.xodr: no warnings");
+  const std::vector<Road>& roads = result.data.roads;
+  Check(roads.size() == 3, "plan-view-curves.xodr: three roads");
+  if (roads.size() != 3) {
+    return;
+  }
+  const auto* spiral = std::get_if<Spiral>(&roads[0].referenceLine.segments[0].shape);
+  Check(spiral && spiral->curvatureStart == 0.0 && spiral->curvatureEnd == 0.02, "S1: spiral curvatures");
+  const auto* p1 = std::get_if<ParamPoly3>(&roads[1].referenceLine.segments[0].shape);
+  Check(p1 && p1->aU == 0.0 && p1->bU == 28.8 && p1->cU == -14.4 && p1->dU == 0.0 && p1->aV == 0.0 &&
+            p1->bV == 0.0 && p1->cV == -14.4 && p1->dV == 0.0 && !p1->pRange,
+      "P1: coefficients, and an absent pRange stays absent");
+  const auto* p2 = std::get_if<ParamPoly3>(&roads[2].referenceLine.segments[0].shape);
+  Check(p2 && p2->dU == -0.0001 && p2->dV == 0.0002 && p2->pRange == ParamRange::ArcLength,
+      "P2: coefficients and pRange");
+
+  const struct {
+    std::size_t road;
+    double x;
+    double y;
+    double hdg;
+  } ends[] = {
+      {0, 90.452423790027208, 31.026830172338111, 1.0},
+      {1, 135.59999995384651, -59.999999953846512, -3.1415926567948967},
+      {2, 9.9, 1.2, 0.26188526468051904},
+  };
+  for (const auto& end : ends) {
+    const Road& road = roads[end.road];
+    const Pose2 pose = EvaluateReferenceLine(road.referenceLine, road.length);
+    Check(Near(pose.x, end.x, 1e-9) && Near(pose.y, end.y, 1e-9) && Near(pose.hdg, end.hdg, 1e-12),
+        "road " + road.id + ": end pose is the ADR 0010 golden value");
+  }
+
+  ExpectFailure(Replace(text, "dV=\"0.0002\" pRange=\"arcLength\"", "dV=\"0.0002\" pRange=\"length\""), "ODR-E009",
+      "pRange=\"length\"");
+  ExpectFailure(Replace(text, " dV=\"0.0002\"", ""), "ODR-E008", "a paramPoly3 without dV");
+  ExpectFailure(Replace(text, " curvEnd=\"0.02\"", ""), "ODR-E008", "a spiral without curvEnd");
+  const std::string extra = Replace(text, "<spiral curvStart=\"0.0\" curvEnd=\"0.02\"/>",
+      "<spiral curvStart=\"0.0\" curvEnd=\"0.02\" extra=\"1\"/>");
+  if (Import(extra, false, &result, "a spiral with an unknown attribute")) {
+    Check(FindWarning(result, "[ODR-W207]") != nullptr, "an unknown spiral attribute is ODR-W207");
+  }
+  ExpectFailure(Replace(text, "bU=\"28.8\" cU=\"-14.4\"", "bU=\"0.0\" cU=\"-14.4\""), "RN-E310",
+      "a paramPoly3 whose tangent vanishes at its start");
+
+  // ADR 0010 section 6: P2 with dU -0.002 and dV 0.0005 is 17% short of its
+  // length, a counted RN-W302 that does not fail the read.
+  const std::string shorter =
+      Replace(Replace(text, "dU=\"-0.0001\"", "dU=\"-0.002\""), "dV=\"0.0002\"", "dV=\"0.0005\"");
+  if (Import(shorter, false, &result, "a short paramPoly3")) {
+    const Warning* warning = FindWarning(result, "[RN-W302]");
+    Check(warning && warning->count == 1, "a paramPoly3 17% short of its length raises one RN-W302");
   }
 }
 
@@ -429,6 +492,7 @@ int main() {
   TestMetadataOnly();
   TestNegativeFixtures();
   TestInline();
+  TestPlanViewCurves();
   TestCarla();
   TestLocale();
   if (failures) {

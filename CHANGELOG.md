@@ -6,6 +6,31 @@ semantic versioning for tagged releases.
 
 ## [Unreleased]
 
+### Added
+
+- OpenDRIVE `<spiral>` and `<paramPoly3>` plan-view geometry (GEO-02,
+  F-12), as proposed in ADR 0010 §1–§2 and §4–§6. A spiral is evaluated by
+  piecewise Gauss–Legendre quadrature, including spirals whose end
+  curvatures are equal or differ only by rounding; a `paramPoly3` is closed
+  form with `p` linear in `s`, and an absent `pRange` is read as
+  `normalized`. Both are sampled within the 1 cm tolerance and authored as
+  `roadnetwork:referenceLine:*` arrays: `:kind` gains `spiral` and
+  `paramPoly3`, a road with a spiral adds `:curvatureEnd`, and a road with a
+  `paramPoly3` adds `:aU` … `:dV` and `:pRange`. Layers of roads with only
+  lines and arcs do not change.
+- `RN-E310`: a `paramPoly3` whose tangent vanishes in its parameter range.
+- `RN-W302`: a counted warning for a `paramPoly3` whose curve length differs
+  from its segment length by more than 1%.
+
+### Changed
+
+- `ODR-E201` is raised only for `<poly3>`; its fixture is now
+  `decoder/poly3.xodr`.
+- `RN-E308` and `RN-W301` apply on the inside of any curve, not only an arc.
+- `roadnetwork-core` (contributor tier): `Curvature(segment)` is replaced by
+  `CurvatureAt(segment, s)`, and `PlanViewSegment::shape` gains `Spiral` and
+  `ParamPoly3`.
+
 ## [0.1.0] - 2026-11-23
 
 First release: the OpenDRIVE vertical slice of Phase 1. The

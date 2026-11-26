@@ -91,7 +91,9 @@ coordinate is kept in the file's inertial frame, as written
 | `<planView>/<geometry s x y hdg length>` | `PlanViewSegment`, in source order | authored; chaining and continuity are validated (`RN-E303`, `RN-E305`, `RN-E306`) |
 | `<line>` | `Line` | authored |
 | `<arc curvature>` | `Arc`, curvature in 1/m, positive to the left | authored |
-| `<spiral>`, `<poly3>`, `<paramPoly3>` | — | `ODR-E201` (Phase 2, F-12) |
+| `<spiral curvStart curvEnd>` | `Spiral`, curvatures in 1/m, positive to the left; the curvature is linear in `s` and the two may be equal ([ADR 0010 §1](../adr/0010-plan-view-shapes-and-superelevation.md#1-spiral)) | authored |
+| `<paramPoly3 aU bU cU dU aV bV cV dV pRange>` | `ParamPoly3`, the eight coefficients as stated, and `pRange` `arcLength` or `normalized`, kept absent when the source omits it and then read as `normalized`; `p` is linear in `s` over the segment ([ADR 0010 §2](../adr/0010-plan-view-shapes-and-superelevation.md#2-parampoly3)) | authored; a missing coefficient is `ODR-E008`, another `pRange` value `ODR-E009`, a vanishing tangent `RN-E310`, and a curve length more than 1% from `length` the warning `RN-W302` |
+| `<poly3>` | — | `ODR-E201` (deprecated since 1.6.0; [backlog](../roadmap/backlog.md)) |
 | A `<geometry>` with no shape, or with two | — | `ODR-E008`, `ODR-E010` |
 | `<road>/<objects>/*` | — | `ODR-W203`, one count per object |
 | `<road>/<signals>/*` | — | `ODR-W202`, one count per signal |
@@ -209,6 +211,7 @@ OpenDRIVE.
 | Road, junction, and connection IDs | prim names `road_`, `junction_`, and `connection_` followed by the escaped ID, and the verbatim ID as `roadnetwork:id` | [ADR 0005 §1](../adr/0005-prim-path-and-id-stability.md#1-encoding-source-ids); `junction="-1"` authors no `roadnetwork:junction` |
 | Lane section, lane | `section_<n>`; `left_<n>`, `center`, `right_<n>` | [ADR 0005 §2](../adr/0005-prim-path-and-id-stability.md#2-derived-names) |
 | `<line>`, `<arc>` | `roadnetwork:referenceLine:kind` `line` or `arc`; `:curvature` is 0 for a line | |
+| `<spiral>`, `<paramPoly3>` | `:kind` `spiral` or `paramPoly3`; `:curvature` is `curvStart` for a spiral and 0 for a `paramPoly3`. A road with a spiral adds `:curvatureEnd`, and a road with a `paramPoly3` adds `:aU` … `:dV` and `:pRange` (`unstated` when the source omits it) | [ADR 0010 §5](../adr/0010-plan-view-shapes-and-superelevation.md#5-ir-and-stage) (proposed); a road of lines and arcs authors none of them |
 | `<elevation>`, `<laneOffset>`, `<width>` | five `double[]` each: `:s` (`:sOffset` for a width), `:a`, `:b`, `:c`, `:d` | an absent profile is not authored; the center lane has no width |
 | Lane `type` | `roadnetwork:laneType`, a `token` with the source spelling | |
 | Road `<type>/<speed>` | `roadnetwork:speed:s` and `:max`, in metres per second | `"no limit"` and `"undefined"` are not authored (`ODR-W205`) |

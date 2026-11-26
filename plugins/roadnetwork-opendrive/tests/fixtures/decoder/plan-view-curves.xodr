@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SPDX-License-Identifier: Apache-2.0
+  Hand-authored for usd-roadnetwork-plugins; no third-party content.
+  The ADR 0010 section 6 golden cases as roads: S1, a <spiral> from
+  curvature 0 to 0.02 over 100 m; P1, a <paramPoly3> without pRange, the
+  shape of a SUMO netconvert junction road; and P2, a <paramPoly3> with
+  pRange="arcLength".
+  Expected: decodes and validates without a warning.
+-->
+<OpenDRIVE>
+  <header revMajor="1" revMinor="8" name="plan-view-curves" version="1.0" date="2026-11-27T00:00:00"/>
+  <road name="S1" length="100.0" id="1" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="100.0">
+        <spiral curvStart="0.0" curvEnd="0.02"/>
+      </geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none" level="false"/>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road name="P1" length="23.35459442" id="2" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0.0" x="150.0" y="-45.6" hdg="-1.57079633" length="23.35459442">
+        <paramPoly3 aU="0.0" bU="28.8" cU="-14.4" dU="0.0" aV="0.0" bV="0.0" cV="-14.4" dV="0.0"/>
+      </geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none" level="false"/>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0.0" a="3.2" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+  <road name="P2" length="10.0" id="3" junction="-1">
+    <link/>
+    <planView>
+      <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
+        <paramPoly3 aU="0.0" bU="1.0" cU="0.0" dU="-0.0001" aV="0.0" bV="0.0" cV="0.01" dV="0.0002" pRange="arcLength"/>
+      </geometry>
+    </planView>
+    <lanes>
+      <laneSection s="0.0">
+        <center>
+          <lane id="0" type="none" level="false"/>
+        </center>
+        <right>
+          <lane id="-1" type="driving" level="false">
+            <width sOffset="0.0" a="3.5" b="0.0" c="0.0" d="0.0"/>
+          </lane>
+        </right>
+      </laneSection>
+    </lanes>
+  </road>
+</OpenDRIVE>

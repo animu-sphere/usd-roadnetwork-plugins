@@ -13,6 +13,7 @@
 #include <cstdio>
 #include <string>
 #include <utility>
+#include <variant>
 #include <vector>
 
 namespace {
@@ -106,14 +107,37 @@ Point3 Midpoint(const Point3& a, const Point3& b) {
   return Point3{(a.x + b.x) / 2.0, (a.y + b.y) / 2.0, (a.z + b.z) / 2.0};
 }
 
+// The distance from `p` to the segment from `a` to `b`.
+double DistanceToChord(const Point3& p, const Point3& a, const Point3& b) {
+  const double dx = b.x - a.x;
+  const double dy = b.y - a.y;
+  const double dz = b.z - a.z;
+  const double length2 = dx * dx + dy * dy + dz * dz;
+  double f = length2 > 0.0 ? ((p.x - a.x) * dx + (p.y - a.y) * dy + (p.z - a.z) * dz) / length2 : 0.0;
+  f = std::min(1.0, std::max(0.0, f));
+  return Distance(p, Point3{a.x + f * dx, a.y + f * dy, a.z + f * dz});
+}
+
 struct Measure {
-  double maxError = 0.0;
+  double maxError = 0.0;        ///< Chord midpoint to the analytic midpoint.
+  double maxChordDistance = 0.0; ///< Analytic curve to the chord.
   std::size_t vertices = 0;
 };
 
-// Checks the structure of `sampled` and the midpoint error of every curve.
+// How the error of an interval is judged against the tolerance.
+enum class Metric {
+  /// The chord's midpoint against the analytic point at the middle `s`, the
+  /// ADR 0004 evidence. Along a curve whose `s` is not the distance, such as
+  /// a ParamPoly3, the two midpoints also differ along the chord.
+  Midpoint,
+  /// The distance from the analytic curve, at seven points inside the
+  /// interval, to the chord: the tolerance's definition.
+  ChordDistance,
+};
+
+// Checks the structure of `sampled` and the error of every curve.
 Measure CheckSampled(const Road& road, const SampledRoad& sampled, double tolerance,
-    const std::string& what) {
+    const std::string& what, Metric metric = Metric::Midpoint) {
   Measure measure;
   Check(sampled.roadId == road.id, what + ": road id");
   Check(sampled.sections.size() == road.sections.size(), what + ": one sampled section per section");
@@ -163,9 +187,18 @@ Measure CheckSampled(const Road& road, const SampledRoad& sampled, double tolera
         }
       }
       for (std::size_t k = 0; k + 1 < curve.points.size(); ++k) {
-        const double mid = 0.5 * (section.stations[k] + section.stations[k + 1]);
-        const double error = Distance(Midpoint(curve.points[k], curve.points[k + 1]), analytic(mid));
-        measure.maxError = std::max(measure.maxError, error);
+        const double s0 = section.stations[k];
+        const double s1 = section.stations[k + 1];
+        const double mid = 0.5 * (s0 + s1);
+        const double midpoint = Distance(Midpoint(curve.points[k], curve.points[k + 1]), analytic(mid));
+        double chord = 0.0;
+        for (int j = 1; j < 8; ++j) {
+          const double s = s0 + (s1 - s0) * j / 8.0;
+          chord = std::max(chord, DistanceToChord(analytic(s), curve.points[k], curve.points[k + 1]));
+        }
+        measure.maxError = std::max(measure.maxError, midpoint);
+        measure.maxChordDistance = std::max(measure.maxChordDistance, chord);
+        const double error = metric == Metric::Midpoint ? midpoint : chord;
         if (error > tolerance) {
           std::fprintf(stderr, "FAIL: %s: interval %zu at s = %.6f is %.6g m off (tolerance %g)\n",
               name.c_str(), k, mid, error, tolerance);
@@ -299,12 +332,147 @@ void TestArcAloneAndLanesShareVertices() {
   }
 }
 
+// The segment after `previous`, at its end pose, with the given shape.
+PlanViewSegment After(const PlanViewSegment& previous, double length,
+    std::variant<Line, Arc, Spiral, ParamPoly3> shape) {
+  const Pose2 end = EvaluateSegment(previous, previous.s + previous.length);
+  return PlanViewSegment{previous.s + previous.length, end.x, end.y, end.hdg, length, shape};
+}
+
+// ADR 0010 evidence: a 210 m road far from the origin with a line, a spiral
+// into an arc, a spiral whose curvature changes sign, a normalized
+// paramPoly3 with an inflection, and an arcLength paramPoly3 that turns by
+// 243 degrees, in two lane sections with varying offset, elevation, and
+// widths.
+Road MakeCurveFixture(double* inflection, double* spiralZero) {
+  Road road;
+  road.id = "curves";
+  const PlanViewSegment line{0.0, 512000.25, 4100000.75, 0.3, 20.0, Line{}};
+  const PlanViewSegment entry = After(line, 30.0, Spiral{0.0, 0.04});
+  const PlanViewSegment arc = After(entry, 20.0, Arc{0.04});
+  const PlanViewSegment reverse = After(arc, 35.0, Spiral{0.04, -0.03});
+  *spiralZero = reverse.s + 20.0; // 0.04 / 0.07 of 35 m.
+
+  // v'' changes sign at p = 1/2.
+  ParamPoly3 s;
+  s.bU = 60.0;
+  s.cV = 12.0;
+  s.dV = -8.0;
+  s.pRange = ParamRange::Normalized;
+  PlanViewSegment wave = After(reverse, 60.0, s);
+  wave.length = CurveLength(wave); // Normalized: the curve does not depend on it.
+  *inflection = wave.s + wave.length / 2.0;
+
+  // u' = 40 (1 - 2p^2), v' = 80 p: u'v'' - v'u'' = 1600 (2 + 4p^2) > 0
+  // throughout, the speed grows from 40 to 40 sqrt(5), and the tangent
+  // turns by 116.6 degrees, more than one part may take.
+  ParamPoly3 loop;
+  loop.bU = 40.0;
+  loop.dU = -80.0 / 3.0;
+  loop.cV = 40.0;
+  PlanViewSegment turn = After(wave, 60.0, loop); // No pRange: normalized.
+  turn.length = CurveLength(turn);
+  road.referenceLine.segments = {line, entry, arc, reverse, wave, turn};
+  road.length = turn.s + turn.length;
+
+  const CubicRecord elevation{0.0, 3.0, 0.01, 2e-4, -1e-6};
+  road.elevation.records = {elevation, Continue(elevation, 110.0, -1e-4, 5e-7)};
+  const CubicRecord offset{0.0, 0.0, 0.005, 2e-4, -2e-6};
+  road.laneOffset.records = {offset, Continue(offset, 95.0, 1e-4, -1e-6)};
+
+  LaneSection first;
+  first.lanes = {
+      MakeLane(2, {CubicRecord{0.0, 1.5, 0.0, 0.0, 0.0}}),
+      MakeLane(1, {CubicRecord{0.0, 2.0, 0.01, 1e-4, -1e-6}}),
+      MakeLane(0),
+      MakeLane(-1, {CubicRecord{0.0, 2.0, -0.005, 2e-4, -2e-6}}),
+  };
+  LaneSection second;
+  second.s = 130.0;
+  second.lanes = {
+      MakeLane(1, {CubicRecord{0.0, 2.0, 0.0, 1e-4, -1e-6}}),
+      MakeLane(0),
+      MakeLane(-1, {CubicRecord{0.0, 2.0, 0.0, 0.0, 0.0}, CubicRecord{60.0, 2.0, 0.02, -1e-3, 0.0}}),
+  };
+  road.sections = {first, second};
+  return road;
+}
+
+void TestCurvesWithinTolerance() {
+  double inflection = 0.0;
+  double spiralZero = 0.0;
+  const Road road = MakeCurveFixture(&inflection, &spiralZero);
+  RoadNetworkData data;
+  data.roads = {road};
+  std::vector<ValidationWarning> warnings;
+  const auto failure = Validate(data, &warnings);
+  Check(!failure, "the curve fixture is valid" + (failure ? ": " + failure->message : std::string()));
+  for (const ValidationWarning& warning : warnings) {
+    Check(false, "the curve fixture raises no warning: " + warning.message);
+  }
+
+  for (double tolerance : {0.01, 0.001}) {
+    TessellationOptions options;
+    options.toleranceMetres = tolerance;
+    const SampledRoad sampled = TessellateRoad(road, options);
+    const std::string what = "curves, tolerance " + std::to_string(tolerance);
+    const Measure measure = CheckSampled(road, sampled, tolerance, what, Metric::ChordDistance);
+    std::size_t stations = 0;
+    for (const SampledSection& section : sampled.sections) {
+      stations += section.stations.size();
+    }
+    std::printf("%s: %zu stations, %zu vertices, max distance to the chord %.3g m (midpoint error %.3g m)\n",
+        what.c_str(), stations, measure.vertices, measure.maxChordDistance, measure.maxError);
+    Check(measure.maxChordDistance > tolerance / 100.0, what + ": the bound is not wildly conservative");
+  }
+
+  // ADR 0010 section 4: the zero of the spiral's curvature and the
+  // paramPoly3 inflection are stations, as are the segment boundaries.
+  const SampledRoad sampled = TessellateRoad(road);
+  if (sampled.sections.size() == 2) {
+    Check(Contains(sampled.sections[0].stations, spiralZero), "the spiral's curvature zero is a station");
+    Check(Contains(sampled.sections[1].stations, inflection), "the paramPoly3 inflection is a station");
+    for (const PlanViewSegment& segment : road.referenceLine.segments) {
+      const std::size_t section = segment.s < 130.0 ? 0 : 1;
+      if (segment.s > 0.0 && std::abs(segment.s - 130.0) > 1e-9) {
+        Check(Contains(sampled.sections[section].stations, segment.s),
+            "segment boundary at s = " + std::to_string(segment.s) + " is a station");
+      }
+    }
+  }
+}
+
+// A spiral and a paramPoly3 with constant widths and no curvature need one
+// part each, as a line does.
+void TestStraightCurves() {
+  Road road;
+  road.id = "straight curves";
+  ParamPoly3 straight;
+  straight.bU = 1.0;
+  straight.pRange = ParamRange::ArcLength;
+  road.referenceLine.segments = {PlanViewSegment{0.0, 0.0, 0.0, 0.7, 40.0, Spiral{0.0, 0.0}},
+      PlanViewSegment{40.0, 40.0 * std::cos(0.7), 40.0 * std::sin(0.7), 0.7, 60.0, straight}};
+  road.length = 100.0;
+  LaneSection only;
+  only.lanes = {MakeLane(1, {CubicRecord{0.0, 3.0, 0.0, 0.0, 0.0}}), MakeLane(0)};
+  road.sections = {only};
+  const SampledRoad sampled = TessellateRoad(road);
+  Check(sampled.sections.size() == 1, "straight curves: one section");
+  if (sampled.sections.size() == 1) {
+    Check(sampled.sections[0].stations == std::vector<double>{0.0, 40.0, 100.0},
+        "straight curves: one part per segment");
+  }
+  CheckSampled(road, sampled, 1e-9, "straight curves");
+}
+
 } // namespace
 
 int main() {
   TestFixtureWithinTolerance();
   TestStraightConstantRoad();
   TestArcAloneAndLanesShareVertices();
+  TestCurvesWithinTolerance();
+  TestStraightCurves();
 
   if (failures == 0) {
     std::printf("roadnetworkCore tessellation: all checks passed\n");

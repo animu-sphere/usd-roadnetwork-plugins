@@ -94,8 +94,10 @@ and `roadnetworkCore_validation` fails every code on the model.
 | `RN-E305` | A plan-view segment starts more than 0.01 m from the end of the previous one. |
 | `RN-E306` | A plan-view segment's start heading differs from the previous end heading by more than 0.001 rad. |
 | `RN-E307` | Elevation, lane-offset, or lane-width records do not ascend strictly in `s0`. |
-| `RN-E308` | On the inside of an arc, a border that is the inner border of a lane reaches the center of curvature (`t · κ ≥ 1`): the center border, or the outer border of a lane with another lane outside it ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). |
-| `RN-W301` | Warning. On the inside of an arc, the outer border of the outermost lane on its side reaches the center of curvature. The semantics are kept and only that border's sampled outline loops. CARLA `Town01` has one such border and `Town02` two, all sidewalks. |
+| `RN-E308` | On the inside of a curve, a border that is the inner border of a lane reaches the center of curvature (`t · κ ≥ 1`): the center border, or the outer border of a lane with another lane outside it ([ADR 0004 §2](../adr/0004-opendrive-geometry-retention.md#2-evaluation)). On an arc and a spiral the extreme between two stations is exact; on a `paramPoly3` it is checked at the ends and midpoints of the tessellation parts ([ADR 0010 §8](../adr/0010-plan-view-shapes-and-superelevation.md#8-diagnostics)). |
+| `RN-E310` | The tangent of a `paramPoly3` vanishes in its parameter range: the curve moves less than 1e-6 m per metre of `s` there, so its heading is undefined ([ADR 0010 §2](../adr/0010-plan-view-shapes-and-superelevation.md#2-parampoly3)). |
+| `RN-W301` | Warning. On the inside of a curve, the outer border of the outermost lane on its side reaches the center of curvature. The semantics are kept and only that border's sampled outline loops. CARLA `Town01` has one such border and `Town02` two, all sidewalks. |
+| `RN-W302` | Warning, one count per segment. The length of a `paramPoly3` curve differs from its segment `length` by more than 1%. It is still evaluated with `p` linear in `s`, so `s` along it is not close to the distance ([ADR 0010 §2](../adr/0010-plan-view-shapes-and-superelevation.md#2-parampoly3)). |
 
 ### `RN-` shared authoring
 
@@ -151,14 +153,14 @@ listed in the bundle manifest's `negative` list.
 
 | Code | Condition | Fixture |
 | --- | --- | --- |
-| `ODR-E008` | A required element or attribute is missing: for example a road's `length` or `junction`, a `<geometry>` without `<line>` or `<arc>`, a lane's `type`, or a non-center lane without `<width>`. | `decoder/missing-attribute.xodr` |
+| `ODR-E008` | A required element or attribute is missing: for example a road's `length` or `junction`, a `<geometry>` without a shape, a lane's `type`, or a non-center lane without `<width>`. | `decoder/missing-attribute.xodr` |
 | `ODR-E009` | An attribute value is not valid for its type: not an `xsd:double` or a 32-bit integer, or not a value OpenDRIVE 1.4–1.9 defines, such as a lane type, `contactPoint`, or speed unit. | `decoder/invalid-number.xodr`, `decoder/unknown-lane-type.xodr` |
 | `ODR-E010` | An element is repeated or misplaced: two `<planView>` elements, two shapes in one `<geometry>`, a second `<header>`, a `<width>` on the center lane, and similar. | `decoder/duplicate-plan-view.xodr` |
 | `ODR-E101` | A lane's `id` does not match its group: positive in `<left>`, `0` in `<center>`, negative in `<right>`. | `decoder/lane-group-mismatch.xodr` |
 | `ODR-E102` | A lane predecessor or successor at a road end has no road link to follow. | `decoder/lane-link-without-road-link.xodr` |
 | `ODR-E103` | A lane predecessor or successor at a road end leads into a junction. The junction's `<laneLink>` elements state these links. | `decoder/lane-link-into-junction.xodr` |
 | `ODR-E104` | The end of a connection's incoming road at the junction cannot be determined. | `decoder/connection-unresolved.xodr` |
-| `ODR-E201` | A `<spiral>`, `<poly3>`, or `<paramPoly3>` plan-view geometry ([ADR 0004 §5](../adr/0004-opendrive-geometry-retention.md#5-other-plan-view-shapes)). | `decoder/spiral.xodr` |
+| `ODR-E201` | A `<poly3>` plan-view geometry, deprecated since 1.6.0 ([ADR 0004 §5](../adr/0004-opendrive-geometry-retention.md#5-other-plan-view-shapes), [release plan](../roadmap/release-plan.md#phase-2--opendrive-fidelity)). | `decoder/poly3.xodr` |
 | `ODR-E202` | A `<superelevation>`, `<crossfall>`, or `<shape>` with a non-zero coefficient, or a `<crossSectionSurface>` ([ADR 0004 §4](../adr/0004-opendrive-geometry-retention.md#4-profiles-in-phase-1)). | `decoder/superelevation.xodr` |
 | `ODR-E203` | A lane `<border>`. | `decoder/lane-border.xodr` |
 | `ODR-E204` | A `direct`, `virtual`, or `crossing` junction, or a road link with `elementS` or `elementDir`. | `decoder/direct-junction.xodr` |

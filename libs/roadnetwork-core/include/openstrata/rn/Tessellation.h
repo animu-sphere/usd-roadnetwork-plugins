@@ -50,10 +50,12 @@ struct SampledRoad {
 /// Validate(); the result for a road that fails it is unspecified.
 ///
 /// A section's stations are its start and end, every plan-view segment
-/// boundary, and the start of every elevation, lane-offset, and width record
+/// boundary, the points where a spiral's or a ParamPoly3's curvature changes
+/// sign, and the start of every elevation, lane-offset, and width record
 /// inside it. Each interval between two stations is split into the fewest
-/// equal parts whose ADR 0004 error bound is within the tolerance. A line
-/// with constant widths and elevation needs one part.
+/// equal parts whose error bound (ADR 0004 section 3, ADR 0010 section 4) is
+/// within the tolerance. A line with constant widths and elevation needs one
+/// part.
 SampledRoad TessellateRoad(const Road& road, const TessellationOptions& options = {});
 
 } // namespace openstrata::rn

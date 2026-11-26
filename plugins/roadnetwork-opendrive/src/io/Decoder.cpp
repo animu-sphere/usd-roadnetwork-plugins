@@ -641,19 +641,53 @@ private:
           Once(shape, &seenShape, at);
           CheckAttributes(shape, {"curvature"}, at);
           segment.shape = Arc{Number(shape, "curvature", at)};
-        } else if (Is(shape, "spiral") || Is(shape, "poly3") || Is(shape, "paramPoly3")) {
+        } else if (Is(shape, "spiral")) {
+          Once(shape, &seenShape, at);
+          CheckAttributes(shape, {"curvStart", "curvEnd"}, at);
+          segment.shape = Spiral{Number(shape, "curvStart", at), Number(shape, "curvEnd", at)};
+        } else if (Is(shape, "paramPoly3")) {
+          Once(shape, &seenShape, at);
+          segment.shape = ParamPoly3Of(shape, at);
+        } else if (Is(shape, "poly3")) {
           Fail(codes::kUnsupportedGeometry,
-              at + " is a " + Tag(shape) + ", which Phase 1 does not support; only <line> and "
-                                           "<arc> are");
+              at + " is a " + Tag(shape) + ", which is not supported; <line>, <arc>, <spiral>, "
+                                           "and <paramPoly3> are");
         } else {
           Structural(shape, at);
         }
       }
       if (!seenShape) {
-        Fail(codes::kMissingRequired, at + ": <geometry> has no <line> or <arc>");
+        Fail(codes::kMissingRequired, at + ": <geometry> has no <line>, <arc>, <spiral>, or <paramPoly3>");
       }
       road.referenceLine.segments.push_back(segment);
     }
+  }
+
+  /// All eight coefficients are required. `pRange` is mandatory in 1.9.0,
+  /// but producers omit it; it is kept absent and read as `normalized`
+  /// (ADR 0010 section 2).
+  ParamPoly3 ParamPoly3Of(const xml_node& node, const std::string& at) {
+    CheckAttributes(node, {"aU", "bU", "cU", "dU", "aV", "bV", "cV", "dV", "pRange"}, at);
+    ParamPoly3 curve;
+    curve.aU = Number(node, "aU", at);
+    curve.bU = Number(node, "bU", at);
+    curve.cU = Number(node, "cU", at);
+    curve.dU = Number(node, "dU", at);
+    curve.aV = Number(node, "aV", at);
+    curve.bV = Number(node, "bV", at);
+    curve.cV = Number(node, "cV", at);
+    curve.dV = Number(node, "dV", at);
+    if (const xml_attribute range = node.attribute("pRange")) {
+      const std::string_view value = range.value();
+      if (value == "normalized") {
+        curve.pRange = ParamRange::Normalized;
+      } else if (value == "arcLength") {
+        curve.pRange = ParamRange::ArcLength;
+      } else {
+        Invalid(node, "pRange", range.value(), at, "arcLength or normalized");
+      }
+    }
+    return curve;
   }
 
   void ElevationProfile(const xml_node& node, rn::Road& road, const std::string& where) {

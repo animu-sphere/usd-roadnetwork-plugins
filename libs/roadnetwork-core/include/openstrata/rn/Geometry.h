@@ -26,12 +26,33 @@ struct Point3 {
   double z = 0.0;
 };
 
-/// The curvature of a segment: 0 for a line.
-double Curvature(const PlanViewSegment& segment) noexcept;
+/// The signed curvature of `segment` at `s`, positive to the left: 0 for a
+/// line, constant for an arc, linear in `s` for a spiral, and
+/// `(u'v'' - v'u'') / (u'^2 + v'^2)^1.5` for a ParamPoly3, which is 0 where
+/// its tangent vanishes.
+double CurvatureAt(const PlanViewSegment& segment, double s) noexcept;
 
-/// The pose at `s` on `segment`, in the chord form of ADR 0004 section 2:
-/// exact for lines and arcs, and stable as the curvature tends to 0. `s`
-/// outside the segment extrapolates the same shape.
+/// The upper end of the ParamPoly3 parameter range: 1 for Normalized or an
+/// absent range, and `length` for ArcLength (ADR 0010 section 2).
+double ParameterRange(const ParamPoly3& curve, double length) noexcept;
+
+/// The parameter `p` at distance `u` from the start of a ParamPoly3 segment
+/// of length `length`: `u * p_max / length` (ADR 0010 section 2).
+double ParameterAt(const ParamPoly3& curve, double length, double u) noexcept;
+
+/// The length of the curve a segment describes. For a ParamPoly3 it is the
+/// arc length of `(u(p), v(p))` over its parameter range, by 8 pieces of
+/// 32-point Gauss-Legendre quadrature, which may differ from
+/// `segment.length` (RN-W302); for the other shapes it is `segment.length`.
+double CurveLength(const PlanViewSegment& segment) noexcept;
+
+/// The pose at `s` on `segment`. Lines and arcs use the chord form of
+/// ADR 0004 section 2: exact, and stable as the curvature tends to 0. A
+/// spiral integrates its heading by piecewise 8-point Gauss-Legendre
+/// quadrature, within `max(1e-9 m, 1e-13 |s - segment.s|)` of the exact
+/// clothoid relative to its start (ADR 0010 section 1); its cost grows with
+/// the heading change of the segment. A ParamPoly3 is closed form (ADR 0010
+/// section 2). `s` outside the segment extrapolates the same shape.
 Pose2 EvaluateSegment(const PlanViewSegment& segment, double s) noexcept;
 
 /// The index of the segment that holds `s`: the last segment whose start is

@@ -2,16 +2,17 @@
 <!--
   SPDX-License-Identifier: Apache-2.0
   Hand-authored for usd-roadnetwork-plugins; no third-party content.
-  A plan-view <spiral>, which Phase 1 rejects (ADR 0004 section 5).
+  A plan-view <poly3>, which is deprecated and not supported
+  (ADR 0004 section 5, ADR 0010).
   Expected: ODR-E201.
 -->
 <OpenDRIVE>
-  <header revMajor="1" revMinor="8" name="spiral" version="1.0" date="2026-11-22T00:00:00"/>
+  <header revMajor="1" revMinor="8" name="poly3" version="1.0" date="2026-11-22T00:00:00"/>
   <road name="a" length="10.0" id="1" junction="-1">
     <link/>
     <planView>
       <geometry s="0.0" x="0.0" y="0.0" hdg="0.0" length="10.0">
-        <spiral curvStart="0.0" curvEnd="0.01"/>
+        <poly3 a="0.0" b="0.0" c="0.001" d="0.0"/>
       </geometry>
     </planView>
     <lanes>

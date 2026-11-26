@@ -46,13 +46,40 @@ struct Arc {
   double curvature = 0.0;
 };
 
+/// A plan-view segment whose curvature changes linearly along it, from
+/// `curvatureStart` to `curvatureEnd`; positive turns left (ADR 0010
+/// section 1). The two may be equal.
+struct Spiral {
+  double curvatureStart = 0.0;
+  double curvatureEnd = 0.0;
+};
+
+/// The parameter range of a ParamPoly3: `p` in [0, 1], or in [0, length].
+enum class ParamRange { Normalized, ArcLength };
+
+/// A plan-view segment given as two cubics `u(p)` and `v(p)` in the frame of
+/// its start pose (ADR 0010 section 2). `p` maps linearly to `s` over the
+/// segment.
+struct ParamPoly3 {
+  double aU = 0.0;
+  double bU = 0.0;
+  double cU = 0.0;
+  double dU = 0.0;
+  double aV = 0.0;
+  double bV = 0.0;
+  double cV = 0.0;
+  double dV = 0.0;
+  /// Empty when the source omits it, which is read as Normalized.
+  std::optional<ParamRange> pRange;
+};
+
 struct PlanViewSegment {
   double s = 0.0;      ///< Start along the reference line.
   double x = 0.0;      ///< Start position.
   double y = 0.0;
   double hdg = 0.0;    ///< Start heading, counter-clockwise from +x.
   double length = 0.0; ///< Positive.
-  std::variant<Line, Arc> shape;
+  std::variant<Line, Arc, Spiral, ParamPoly3> shape;
 };
 
 /// The analytic reference-line representation (ADR 0001 section 4, ADR 0004).
