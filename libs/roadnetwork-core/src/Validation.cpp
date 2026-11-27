@@ -3,9 +3,11 @@
 
 #include "SectionIntervals.h"
 #include "openstrata/rn/Geometry.h"
+#include "openstrata/rn/Tessellation.h"
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <cstdint>
 #include <locale>
 #include <map>
@@ -251,8 +253,15 @@ std::optional<Diagnostic> CheckFinite(const Road& road) {
   }
   for (std::size_t i = 0; i < road.referenceLine.segments.size(); ++i) {
     const PlanViewSegment& g = road.referenceLine.segments[i];
-    const Arc* arc = std::get_if<Arc>(&g.shape);
-    for (double value : {g.s, g.x, g.y, g.hdg, g.length, arc ? arc->curvature : 0.0}) {
+    std::vector<double> values{g.s, g.x, g.y, g.hdg, g.length};
+    if (const Arc* arc = std::get_if<Arc>(&g.shape)) {
+      values.push_back(arc->curvature);
+    } else if (const Spiral* spiral = std::get_if<Spiral>(&g.shape)) {
+      values.insert(values.end(), {spiral->curvatureStart, spiral->curvatureEnd});
+    } else if (const ParamPoly3* c = std::get_if<ParamPoly3>(&g.shape)) {
+      values.insert(values.end(), {c->aU, c->bU, c->cU, c->dU, c->aV, c->bV, c->cV, c->dV});
+    }
+    for (double value : values) {
       if (!std::isfinite(value)) {
         return Fail("[RN-E301]", RoadName(road) + " plan-view segment " + std::to_string(i) +
                                      " has a value that is not finite");
@@ -294,6 +303,65 @@ std::optional<Diagnostic> CheckLengths(const Road& road) {
     if (!(length > 0.0)) {
       return Fail("[RN-E302]", RoadName(road) + " plan-view segment " + std::to_string(i) +
                                    " length " + Number(length) + " is not positive");
+    }
+  }
+  return std::nullopt;
+}
+
+// A warning counted once per affected element, with the first five named.
+struct CountedWarning {
+  std::uint32_t count = 0;
+  std::vector<std::string> first;
+
+  void Add(std::string where) {
+    ++count;
+    if (first.size() < 5) {
+      first.push_back(std::move(where));
+    }
+  }
+};
+
+struct Warnings {
+  CountedWarning folds;   ///< RN-W301
+  CountedWarning lengths; ///< RN-W302
+};
+
+// (b + c p + d p^2)^2.
+detail::Poly4 Square(double b, double c, double d) {
+  return detail::Poly4{{b * b, 2.0 * b * c, c * c + 2.0 * b * d, 2.0 * c * d, d * d}};
+}
+
+// ADR 0010 section 2: a ParamPoly3 whose tangent vanishes in its parameter
+// range has no heading there (RN-E310), and one whose curve length differs
+// from the segment length by more than 1% is counted (RN-W302).
+std::optional<Diagnostic> CheckShapes(const Road& road, Warnings& warnings) {
+  for (std::size_t i = 0; i < road.referenceLine.segments.size(); ++i) {
+    const PlanViewSegment& g = road.referenceLine.segments[i];
+    const ParamPoly3* c = std::get_if<ParamPoly3>(&g.shape);
+    if (!c) {
+      continue;
+    }
+    const std::string where = RoadName(road) + " plan-view segment " + std::to_string(i);
+    const double range = ParameterRange(*c, g.length);
+    // -(u'^2 + v'^2): its largest value is minus the smallest squared speed.
+    const detail::Poly4 su = Square(c->bU, 2.0 * c->cU, 3.0 * c->dU);
+    const detail::Poly4 sv = Square(c->bV, 2.0 * c->cV, 3.0 * c->dV);
+    detail::Poly4 negated;
+    for (int k = 0; k < 5; ++k) {
+      negated.c[k] = -(su.c[k] + sv.c[k]);
+    }
+    const detail::Extremum slowest = detail::Maximum(negated, range);
+    // The distance the curve moves per metre of s, at its slowest.
+    const double speed = std::sqrt(std::max(0.0, -slowest.value)) * range / g.length;
+    if (!(speed >= ValidationTolerances::kTangentSpeed)) {
+      return Fail("[RN-E310]", where + " is a parametric cubic whose tangent vanishes at s = " +
+                                   Number(g.s + slowest.x * g.length / range) + " (it moves " +
+                                   Number(speed) + " m per m of s), so its heading is undefined there");
+    }
+    const double curve = CurveLength(g);
+    if (std::abs(curve - g.length) > ValidationTolerances::kCurveLengthFraction * g.length) {
+      warnings.lengths.Add(where + " (curve length " + Number(curve) + " m, segment length " +
+                           Number(g.length) + " m)");
     }
   }
   return std::nullopt;
@@ -388,22 +456,26 @@ std::optional<Diagnostic> CheckCubics(const Road& road) {
   return std::nullopt;
 }
 
-// The outer borders that fold back without inverting a lane (RN-W301).
-struct FoldWarnings {
-  std::uint32_t count = 0;
-  std::vector<std::string> first;
+// The largest `t * kappa` of a border on an interval, and where it is reached.
+struct Deepest {
+  double tk = 0.0;
+  double x = 0.0;
 };
 
-// ADR 0004 section 2: a border on the inside of an arc that reaches its
-// center of curvature (t * kappa >= 1) folds back on itself. It is an error
-// when the border is the inner border of a lane, the center border or the
-// outer border of a lane that has another lane outside it, because that lane
-// then lies wholly or partly beyond the center. When it is only the outer
-// border of the outermost lane on its side, every lane keeps a positive
-// extent next to the reference line and only that border's sampled outline
-// loops: a counted warning. On each interval between stations the border is
-// one cubic, so its extreme is exact.
-std::optional<Diagnostic> CheckFold(const Road& road, FoldWarnings& warnings) {
+// ADR 0004 section 2 and ADR 0010 section 8: a border on the inside of a
+// curve that reaches its center of curvature (t * kappa >= 1) folds back on
+// itself. It is an error when the border is the inner border of a lane, the
+// center border or the outer border of a lane that has another lane outside
+// it, because that lane then lies wholly or partly beyond the center. When
+// it is only the outer border of the outermost lane on its side, every lane
+// keeps a positive extent next to the reference line and only that border's
+// sampled outline loops: a counted warning.
+//
+// On each interval between stations the border is one cubic. On an arc,
+// t * kappa is that cubic scaled, and on a spiral it is a quartic, so their
+// extremes are exact. On a ParamPoly3 it is checked at the ends and
+// midpoints of the tessellation parts.
+std::optional<Diagnostic> CheckFold(const Road& road, CountedWarning& warnings) {
   for (std::size_t sectionIndex = 0; sectionIndex < road.sections.size(); ++sectionIndex) {
     const std::vector<Lane>& lanes = road.sections[sectionIndex].lanes;
     std::int32_t outermostLeft = 0;
@@ -417,42 +489,76 @@ std::optional<Diagnostic> CheckFold(const Road& road, FoldWarnings& warnings) {
     for (std::size_t i = 0; i + 1 < stations.size(); ++i) {
       const detail::Interval interval =
           detail::MakeInterval(road, sectionIndex, stations[i], stations[i + 1]);
-      const double kappa = Curvature(road.referenceLine.segments[interval.segment]);
-      if (kappa == 0.0) {
+      const PlanViewSegment& segment = road.referenceLine.segments[interval.segment];
+      if (std::holds_alternative<Line>(segment.shape)) {
         continue;
       }
-      const double sign = kappa > 0.0 ? 1.0 : -1.0;
-      for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
-        const detail::Poly3& t = interval.borders[lane];
-        const detail::Poly3 inward{sign * t.c0, sign * t.c1, sign * t.c2, sign * t.c3};
-        const detail::Extremum deepest = detail::Maximum(inward, interval.length);
-        if (deepest.value * std::abs(kappa) < 1.0) {
+      const auto kappaAt = [&](double x) { return CurvatureAt(segment, interval.s0 + x); };
+
+      std::vector<Deepest> deepest(lanes.size());
+      if (std::holds_alternative<Arc>(segment.shape)) {
+        const double kappa = kappaAt(0.0);
+        if (kappa == 0.0) {
           continue;
         }
+        const double sign = kappa > 0.0 ? 1.0 : -1.0;
+        for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+          const detail::Poly3& t = interval.borders[lane];
+          const detail::Poly3 inward{sign * t.c0, sign * t.c1, sign * t.c2, sign * t.c3};
+          const detail::Extremum e = detail::Maximum(inward, interval.length);
+          deepest[lane] = Deepest{e.value * std::abs(kappa), e.x};
+        }
+      } else if (const Spiral* spiral = std::get_if<Spiral>(&segment.shape)) {
+        const double rate = (spiral->curvatureEnd - spiral->curvatureStart) / segment.length;
+        const double kappa0 = kappaAt(0.0);
+        for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+          const detail::Extremum e =
+              detail::Maximum(detail::Product(interval.borders[lane], kappa0, rate), interval.length);
+          deepest[lane] = Deepest{e.value, e.x};
+        }
+      } else {
+        const std::size_t parts =
+            detail::PartsFor(road, interval, TessellationOptions{}.toleranceMetres);
+        for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+          deepest[lane] = Deepest{-std::numeric_limits<double>::infinity(), 0.0};
+        }
+        for (std::size_t k = 0; k <= 2 * parts; ++k) {
+          const double x = interval.length * static_cast<double>(k) / static_cast<double>(2 * parts);
+          const double kappa = kappaAt(x);
+          for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+            const double tk = interval.borders[lane].Value(x) * kappa;
+            if (tk > deepest[lane].tk) {
+              deepest[lane] = Deepest{tk, x};
+            }
+          }
+        }
+      }
+
+      for (std::size_t lane = 0; lane < lanes.size(); ++lane) {
+        if (!(deepest[lane].tk >= 1.0)) {
+          continue;
+        }
+        const double x = deepest[lane].x;
+        const double radius = 1.0 / std::abs(kappaAt(x));
+        const double inside = std::abs(interval.borders[lane].Value(x));
         const std::int32_t number = lanes[lane].number;
         const std::string border =
             number == 0 ? std::string(" center border") : " lane " + std::to_string(number) + " border";
         const std::string where = SectionName(road, sectionIndex) + border;
-        const double radius = 1.0 / std::abs(kappa);
         const bool outermost =
             number != 0 && (number == outermostLeft || number == outermostRight);
         if (outermost) {
           if (!warned[lane]) {
             warned[lane] = true;
-            ++warnings.count;
-            if (warnings.first.size() < 5) {
-              warnings.first.push_back(where + " (" + Number(deepest.value - radius) +
-                                       " m past the center of plan-view segment " +
-                                       std::to_string(interval.segment) + ", radius " +
-                                       Number(radius) + " m)");
-            }
+            warnings.Add(where + " (" + Number(inside - radius) +
+                         " m past the center of plan-view segment " +
+                         std::to_string(interval.segment) + ", radius " + Number(radius) + " m)");
           }
           continue;
         }
-        return Fail("[RN-E308]", where + " is " + Number(deepest.value) +
-                                     " m inside plan-view segment " +
+        return Fail("[RN-E308]", where + " is " + Number(inside) + " m inside plan-view segment " +
                                      std::to_string(interval.segment) + " at s = " +
-                                     Number(interval.s0 + deepest.x) +
+                                     Number(interval.s0 + x) +
                                      ", at or beyond its center of curvature (radius " +
                                      Number(radius) + " m), so the lane outside it is inverted");
       }
@@ -461,23 +567,43 @@ std::optional<Diagnostic> CheckFold(const Road& road, FoldWarnings& warnings) {
   return std::nullopt;
 }
 
-std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data, FoldWarnings& folds) {
+std::optional<Diagnostic> CheckNumeric(const RoadNetworkData& data, Warnings& warnings) {
   if (auto failure = CheckSourceFinite(data)) {
     return failure;
   }
   using RoadCheck = std::optional<Diagnostic> (*)(const Road&);
-  const RoadCheck checks[] = {CheckFinite, CheckLengths, CheckStations, CheckContinuity, CheckCubics};
+  const RoadCheck before[] = {CheckFinite, CheckLengths};
+  const RoadCheck after[] = {CheckStations, CheckContinuity, CheckCubics};
   for (const Road& road : data.roads) {
-    for (RoadCheck check : checks) {
+    for (RoadCheck check : before) {
       if (auto failure = check(road)) {
         return failure;
       }
     }
-    if (auto failure = CheckFold(road, folds)) {
+    // Before the continuity check, which needs a defined end heading.
+    if (auto failure = CheckShapes(road, warnings)) {
+      return failure;
+    }
+    for (RoadCheck check : after) {
+      if (auto failure = check(road)) {
+        return failure;
+      }
+    }
+    if (auto failure = CheckFold(road, warnings.folds)) {
       return failure;
     }
   }
   return std::nullopt;
+}
+
+ValidationWarning Summarize(const char* bracketed, const CountedWarning& counted, const std::string& text) {
+  std::string code(bracketed);
+  code = code.substr(1, code.size() - 2);
+  std::string message = std::string(bracketed) + " " + text;
+  for (std::size_t i = 0; i < counted.first.size(); ++i) {
+    message += (i ? ", " : "") + counted.first[i];
+  }
+  return ValidationWarning{code, counted.count, std::move(message)};
 }
 
 } // namespace
@@ -500,19 +626,24 @@ std::optional<Diagnostic> Validate(const RoadNetworkData& data, std::vector<Vali
   if (auto failure = CheckLaneStructure(data)) {
     return failure;
   }
-  FoldWarnings folds;
-  if (auto failure = CheckNumeric(data, folds)) {
+  Warnings counted;
+  if (auto failure = CheckNumeric(data, counted)) {
     return failure;
   }
-  if (warnings && folds.count > 0) {
-    std::string message = "[RN-W301] " + std::to_string(folds.count) + " outermost lane border" +
-                          (folds.count == 1 ? " folds" : "s fold") +
-                          " back past the center of curvature of an arc, so their sampled "
-                          "outline loops there; no inner lane border reaches the center: ";
-    for (std::size_t i = 0; i < folds.first.size(); ++i) {
-      message += (i ? ", " : "") + folds.first[i];
-    }
-    warnings->push_back(ValidationWarning{"RN-W301", folds.count, std::move(message)});
+  if (!warnings) {
+    return std::nullopt;
+  }
+  if (const std::uint32_t n = counted.folds.count) {
+    warnings->push_back(Summarize("[RN-W301]", counted.folds,
+        std::to_string(n) + " outermost lane border" + (n == 1 ? " folds" : "s fold") +
+            " back past the center of curvature of a curve, so their sampled outline loops "
+            "there; no inner lane border reaches the center: "));
+  }
+  if (const std::uint32_t n = counted.lengths.count) {
+    warnings->push_back(Summarize("[RN-W302]", counted.lengths,
+        std::to_string(n) + " parametric plan-view curve" + (n == 1 ? " has" : "s have") +
+            " a length more than 1% from its segment length, so s along it is not close to "
+            "the distance: "));
   }
   return std::nullopt;
 }

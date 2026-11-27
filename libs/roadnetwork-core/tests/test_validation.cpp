@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // ADR 0001 section 6: every validation invariant fails with its RN- code, and the
 // lane graph is canonical (section 3).
+#include "openstrata/rn/Geometry.h"
 #include "openstrata/rn/RoadNetworkData.h"
 #include "openstrata/rn/Validation.h"
 
@@ -328,6 +329,117 @@ void TestFold() {
       "a wide border on the outside of an arc is valid without a warning");
 }
 
+// ADR 0010: the spiral and paramPoly3 checks.
+void TestCurves() {
+  ExpectCode("RN-E301", "a spiral curvature that is not finite",
+      [](RoadNetworkData& d) { d.roads[0].referenceLine.segments[1].shape = Spiral{0.1, kNaN}; });
+  ExpectCode("RN-E301", "a paramPoly3 coefficient that is not finite", [](RoadNetworkData& d) {
+    ParamPoly3 c;
+    c.bU = 5.0;
+    c.dV = kInf;
+    d.roads[1].referenceLine.segments[0].shape = c;
+  });
+
+  // A spiral of constant curvature is the arc it replaces.
+  RoadNetworkData spiral = MakeValid();
+  spiral.roads[0].referenceLine.segments[1].shape = Spiral{0.1, 0.1};
+  ExpectValid(spiral, "a constant-curvature spiral in place of the arc");
+
+  // Road "2" as a straight normalized paramPoly3, then with a cusp.
+  const auto setPoly = [](RoadNetworkData& d, ParamPoly3 c) { d.roads[1].referenceLine.segments[0].shape = c; };
+  RoadNetworkData poly = MakeValid();
+  ParamPoly3 straight;
+  straight.bU = 5.0;
+  setPoly(poly, straight);
+  std::vector<ValidationWarning> warnings;
+  Check(!Validate(poly, &warnings) && warnings.empty(), "a straight paramPoly3 is valid without a warning");
+
+  ExpectCode("RN-E310", "a paramPoly3 whose tangent vanishes at its start", [&](RoadNetworkData& d) {
+    ParamPoly3 c;
+    c.cU = 5.0; // u = 5 p^2: u'(0) = v'(0) = 0.
+    setPoly(d, c);
+  });
+  ExpectCode("RN-E310", "a paramPoly3 that turns back on itself", [&](RoadNetworkData& d) {
+    ParamPoly3 c;
+    c.bU = 5.0; // u = v = 5 (p - p^2): both derivatives vanish at p = 1/2.
+    c.cU = -5.0;
+    c.bV = 5.0;
+    c.cV = -5.0;
+    setPoly(d, c);
+  });
+
+  // An arcLength curve 30% longer than the segment: RN-W302, once.
+  RoadNetworkData longer = MakeValid();
+  ParamPoly3 bent;
+  bent.bU = 1.0;
+  bent.cV = 0.2;
+  bent.pRange = ParamRange::ArcLength;
+  setPoly(longer, bent);
+  warnings.clear();
+  const auto failure = Validate(longer, &warnings);
+  Check(!failure, "a long paramPoly3 is valid" + (failure ? ": " + failure->message : std::string()));
+  Check(warnings.size() == 1 && warnings[0].code == "RN-W302" && warnings[0].count == 1 &&
+            warnings[0].message.rfind("[RN-W302] ", 0) == 0 &&
+            warnings[0].message.find("road \"2\" plan-view segment 0") != std::string::npos,
+      "a long paramPoly3 raises one RN-W302" + (warnings.empty() ? std::string() : ": " + warnings[0].message));
+  // Within 1% it is not counted.
+  RoadNetworkData close = MakeValid();
+  bent.cV = 0.02;
+  setPoly(close, bent);
+  warnings.clear();
+  Check(!Validate(close, &warnings) && warnings.empty(), "a paramPoly3 within 1% of its length is not counted");
+}
+
+// RN-E308 and RN-W301 on spirals and paramPoly3 (ADR 0010 section 8).
+void TestCurveFold() {
+  const auto addLeftLane = [](RoadNetworkData& d, CubicRecord width, bool outer) {
+    Lane lane = MakeLane(1);
+    lane.width.records = {width};
+    std::vector<Lane>& lanes = d.roads[0].sections[1].lanes;
+    lanes.insert(lanes.begin(), lane);
+    if (outer) {
+      lanes.insert(lanes.begin(), MakeLane(2, 1.0));
+    }
+  };
+  // Section 1 of road "1" on a spiral from 0.15 to 0.05 1/m. The border
+  // 5 + 2 d - 0.2 d^2 reaches t * kappa = 1.08 at d = 4 but is 0.75 and
+  // 0.25 at the ends: the exact maximum of the quartic finds it.
+  const auto spiral = [&](RoadNetworkData& d, bool outer) {
+    d.roads[0].referenceLine.segments[1].shape = Spiral{0.15, 0.05};
+    addLeftLane(d, CubicRecord{0.0, 5.0, 2.0, -0.2, 0.0}, outer);
+  };
+  ExpectCode("RN-E308", "an inner border that folds inside a spiral", [&](RoadNetworkData& d) { spiral(d, true); });
+  RoadNetworkData outermost = MakeValid();
+  spiral(outermost, false);
+  ExpectFoldWarning(outermost, 1, "lane 1 border", "an outermost border that folds inside a spiral");
+  RoadNetworkData clear = MakeValid();
+  clear.roads[0].referenceLine.segments[1].shape = Spiral{0.15, 0.05};
+  addLeftLane(clear, CubicRecord{0.0, 4.0, 1.0, -0.1, 0.0}, true);
+  ExpectValid(clear, "a spiral whose inner borders stay short of the center");
+
+  // Section 1 on a normalized paramPoly3 u = 10 p, v = 5 p^2, whose
+  // curvature 0.1 at its start falls along it. Its segment length is its
+  // curve length, so RN-W302 is not raised.
+  const auto poly = [&](RoadNetworkData& d, double width, bool outer) {
+    ParamPoly3 c;
+    c.bU = 10.0;
+    c.cV = 5.0;
+    PlanViewSegment& segment = d.roads[0].referenceLine.segments[1];
+    segment.shape = c;
+    segment.length = CurveLength(segment);
+    d.roads[0].length = 10.0 + segment.length;
+    addLeftLane(d, CubicRecord{0.0, width, 0.0, 0.0, 0.0}, outer);
+  };
+  ExpectCode("RN-E308", "an inner border that folds inside a paramPoly3",
+      [&](RoadNetworkData& d) { poly(d, 10.5, true); });
+  RoadNetworkData polyOuter = MakeValid();
+  poly(polyOuter, 10.5, false);
+  ExpectFoldWarning(polyOuter, 1, "lane 1 border", "an outermost border that folds inside a paramPoly3");
+  RoadNetworkData polyClear = MakeValid();
+  poly(polyClear, 9.5, true);
+  ExpectValid(polyClear, "a paramPoly3 whose inner borders stay short of the center");
+}
+
 void TestArcEnd() {
   // The arc of road "1" turns by 1 rad over 10 m. The next segment, placed
   // at its closed-form end (x0 + sin(1)/kappa, y0 + (1 - cos(1))/kappa), is
@@ -426,6 +538,8 @@ int main() {
   TestLaneStructure();
   TestNumeric();
   TestFold();
+  TestCurves();
+  TestCurveFold();
   TestArcEnd();
   TestOrder();
   TestCanonicalLaneLinks();

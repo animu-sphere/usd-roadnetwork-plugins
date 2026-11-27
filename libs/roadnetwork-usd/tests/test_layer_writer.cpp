@@ -419,6 +419,10 @@ void CheckRoad(const SdfLayerRefPtr& layer) {
     const std::string path = std::string(road) + ".roadnetwork:referenceLine:" + suffix;
     Check(Value<VtDoubleArray>(layer, path.c_str()).has_value(), path + " is authored");
   }
+  for (const char* suffix : {"curvatureEnd", "aU", "dV", "pRange"}) {
+    const std::string path = std::string(road) + ".roadnetwork:referenceLine:" + suffix;
+    Check(!Has(layer, path.c_str()), path + " is not authored for lines and arcs");
+  }
 
   // Profiles: five parallel arrays; absent ones are not authored.
   Check(Value<VtDoubleArray>(layer, "/Asset/Network/Roads/road_1.roadnetwork:elevation:a") ==
@@ -641,6 +645,77 @@ void CheckNetwork() {
   CheckVisualization(layer, data);
 }
 
+void CheckCurveShapes() {
+  // ADR 0010 section 5: a road with a spiral and paramPoly3 segments gains
+  // :curvatureEnd, the eight coefficients, and :pRange; a road of lines and
+  // arcs (CheckRoad) authors none of them.
+  rn::RoadNetworkData data;
+  data.source.format = "opendrive";
+  data.source.versionMajor = 1;
+  data.source.versionMinor = 8;
+  rn::Road road = MakeLineRoad("c", 0.0, 0.0, 10.0);
+  rn::ParamPoly3 unstated;
+  unstated.bU = 28.8;
+  unstated.cU = -14.4;
+  unstated.cV = -14.4;
+  rn::ParamPoly3 arcLength;
+  arcLength.aU = 0.5;
+  arcLength.bU = 1.0;
+  arcLength.dU = -0.0001;
+  arcLength.aV = -0.25;
+  arcLength.bV = 0.125;
+  arcLength.cV = 0.01;
+  arcLength.dV = 0.0002;
+  arcLength.pRange = rn::ParamRange::ArcLength;
+  road.referenceLine.segments = {
+      rn::PlanViewSegment{0.0, 0.0, 0.0, 0.0, 10.0, rn::Line{}},
+      rn::PlanViewSegment{10.0, 10.0, 0.0, 0.0, 20.0, rn::Spiral{0.0, 0.02}},
+      rn::PlanViewSegment{30.0, 1.0, 2.0, 0.3, 5.0, rn::Arc{0.02}},
+      rn::PlanViewSegment{35.0, 3.0, 4.0, 0.4, 23.35459442, unstated},
+      rn::PlanViewSegment{58.35459442, 5.0, 6.0, 0.5, 10.0, arcLength},
+  };
+  road.length = 68.35459442;
+  data.roads.push_back(road);
+  SdfLayerRefPtr layer = SdfLayer::CreateAnonymous("curves.usda");
+  Check(Write(data, layer), "the curve road is written");
+
+  const auto doubles = [&](const char* suffix) {
+    const std::string path = std::string("/Asset/Network/Roads/road_c.roadnetwork:referenceLine:") + suffix;
+    return Value<VtDoubleArray>(layer, path.c_str());
+  };
+  Check(Value<VtTokenArray>(layer, "/Asset/Network/Roads/road_c.roadnetwork:referenceLine:kind") ==
+            (VtTokenArray{TfToken("line"), TfToken("spiral"), TfToken("arc"), TfToken("paramPoly3"),
+                TfToken("paramPoly3")}),
+      "curve kinds");
+  Check(doubles("curvature") == (VtDoubleArray{0.0, 0.0, 0.02, 0.0, 0.0}),
+      "curvature: curvStart for a spiral, 0 for a paramPoly3");
+  Check(doubles("curvatureEnd") == (VtDoubleArray{0.0, 0.02, 0.02, 0.0, 0.0}),
+      "curvatureEnd: curvEnd for a spiral, the curvature for a line or arc, 0 for a paramPoly3");
+  Check(doubles("aU") == (VtDoubleArray{0.0, 0.0, 0.0, 0.0, 0.5}), "aU");
+  Check(doubles("bU") == (VtDoubleArray{0.0, 0.0, 0.0, 28.8, 1.0}), "bU");
+  Check(doubles("cU") == (VtDoubleArray{0.0, 0.0, 0.0, -14.4, 0.0}), "cU");
+  Check(doubles("dU") == (VtDoubleArray{0.0, 0.0, 0.0, 0.0, -0.0001}), "dU");
+  Check(doubles("aV") == (VtDoubleArray{0.0, 0.0, 0.0, 0.0, -0.25}), "aV");
+  Check(doubles("bV") == (VtDoubleArray{0.0, 0.0, 0.0, 0.0, 0.125}), "bV");
+  Check(doubles("cV") == (VtDoubleArray{0.0, 0.0, 0.0, -14.4, 0.01}), "cV");
+  Check(doubles("dV") == (VtDoubleArray{0.0, 0.0, 0.0, 0.0, 0.0002}), "dV");
+  Check(Value<VtTokenArray>(layer, "/Asset/Network/Roads/road_c.roadnetwork:referenceLine:pRange") ==
+            (VtTokenArray{TfToken(""), TfToken(""), TfToken(""), TfToken("unstated"), TfToken("arcLength")}),
+      "pRange: unstated keeps the omission visible");
+
+  // A spiral without a paramPoly3 authors :curvatureEnd only.
+  rn::RoadNetworkData spiralOnly = data;
+  spiralOnly.roads[0].referenceLine.segments.resize(3);
+  spiralOnly.roads[0].length = 35.0;
+  SdfLayerRefPtr spiralLayer = SdfLayer::CreateAnonymous("spiral.usda");
+  Check(Write(spiralOnly, spiralLayer), "the spiral road is written");
+  Check(Has(spiralLayer, "/Asset/Network/Roads/road_c.roadnetwork:referenceLine:curvatureEnd"),
+      "a spiral road authors curvatureEnd");
+  Check(!Has(spiralLayer, "/Asset/Network/Roads/road_c.roadnetwork:referenceLine:bU") &&
+            !Has(spiralLayer, "/Asset/Network/Roads/road_c.roadnetwork:referenceLine:pRange"),
+      "a road without a paramPoly3 authors no coefficients");
+}
+
 void CheckOriginShift() {
   // ADR 0003 section 5 at UTM scale: a 1,024 m multiple near the center of
   // the bounds, authored in double, and float points that reconstruct the
@@ -756,6 +831,7 @@ int main() {
   CheckNetwork();
   CheckSortedLaneTargets();
   CheckOriginShift();
+  CheckCurveShapes();
   CheckFailureLeavesLayerUnchanged();
   CheckDeterminismAndChangeBlock();
   if (failures == 0) {

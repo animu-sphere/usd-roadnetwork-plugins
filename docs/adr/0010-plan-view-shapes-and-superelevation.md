@@ -150,7 +150,12 @@ and its position is `(x0, y0)` plus the rotation by `h0` of
   reach 0.44% (FMT-02 §4.4); 1% flags a curve whose stations along `s` are
   no longer close to distances, such as the 48% test file.
 - A tangent that vanishes inside `[0, p_max]` (`u' = v' = 0`, a cusp)
-  leaves the heading undefined and is the error `RN-E310`.
+  leaves the heading undefined and is the error `RN-E310`. The check takes
+  the exact minimum of the quartic `u'² + v'²` on the range, and a curve
+  that moves less than 1e-6 m per metre of `s` there
+  (`|r'(p)| · p_max / length < 1e-6`) counts as vanishing: so close to a
+  cusp the heading turns by nearly π within micrometres, which no road
+  intends.
 - **Bound:** the evaluation is closed form; position within 1e-9 m and
   heading within 1e-12 rad of the exact values at the coordinates of §6.
 
@@ -220,6 +225,14 @@ with these additions. `ε` stays 0.01 m.
   part meets `E_plan + E_cubic + E_super ≤ ε`. For a spiral or a
   `paramPoly3` the bound is checked per part, because it is not a closed
   function of `n`.
+- The bound limits the distance from the curve to the chord of each part,
+  which is what `ε` means. The point at the middle `s` of a part can also
+  move along the chord: on a spiral by up to `h²/8 · |t| · |κ̇|` when a
+  border is offset by `t`, and on a `paramPoly3`, whose `s` is not the
+  distance, by the change of its speed. Neither moves the polyline away from
+  the curve, so the evidence measures the distance to the chord, not the
+  distance between the chord's midpoint and the point at the middle `s`
+  that the ADR 0004 evidence used for lines and arcs (GEO-02, below).
 
 ### 5. IR and stage
 
@@ -338,11 +351,13 @@ pull request that implements them.
 ## Evidence needed before acceptance
 
 - GEO-02 runs §1 and §2 in C++ in `roadnetwork-core` and meets the golden
-  values of §6 within the stated tolerances, including S2, S3, and S4.
+  values of §6 within the stated tolerances, including S2, S3, and S4. Met
+  in GEO-02 (below).
 - GEO-02 or XS-01 samples a hand-authored road with a spiral, a
   `paramPoly3` with an inflection, and a varying superelevation, and every
-  border and centerline stays within `ε` of the analytic curve at the
-  midpoint of every interval, as ADR 0004's evidence did for lines and arcs.
+  border and centerline stays within `ε` of the analytic curve inside every
+  interval (§4). GEO-02 did so without superelevation (below); XS-01 adds
+  it.
 - For §7: the number of networks in the FMT-02 corpus that would raise each
   continuity warning, and the largest jump of each kind, so that the
   tolerances are set from data.
@@ -359,3 +374,44 @@ Gathered in the [ADR 0010 probes](../reports/adr-0010-probes-2026-11-24.md):
   borders;
 - §6: the specification text on superelevation, `level`, and `pRange`;
 - §7: the golden values of §6.
+
+Gathered in GEO-02, in `roadnetwork-core`
+([`Geometry.h`](../../libs/roadnetwork-core/include/openstrata/rn/Geometry.h),
+[`Tessellation.h`](../../libs/roadnetwork-core/include/openstrata/rn/Tessellation.h)),
+built with MSVC in Release on Windows 11:
+
+- `roadnetworkCore_geometry` evaluates every case of §6 within 7.1e-14 m
+  and 8.9e-16 rad, S2, S3, S4, and the UTM-scale S6 included, so the bound
+  of §1 holds in C++ with a margin above 10⁴. The curve lengths of P1, P2,
+  and the P2 variant agree within 1e-9 m. A spiral with equal end
+  curvatures agrees with the arc of that curvature within 1e-9 m, a
+  zero-curvature spiral is a line, and an absent `pRange` evaluates exactly
+  as `normalized`.
+- `roadnetworkCore_tessellation` samples a hand-authored 210 m road at
+  UTM-scale coordinates with a line, a spiral into an arc, a spiral whose
+  curvature changes sign, a normalized `paramPoly3` with an inflection, and
+  a `paramPoly3` that turns by 117° while its speed grows by √5, in two
+  lane sections with non-zero `b`, `c`, `d` terms in the lane offset, the
+  elevation, and the widths. At seven points inside every interval, every
+  border and centerline stays within `ε` of the chord: at most 9.42 mm at
+  `ε = 1 cm` (150 stations) and 0.960 mm at `ε = 1 mm` (459 stations). The
+  ADR 0004 midpoint measure reaches 10.5 mm at `ε = 1 cm`, on the spiral
+  whose curvature changes sign, from the along-chord term of §4. The zero
+  of the spiral's curvature and the inflection are stations, and a
+  straight spiral or `paramPoly3` with constant widths needs one part.
+- `roadnetworkCore_validation` raises `RN-E310` for a tangent that vanishes
+  at the start and inside the range, `RN-W302` once for a curve 30% longer
+  than its segment and not for one 0.65% longer, and `RN-E308` and
+  `RN-W301` for borders that fold inside a spiral, only between two
+  stations (the exact maximum of the quartic), and inside a `paramPoly3`.
+
+Gathered in GEO-02, in the `roadnetwork-opendrive` decoder and
+`roadnetwork-usd`:
+
+- `decoder/plan-view-curves.xodr` holds S1, P1 without `pRange`, and P2 as
+  roads; each decodes, validates without a warning, and ends at its §6
+  value. The P2 variant of §6 posts one `RN-W302`; `decoder/poly3.xodr`
+  fails with `ODR-E201`.
+- `roadnetworkUsd_layer_writer` authors the §5 arrays for a road with every
+  shape, and none of them for a road of lines and arcs; the Phase 1 golden
+  layer is unchanged.

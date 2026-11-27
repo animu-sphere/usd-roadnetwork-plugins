@@ -43,6 +43,27 @@ struct Extremum {
 /// The largest value of `p` on [0, length], and where it is reached.
 Extremum Maximum(const Poly3& p, double length) noexcept;
 
+/// `c[0] + c[1] x + ... + c[4] x^4`.
+struct Poly4 {
+  double c[5] = {};
+
+  double Value(double x) const noexcept;
+  Poly4 Derivative() const noexcept;
+};
+
+/// `p(x) * (a + b x)`.
+Poly4 Product(const Poly3& p, double a, double b) noexcept;
+
+/// The largest value of `p` on [0, length], and where it is reached; the
+/// critical points are found by bisection between those of the derivative.
+Extremum Maximum(const Poly4& p, double length) noexcept;
+
+/// The distances from the segment start, ascending and inside the segment,
+/// where its curvature changes sign: the zero of a spiral's curvature, and
+/// the inflections of a ParamPoly3, where `u'v'' - v'u''` changes sign
+/// (ADR 0010 section 4). Empty for lines and arcs.
+std::vector<double> CurvatureSignChanges(const PlanViewSegment& segment);
+
 /// The record `r` as a polynomial in `x`, where the record's own variable is
 /// `d = x + delta`.
 Poly3 Shift(const CubicRecord& r, double delta) noexcept;
@@ -70,5 +91,11 @@ struct Interval {
 /// records are chosen at the interval midpoint, so rounding at a station
 /// cannot select the neighbouring record.
 Interval MakeInterval(const Road& road, std::size_t sectionIndex, double s0, double s1);
+
+/// The fewest equal parts of `interval` for which every part meets the
+/// error bound of ADR 0004 section 3 and ADR 0010 section 4 within
+/// `tolerance`. The tessellator samples at the part ends, and validation
+/// checks a ParamPoly3 fold at the part ends and midpoints.
+std::size_t PartsFor(const Road& road, const Interval& interval, double tolerance);
 
 } // namespace openstrata::rn::detail

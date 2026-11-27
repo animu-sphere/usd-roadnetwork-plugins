@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <optional>
@@ -108,6 +109,72 @@ void SetRelationship(const SdfPrimSpecHandle& prim, const char* name, const SdfP
 void SetOptionalString(const SdfPrimSpecHandle& prim, const char* name, const std::string& value) {
   if (!value.empty()) {
     SetAttribute(prim, name, SdfValueTypeNames->String, value);
+  }
+}
+
+/// The reference-line arrays, one entry per segment (ADR 0002 section 3,
+/// ADR 0010 section 5). `:curvatureEnd` is authored only for a road with a
+/// spiral, and the paramPoly3 coefficients and `:pRange` only for a road
+/// with a paramPoly3, so a road of lines and arcs is authored as in Phase 1.
+void AuthorReferenceLine(const SdfPrimSpecHandle& prim, const ReferenceLine& line) {
+  VtTokenArray kind, pRange;
+  VtDoubleArray s, x, y, hdg, length, curvature, curvatureEnd;
+  VtDoubleArray coefficients[8];
+  bool hasSpiral = false;
+  bool hasParamPoly3 = false;
+  for (const PlanViewSegment& segment : line.segments) {
+    s.push_back(segment.s);
+    x.push_back(segment.x);
+    y.push_back(segment.y);
+    hdg.push_back(segment.hdg);
+    length.push_back(segment.length);
+    double start = 0.0;
+    double end = 0.0;
+    double c[8] = {};
+    const char* range = "";
+    if (const Arc* arc = std::get_if<Arc>(&segment.shape)) {
+      kind.push_back(Token("arc"));
+      start = end = arc->curvature;
+    } else if (const Spiral* spiral = std::get_if<Spiral>(&segment.shape)) {
+      kind.push_back(Token("spiral"));
+      start = spiral->curvatureStart;
+      end = spiral->curvatureEnd;
+      hasSpiral = true;
+    } else if (const ParamPoly3* p = std::get_if<ParamPoly3>(&segment.shape)) {
+      kind.push_back(Token("paramPoly3"));
+      const double values[8] = {p->aU, p->bU, p->cU, p->dU, p->aV, p->bV, p->cV, p->dV};
+      std::copy(std::begin(values), std::end(values), std::begin(c));
+      range = !p->pRange ? "unstated" : *p->pRange == ParamRange::ArcLength ? "arcLength" : "normalized";
+      hasParamPoly3 = true;
+    } else {
+      kind.push_back(Token("line"));
+    }
+    curvature.push_back(start);
+    curvatureEnd.push_back(end);
+    for (int i = 0; i < 8; ++i) {
+      coefficients[i].push_back(c[i]);
+    }
+    pRange.push_back(Token(range));
+  }
+  const SdfValueTypeName& doubles = SdfValueTypeNames->DoubleArray;
+  SetAttribute(prim, "roadnetwork:referenceLine:kind", SdfValueTypeNames->TokenArray, kind);
+  SetAttribute(prim, "roadnetwork:referenceLine:s", doubles, s);
+  SetAttribute(prim, "roadnetwork:referenceLine:x", doubles, x);
+  SetAttribute(prim, "roadnetwork:referenceLine:y", doubles, y);
+  SetAttribute(prim, "roadnetwork:referenceLine:hdg", doubles, hdg);
+  SetAttribute(prim, "roadnetwork:referenceLine:length", doubles, length);
+  SetAttribute(prim, "roadnetwork:referenceLine:curvature", doubles, curvature);
+  if (hasSpiral) {
+    SetAttribute(prim, "roadnetwork:referenceLine:curvatureEnd", doubles, curvatureEnd);
+  }
+  if (hasParamPoly3) {
+    const char* const names[8] = {"roadnetwork:referenceLine:aU", "roadnetwork:referenceLine:bU",
+        "roadnetwork:referenceLine:cU", "roadnetwork:referenceLine:dU", "roadnetwork:referenceLine:aV",
+        "roadnetwork:referenceLine:bV", "roadnetwork:referenceLine:cV", "roadnetwork:referenceLine:dV"};
+    for (int i = 0; i < 8; ++i) {
+      SetAttribute(prim, names[i], doubles, coefficients[i]);
+    }
+    SetAttribute(prim, "roadnetwork:referenceLine:pRange", SdfValueTypeNames->TokenArray, pRange);
   }
 }
 
@@ -341,27 +408,9 @@ private:
         road.predecessor);
     AuthorRoadLink(prim, "roadnetwork:successor", "roadnetwork:successorContact", road.successor);
 
-    VtTokenArray kind;
-    VtDoubleArray s, x, y, hdg, length, curvature;
-    for (const PlanViewSegment& segment : road.referenceLine.segments) {
-      const Arc* arc = std::get_if<Arc>(&segment.shape);
-      kind.push_back(Token(arc ? "arc" : "line"));
-      s.push_back(segment.s);
-      x.push_back(segment.x);
-      y.push_back(segment.y);
-      hdg.push_back(segment.hdg);
-      length.push_back(segment.length);
-      curvature.push_back(arc ? arc->curvature : 0.0);
-    }
-    const SdfValueTypeName& doubles = SdfValueTypeNames->DoubleArray;
-    SetAttribute(prim, "roadnetwork:referenceLine:kind", SdfValueTypeNames->TokenArray, kind);
-    SetAttribute(prim, "roadnetwork:referenceLine:s", doubles, s);
-    SetAttribute(prim, "roadnetwork:referenceLine:x", doubles, x);
-    SetAttribute(prim, "roadnetwork:referenceLine:y", doubles, y);
-    SetAttribute(prim, "roadnetwork:referenceLine:hdg", doubles, hdg);
-    SetAttribute(prim, "roadnetwork:referenceLine:length", doubles, length);
-    SetAttribute(prim, "roadnetwork:referenceLine:curvature", doubles, curvature);
+    AuthorReferenceLine(prim, road.referenceLine);
 
+    const SdfValueTypeName& doubles = SdfValueTypeNames->DoubleArray;
     SetCubic(prim, "roadnetwork:elevation", "s", road.elevation);
     SetCubic(prim, "roadnetwork:laneOffset", "s", road.laneOffset);
     if (!road.speeds.empty()) {

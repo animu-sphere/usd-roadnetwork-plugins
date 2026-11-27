@@ -40,7 +40,8 @@ usd:
   # Where this bundle's plugInfo.json lives, relative to the bundle root.
   plug_info: plugin/resources/roadnetwork-opendrive/plugInfo.json
 tests:
-  smoke: [tests/fixtures/basic.xodr, tests/fixtures/decoder/network.xodr, tests/fixtures/writer/projected.xodr]
+  smoke: [tests/fixtures/basic.xodr, tests/fixtures/decoder/network.xodr, tests/fixtures/decoder/plan-view-curves.xodr,
+    tests/fixtures/writer/projected.xodr]
   roundtrip: [tests/fixtures/basic.xodr]
   # Each must fail to open with its ODR- or RN- code
   # (docs/reference/DIAGNOSTICS.md).
@@ -60,7 +61,7 @@ tests:
     - tests/fixtures/decoder/lane-link-without-road-link.xodr
     - tests/fixtures/decoder/lane-link-into-junction.xodr
     - tests/fixtures/decoder/connection-unresolved.xodr
-    - tests/fixtures/decoder/spiral.xodr
+    - tests/fixtures/decoder/poly3.xodr
     - tests/fixtures/decoder/superelevation.xodr
     - tests/fixtures/decoder/lane-border.xodr
     - tests/fixtures/decoder/direct-junction.xodr

@@ -35,6 +35,7 @@ BASIC = FIXTURES / "basic.xodr"
 READER = FIXTURES / "reader"
 DECODER = FIXTURES / "decoder"
 NETWORK = DECODER / "network.xodr"
+CURVES = DECODER / "plan-view-curves.xodr"
 PROJECTED = FIXTURES / "writer" / "projected.xodr"
 
 # The fixtures each code is proven by (DIAGNOSTICS.md), and whether CanRead()
@@ -61,7 +62,7 @@ CONTENT_REJECTED = [(DECODER / f"{name}.xodr", code) for name, code in [
     ("lane-link-without-road-link", "ODR-E102"),
     ("lane-link-into-junction", "ODR-E103"),
     ("connection-unresolved", "ODR-E104"),
-    ("spiral", "ODR-E201"),
+    ("poly3", "ODR-E201"),
     ("superelevation", "ODR-E202"),
     ("lane-border", "ODR-E203"),
     ("direct-junction", "ODR-E204"),
@@ -74,7 +75,7 @@ CONTENT_REJECTED = [(DECODER / f"{name}.xodr", code) for name, code in [
     ("plan-view-gap", "RN-E305"),
     ("inner-border", "RN-E308"),
 ]]
-ACCEPTED = [BASIC, NETWORK, PROJECTED, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
+ACCEPTED = [BASIC, NETWORK, PROJECTED, CURVES, READER / "prologue-bom.xodr", READER / "prologue-doctype.xodr",
             FIXTURES / "carla" / "Town01.xodr", FIXTURES / "carla" / "Town02.xodr"]
 SNIFF_BYTES = 64 * 1024
 
@@ -323,6 +324,7 @@ def check_warnings(tmp):
                           "ODR-W206", "ODR-W207"]),
         (NETWORK, True, ["ODR-W204"]),
         (BASIC, False, []),
+        (CURVES, False, []),
         (FIXTURES / "carla" / "Town01.xodr", False, ["ODR-W201", "ODR-W204", "ODR-W207", "RN-W301"]),
         (FIXTURES / "carla" / "Town02.xodr", False, ["ODR-W201", "ODR-W204", "ODR-W207", "RN-W301"]),
     ]
@@ -330,10 +332,15 @@ def check_warnings(tmp):
         posted = posted_warnings(path, metadata_only)
         check(posted == expected,
               f"{'metadata-only ' if metadata_only else ''}{path.name} posted {posted}, expected {expected}")
-    # The same network with a spiral fails, and posts its error only.
-    failing = write_variant(tmp / "network-spiral.xodr", NETWORK.read_text(encoding="utf-8").replace(
-        '<arc curvature="0.02"/>', '<spiral curvStart="0.0" curvEnd="0.02"/>', 1))
-    check_rejected(failing, "ODR-E201", "the network with a spiral")
+    # A paramPoly3 17% shorter than its segment is a counted warning
+    # (ADR 0010 section 6).
+    short = write_variant(tmp / "curves-short.xodr", CURVES.read_text(encoding="utf-8").replace(
+        'dU="-0.0001"', 'dU="-0.002"', 1).replace('dV="0.0002"', 'dV="0.0005"', 1))
+    check(posted_warnings(short) == ["RN-W302"], f"{short.name} posted {posted_warnings(short)}")
+    # The same network with a poly3 fails, and posts its error only.
+    failing = write_variant(tmp / "network-poly3.xodr", NETWORK.read_text(encoding="utf-8").replace(
+        '<arc curvature="0.02"/>', '<poly3 a="0.0" b="0.0" c="0.0001" d="0.0"/>', 1))
+    check_rejected(failing, "ODR-E201", "the network with a poly3")
     check(posted_warnings(failing) == [], "a failed read posted warnings")
 
 
